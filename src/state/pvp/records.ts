@@ -1,11 +1,16 @@
-// The two things a room writes about a PERSON rather than about a room: their record, and
-// a report of somebody's name.
+// The one thing a room reads about a PERSON rather than about a room: their record.
 //
-// Wave 8 of docs/pvp-plan.md. Both go straight to the account server rather than through
+// Wave 8 of docs/pvp-plan.md. It goes straight to the account server rather than through
 // the referee, and that is the plan's own split rather than a shortcut: `pvp_records` is a
-// `security_invoker` VIEW with `select` granted to `authenticated`, and `pvp_name_reports`
-// is the one table the client may `insert` into (migration 0016). The referee is the only
-// writer of rooms; neither of these is a room.
+// `security_invoker` VIEW with `select` granted to `authenticated`. The referee is the only
+// writer of rooms; a record is not a room.
+//
+// THE CLIENT NOW WRITES NOTHING AT ALL HERE (2026-09-02). It used to file a report about
+// somebody's display name, which was the other half of this file and the only table the
+// browser could insert into anywhere in the game. Reporting is gone: the host throwing
+// somebody out of the room is the whole answer to a name or a person you want nothing to
+// do with, and it acts at once instead of waiting for the owner to read a queue by hand.
+// Migration 0026 drops the table behind it, so do not reinstate the insert without it.
 //
 // A RECORD IS DERIVED, NEVER INCREMENTED (P36). It is a view over `pvp_matches`, so a
 // retried write cannot corrupt it and a ladder later reads the same corpus. That is also
@@ -56,36 +61,5 @@ export async function myRecord(): Promise<PvpRecord> {
             : NO_RECORD;
     } catch {
         return NO_RECORD;
-    }
-}
-
-/** What happened to a report. `already` is not a failure: one report per person per target
- *  is a unique index (P22 - a report button is not a vote), so pressing it twice is a
- *  no-op that should read as "yes, we have it". */
-export type ReportOutcome = 'sent' | 'already' | 'failed';
-
-/**
- * Report a display name (P22).
- *
- * NO WORD FILTER AND NO AUTOMATIC ACTION. The owner reads these and renames or removes an
- * account by hand, which is the right amount of machinery for a game this size, and it is
- * why the only thing sent is who and by whom: there is no category to choose and no free
- * text to write, because neither would change what happens next.
- */
-export async function reportName(reportedId: string): Promise<ReportOutcome> {
-    try {
-        const { supabase } = await import('../auth');
-        const client = supabase();
-        const { data } = await client.auth.getSession();
-        const id = data.session?.user?.id;
-        if (!id || id === reportedId) return 'failed';
-        const { error } = await client
-            .from('pvp_name_reports')
-            .insert({ reporter_id: id, reported_id: reportedId });
-        if (!error) return 'sent';
-        // 23505 is the unique index doing its job.
-        return error.code === '23505' ? 'already' : 'failed';
-    } catch {
-        return 'failed';
     }
 }

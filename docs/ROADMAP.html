@@ -348,6 +348,76 @@
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
 
+<details class="item">
+  <summary>
+    <span class="num">57</span>
+    <span class="title">Apply 0026, which drops the name-reports table
+      <span class="sub">Reporting a display name is <b>gone from the game</b> as of 2026-09-02:
+      the flag on the seat row, the client's insert and every mention of it. The host throwing
+      somebody out (item 55) is the whole answer now. What is left is one migration to run by
+      hand, <b>and it deletes the reports already filed</b> - read them out first if the
+      history is wanted. No referee rebuild either way.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Why the feature went.</strong> Asked for in chat: "remove the whole reporting
+    functionality, throwing people out of rooms by the room admin/creator is sufficient." It
+    was P22's answer to a name somebody should not have, and it was decided when the host
+    could do nothing at all about another player. Once item 55 shipped, the removal is better
+    by every measure that matters: it is immediate, it is the decision of the person who
+    opened the room, it happens in the room where the problem actually is, and it needs nobody
+    to read a queue by hand. The report needed the owner to run psql, and meanwhile said
+    "Reported" while nothing happened.</p>
+
+    <p><strong>What was reported from the game and is worth keeping as the reason.</strong>
+    A player was reported, thrown out, and rejoined a fresh room with no mark on them - the
+    expectation being that the flag would follow the person. It never could: the word
+    "Reported" was screen state on that seat row, and the table had no read permission at all
+    by design, so nothing in the game could ever look a report up again. The feature could
+    have been finished (a read policy for your own rows, a quiet mark visible only to the
+    reporter) or removed, and removed is the call.</p>
+
+    <p><strong>What has already shipped</strong> (pushed to <code>main</code>): the flag and
+    its inline confirm are gone from the seat rows, <code>reportName</code> and
+    <code>ReportOutcome</code> are gone from <code>state/pvp/records.ts</code> - which now
+    only reads a record and writes nothing at all - and the note in
+    <code>domain/displayName.ts</code> that named the report as the answer to look-alike names
+    points at the host instead. P22 and the wave-8 findings in <code>docs/pvp-plan.md</code>
+    carry the amendment.</p>
+
+    <p><strong>What is left, and it is one command.</strong>
+    <code>npm run push:sql -- supabase/migrations/0026_drop_name_reports.sql</code>, from a
+    machine with <code>dkr/.env</code> - it goes over HTTPS to the public name, so it does not
+    need the home network the way a container rebuild does.</p>
+    <ul>
+      <li><b>THE ROWS CANNOT BE RECOVERED.</b> Nothing else holds a copy, so read them out
+      first if they are wanted:
+      <code>npm run push:sql -- --query "select r.created_at, p.display_name as reported, q.display_name as reporter from pvp_name_reports r join profiles p on p.id = r.reported_id join profiles q on q.id = r.reporter_id order by r.created_at desc"</code></li>
+      <li><b>The client goes first, and that is the reverse of the standing order</b> - the
+      0022 lesson rather than a new one. "Schema before container" holds because an old writer
+      never writes a NEW thing, and here the writer is the browser and the thing is going
+      away. It is already deployed, so this is simply the order that has happened.</li>
+      <li><b>No referee rebuild, in either direction.</b> It holds grants and a policy on the
+      table and has never named it in any statement - checked both ways, since "nothing reads
+      it" is not "nothing writes it". <code>drop table</code> takes the policies, the grants
+      and the owned sequence with it.</li>
+      <li><b>It also closes the client's only write path into a table anywhere in the game.</b>
+      This was the one <code>grant insert ... to authenticated</code> in the schema, and while
+      it stands anybody with an account and the public key can add rows to it, unbounded and
+      read by nobody. That is the second reason to drop the table rather than only deleting
+      the button.</li>
+    </ul>
+    <p><strong>How to know it worked:</strong>
+    <code>select 1 from pvp_name_reports limit 1;</code> fails with "relation does not exist",
+    <code>pg_policies</code> holds no row for it, and a seat row in a real room shows the
+    host's remove icon with no flag beside it. The file's own header carries the full list and
+    a rollback block that restores the shape but not the rows.</p>
+    <p class="files"><a class="dl" href="../supabase/migrations/0026_drop_name_reports.sql" target="_blank" rel="noopener">supabase/migrations/0026_drop_name_reports.sql</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/state/pvp/records.ts" target="_blank" rel="noopener">src/state/pvp/records.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/versus/versusUi.tsx" target="_blank" rel="noopener">src/components/versus/versusUi.tsx</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/versus/RoomLobby.tsx" target="_blank" rel="noopener">src/components/versus/RoomLobby.tsx</a>, <a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a> (P22)</p>
+  </div>
+</details>
+
 
 
 

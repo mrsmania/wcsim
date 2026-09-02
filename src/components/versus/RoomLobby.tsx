@@ -21,7 +21,6 @@ import {
     KickoffCountdown,
     ReadyMark,
     RemoveSeat,
-    ReportName,
     RoomNote,
     SeatRow,
 } from './versusUi';
@@ -267,19 +266,17 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                                 detail={
                                     <span className="flex items-center gap-2.5">
                                         <ReadyMark ready={m.ready} />
-                                        {/* Not for yourself, not for a seat the host
-                                            filled, and only in the lobby: this is where you
-                                            first read a STRANGER's name (P22), and a
-                                            practice opponent is not a stranger - it is
-                                            named by this build. */}
-                                        {!m.bot && m.userId !== view.you?.userId && (
-                                            <ReportName userId={m.userId} name={m.name} />
-                                        )}
-                                        {/* THE HOST'S ROOM IS THE HOST'S ROOM. Same three
-                                            exclusions as the report beside it and one
-                                            more: a practice opponent is a COUNT, so the
-                                            way to have fewer is the chips below, not a
-                                            row the count would then disagree with. */}
+                                        {/* THE HOST'S ROOM IS THE HOST'S ROOM, and this is
+                                            the only thing anybody does ABOUT another
+                                            person here - the report-this-name flag that
+                                            used to sit beside it went on 2026-09-02, the
+                                            host's removal being the whole answer now.
+                                            Four exclusions: not the host to themselves,
+                                            not for anybody but the host, only in the
+                                            lobby, and not a practice opponent, which is a
+                                            COUNT - the way to have fewer is the chips
+                                            below, not a row the count would then disagree
+                                            with. */}
                                         {isHost && !m.bot && m.userId !== view.hostId && (
                                             <RemoveSeat
                                                 name={m.name}

@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Bot, Check, Clock, Flag, Link2, Share2, UserMinus, UserPlus } from 'lucide-react';
-import { reportName, type ReportOutcome } from '../../state/pvp/records';
+import { Bot, Check, Clock, Link2, Share2, UserMinus, UserPlus } from 'lucide-react';
 import { inviteText } from '../../domain/pvpView';
 import type { MemberView } from '../../domain/pvpWire';
 import { CARD_FLAT, MONO_CAP, Meter, btn } from '../matchUi';
@@ -281,72 +280,21 @@ export function ReadyMark({ ready }: { ready: boolean }) {
 }
 
 /**
- * Report a display name (P22).
- *
- * NO WORD FILTER AND NO AUTOMATIC ACTION: the owner reads the reports and renames or
- * removes an account by hand, which is the right amount of machinery for a game this size.
- * So there is no category to pick and no text to write - the button IS the report, and it
- * confirms once before sending because a report about a person should not be one stray tap.
- *
- * Pressing it twice is not a failure. One report per person per target is a unique index,
- * because a report button is not a vote, so the second press reads as "yes, we have it".
- */
-export function ReportName({ userId, name }: { userId: string; name: string }) {
-    const [asking, setAsking] = useState(false);
-    const [done, setDone] = useState<ReportOutcome | null>(null);
-
-    if (done) {
-        return (
-            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-dim">
-                {done === 'failed' ? 'Not sent' : 'Reported'}
-            </span>
-        );
-    }
-    if (!asking) {
-        return (
-            <button
-                type="button"
-                aria-label={`Report the name ${name}`}
-                title="Report this name"
-                className="text-dim transition hover:text-loss"
-                onClick={() => setAsking(true)}
-            >
-                <Flag size={13} strokeWidth={2.5} />
-            </button>
-        );
-    }
-    return (
-        <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.1em]">
-            <button
-                type="button"
-                className="font-bold text-loss"
-                onClick={() => void reportName(userId).then(setDone)}
-            >
-                Report
-            </button>
-            <button type="button" className="text-dim" onClick={() => setAsking(false)}>
-                Cancel
-            </button>
-        </span>
-    );
-}
-
-/**
  * Throw somebody out, as the host.
  *
- * IT IS `ReportName`'S TWIN, deliberately: an icon on the seat row, an inline confirm, and
- * nothing else. Those are the only two things you ever do ABOUT another person in this
- * game, they sit on the same row inches apart, and giving them different shapes would make
- * the more serious of the two the easier to hit by accident.
+ * THE ONLY THING YOU EVER DO ABOUT ANOTHER PERSON IN THIS GAME, since 2026-09-02: there
+ * used to be a report-this-name flag beside it, and the host's removal replaced it (P22
+ * is answered by the host now, not by a queue the owner reads). So this is the whole of
+ * the answer to a name or a person you want nothing to do with, which is the reason it
+ * confirms rather than firing on one tap.
  *
  * IT CONFIRMS, and the confirm NAMES THEM. The rows are a phone-width list of near
  * identical lines, so "Remove" alone would be a stray tap away from throwing out the wrong
- * person - and unlike a report this cannot be taken back: the removal sticks, or the player
- * simply walks back in on their next read.
+ * person - and this cannot be taken back: the removal sticks, and there is no undo but
+ * sending them the link again.
  *
- * NO "REMOVED" STATE afterwards, which is where it stops being `ReportName`'s twin. A
- * report leaves the person sitting there, so the button has to say it was sent; a removal
- * takes the whole ROW away with it, and the seat is drawn empty by the next answer.
+ * NO "REMOVED" STATE afterwards. A removal takes the whole ROW away with it, and the seat
+ * is drawn empty by the next answer, so there is nothing left to caption.
  */
 export function RemoveSeat({ name, onRemove }: { name: string; onRemove: () => void }) {
     const [asking, setAsking] = useState(false);

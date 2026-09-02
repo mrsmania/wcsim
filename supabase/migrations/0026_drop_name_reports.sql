@@ -1,0 +1,85 @@
+-- 0026_drop_name_reports.sql
+--
+-- Reporting a display name is gone. The host throwing somebody out is the whole answer.
+--
+-- WHY. `pvp_name_reports` was P22's answer to a name somebody should not have: a flag on
+-- the seat row, one report per person per target, no word filter and no automatic action,
+-- read by the owner with psql and acted on by hand. It was decided before the host could
+-- do anything at all about another player. 0025 gave the host a removal that takes effect
+-- in about two seconds, in the room where the problem actually is, and that is a better
+-- answer to the same question by every measure that matters: it is immediate, it is the
+-- decision of the person who opened the room, and it needs nobody to read a queue. So the
+-- weaker half goes rather than sitting there implying that a tap does something.
+--
+-- WHAT IT DROPS
+--   * `pvp_name_reports`, and with it the `pvp_name_reports_insert` policy, the
+--     `pvp_name_reports_referee` policy, every grant on the table, and the sequence behind
+--     its `bigserial` primary key.
+--
+-- IT CLOSES THE CLIENT'S ONLY WRITE PATH INTO A TABLE, anywhere in the game. Every other
+-- write the browser makes goes through a `security definer` function or through the
+-- referee's own role; this was the one `grant insert ... to authenticated` in the schema,
+-- and an authenticated caller with the public key could add rows to it for as long as it
+-- exists, unbounded and read by nobody. That is the second reason to drop the table rather
+-- than merely deleting the button.
+--
+-- THE ROWS GO WITH IT AND THEY CANNOT BE RECOVERED. Read them out first if the history is
+-- wanted, since nothing else holds a copy:
+--   select r.created_at, p.display_name as reported, q.display_name as reporter
+--     from pvp_name_reports r
+--     join profiles p on p.id = r.reported_id
+--     join profiles q on q.id = r.reporter_id
+--    order by r.created_at desc;
+--
+-- ORDER: THE CLIENT FIRST, THEN THIS FILE, which is the REVERSE of the standing direction
+-- and is the 0022 lesson rather than a new one. "Schema before container" holds because an
+-- old writer never writes a NEW thing; it does not hold when the thing is going away. Here
+-- the writer is the BROWSER, so a deploy of the client that no longer files a report has to
+-- reach GitHub Pages before this runs. The cost of getting it the wrong way round is small
+-- and worth stating: a stale tab's report is refused and its button says "Not sent". The
+-- REFEREE needs no rebuild in either direction - it holds grants and a policy on this table
+-- and has never referenced it in any statement, which was checked both ways (nothing reads
+-- it, and nothing writes it) before this file was written.
+--
+-- HOW TO KNOW IT WORKED
+--   1. `select 1 from pvp_name_reports limit 1;` - fails with "relation does not exist".
+--   2. `select tablename, policyname from pg_policies where tablename = 'pvp_name_reports';`
+--      - no rows.
+--   3. `select relname from pg_class where relname = 'pvp_name_reports_id_seq';` - no rows.
+--   4. Open a room, have somebody else take the seat: the seat row carries the host's
+--      remove icon and no flag beside it.
+--   5. Remove them, and `select removed from pvp_rooms where code = '<CODE>';` still holds
+--      their id - i.e. 0025 is untouched by this.
+--
+-- ROLLBACK. It restores the SHAPE and not the rows; there is no undo for those.
+--   begin;
+--   create table if not exists pvp_name_reports (
+--     id           bigserial primary key,
+--     reporter_id  uuid not null references profiles (id) on delete cascade,
+--     reported_id  uuid not null references profiles (id) on delete cascade,
+--     room_id      bigint references pvp_rooms (id) on delete set null,
+--     created_at   timestamptz not null default now(),
+--     unique (reporter_id, reported_id)
+--   );
+--   alter table pvp_name_reports enable row level security;
+--   create policy pvp_name_reports_insert on pvp_name_reports
+--     for insert to authenticated
+--     with check (reporter_id = auth.uid() and reported_id <> auth.uid());
+--   create policy pvp_name_reports_referee on pvp_name_reports
+--     for all to pvp_referee using (true) with check (true);
+--   revoke all on pvp_name_reports from anon, authenticated;
+--   grant insert on pvp_name_reports to authenticated;
+--   grant select, insert, update, delete on pvp_name_reports to pvp_referee;
+--   revoke all on sequence pvp_name_reports_id_seq from anon;
+--   grant usage on sequence pvp_name_reports_id_seq to authenticated, pvp_referee;
+--   commit;
+
+begin;
+
+-- `drop table` takes the policies, the table grants and the owned sequence with it, so
+-- there is nothing to revoke by hand. Named without `cascade` on purpose: nothing depends
+-- on this table (no view, no function, no foreign key pointing at it), so if Postgres
+-- refuses the drop that is news and should stop the migration rather than be swept aside.
+drop table if exists pvp_name_reports;
+
+commit;

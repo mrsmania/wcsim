@@ -114,7 +114,9 @@ done and why. What that means for anyone working in this tree now:
   (0015 the bank cap, 0016 the PvP room tables, 0017 the referee's grants, 0018,
   0019/0020/0021 the three versus features applied 2026-08-30, 0022 the duel-by-link
   column drop and 0023 the email address as the identifier, both applied 2026-08-31; 0024
-  teaches `pvp_records` to count a duel somebody walked out of, applied 2026-09-01.)
+  teaches `pvp_records` to count a duel somebody walked out of, applied 2026-09-01, and
+  0025 the host's removal, applied 2026-09-02. **0026 is written and NOT applied** - it
+  drops the name-reports table, see roadmap item 57.)
   **0014 had to be corrected before it could be applied**, and the trap is worth carrying:
   the audit found four columns holding nothing and concluded all four were dead, but `xi` was
   still WRITTEN by `finish_run_v2` (the literal `'[]'::jsonb` on every banked run). A plpgsql
@@ -3264,7 +3266,12 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0025.** `0025_pvp_remove_member.sql` (the host
+**THE SERVER IS AT 0025, AND `0026` IS QUEUED** (roadmap item **57**):
+`0026_drop_name_reports.sql` drops `pvp_name_reports`, reporting a display name having been
+removed from the game on 2026-09-02 - see "REPORTING A NAME IS GONE" below for why, and
+mind that it is the ONE migration here whose client half deploys FIRST (the browser was the
+writer, and the thing is going away, which is the 0022 lesson rather than a new one). It
+needs no referee rebuild in either direction. `0025_pvp_remove_member.sql` (the host
 throwing somebody out, below) was applied on 2026-09-02, and the **referee was rebuilt the
 same day** from `699c604`, which closed the two rebuilds that were waiting on it (roadmap
 items **55** and **56**): the `/remove` route is live, and so is the rule that leaving a
@@ -3440,7 +3447,7 @@ the whole reason the answer is tested rather than the request. See "A duel" belo
 above, which is the current one. Wave 8 needed **no migration at all**: every column it
 reads was written by 0016 and had been waiting for a caller (`pvp_rooms.touched_at`,
 `pvp_members.last_seen`, the `pvp_rooms_open_idx` partial index, the `pvp_records` view,
-`pvp_name_reports`). It did need the container rebuilt, for `GET /v1/lobby` and the `/leave`
+and `pvp_name_reports`, which 0026 has since dropped). It did need the container rebuilt, for `GET /v1/lobby` and the `/leave`
 route below. **Deploy the referee before the client that talks to it**, always: it is the
 same standing rule migrations follow, and a session that cannot reach the NAS queues the
 deploy as a roadmap item exactly as it would an unapplied migration.
@@ -4243,15 +4250,34 @@ deleting another. What it does mean is that **`joinRoom` takes the next FREE sea
 `members.length`**, and that the writer now DELETES a member row that is no longer in the
 room, before the upserts. Neither had ever mattered, because until wave 8 nobody ever left.
 
-**THE LOBBY LIST IS A REFEREE ENDPOINT; THE RECORD AND THE REPORT ARE NOT.** `GET /v1/lobby`
+**THE LOBBY LIST IS A REFEREE ENDPOINT; THE RECORD IS NOT.** `GET /v1/lobby`
 answers a `LobbyRoom[]` carrying what somebody who has never seen the room needs - the host,
 the seats left, what it plays, the code - and deliberately no member rows, because a member
 row carries a formation and P19 keeps formations out of a lobby's reach. The record
-(`pvp_records`, a `security_invoker` view) and the name report (`pvp_name_reports`) go
-straight to the account server through `state/pvp/records.ts`: the referee is the only writer
-of ROOMS, and neither of those is a room. Reporting has **no word filter and no automatic
-action** (P22) - the owner reads them and renames an account by hand - so the button is the
-whole report, and one report per person per target is a unique index rather than a vote.
+(`pvp_records`, a `security_invoker` view) goes straight to the account server through
+`state/pvp/records.ts`: the referee is the only writer of ROOMS, and a record is not a room.
+
+**REPORTING A NAME IS GONE, AND THE HOST'S REMOVAL IS WHAT ANSWERS P22 NOW** (2026-09-02,
+asked for in chat: "remove the whole reporting functionality, throwing people out of rooms
+by the room admin/creator is sufficient"). A flag on the seat row filed a report - who, by
+whom, nothing else, one per person per target, no word filter and no automatic action - and
+the owner read the table with psql and renamed or removed an account by hand. It was decided
+when the host could do **nothing at all** about another player, and once the removal shipped
+(0025, roadmap item 55) it was the weaker half of the same answer by every measure: a
+removal is immediate, it is the decision of the person who opened the room, it happens in
+the room where the problem is, and it needs nobody to read a queue. **What it cost is worth
+stating, because both halves are accepted**: a name nobody hosts a room against is never
+seen by the owner at all, and a non-host has no lever but leaving.
+**The reported bug that prompted it is the more useful half of the story.** A player was
+reported, thrown out, and rejoined a fresh room with no mark on them - the expectation being
+that the flag followed the PERSON. It never could: "Reported" was component state on that
+seat row, and the table had **no select policy at all**, by decision, so nothing in the game
+could look a report up again. Finishing it (a read of your own rows, a quiet mark only the
+reporter sees) was the alternative, and removal is the call. **`reportName` and the flag are
+deleted, `state/pvp/records.ts` now writes nothing at all, and migration `0026` drops the
+table** - which also closes the client's ONLY `grant insert` on any table in the schema. Do
+not reinstate the insert without that grant, and do not reinstate the button at all without
+reopening P22.
 
 **A ROOM OF MORE THAN TWO ADDED NO SERVER BEHAVIOUR, and that is worth knowing before
 looking for some.** The referee has taken 2, 4 and 8 since wave 1: `drawRound` shuffles the

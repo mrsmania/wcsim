@@ -75,10 +75,10 @@ header says to keep the pair in step, and it means it.
 
 | Thing | Defined in | Changed by |
 | --- | --- | --- |
-| Tables | 0001 | 0011 (`career.completed_challenges`), 0014 (four `run_results` columns dropped), 0016 (the seven `pvp_*` tables, and two columns on `profiles`), 0017 (the open pick window and the re-roll count on `pvp_members`, `swept_at` on `pvp_rooms`), 0019 (`pvp_bots`, `pvp_matches.bot_sides`, and four `profiles` foreign keys dropped for a trigger), 0020 (`pvp_rooms.pace` and `pvp_rooms.invited_id`, the duel), 0021 (`pvp_rooms.draft_seconds` and `pvp_members.done`, the whole-draft budget room), **0022** (`pvp_rooms.invited_id` dropped again: a duel is addressed by link and by nothing else) |
+| Tables | 0001 | 0011 (`career.completed_challenges`), 0014 (four `run_results` columns dropped), 0016 (the seven `pvp_*` tables, and two columns on `profiles`), 0017 (the open pick window and the re-roll count on `pvp_members`, `swept_at` on `pvp_rooms`), 0019 (`pvp_bots`, `pvp_matches.bot_sides`, and four `profiles` foreign keys dropped for a trigger), 0020 (`pvp_rooms.pace` and `pvp_rooms.invited_id`, the duel), 0021 (`pvp_rooms.draft_seconds` and `pvp_members.done`, the whole-draft budget room), **0022** (`pvp_rooms.invited_id` dropped again: a duel is addressed by link and by nothing else), 0025 (`pvp_rooms.removed`, the host throwing somebody out), **0026** (`pvp_name_reports` dropped: reporting a name is gone, the host's removal being the answer, and with it the client's only `grant insert` on any table) |
 | Views | 0016 (`pvp_records`) | **0024** (a duel somebody walked out of counts as a win and a loss, with no match row under it; 0019 excluded ties with a practice opponent in them and is carried forward verbatim) |
 | Row-level security, enabled | 0002 | - |
-| Policies | 0002 | 0013 (four `for all` policies narrowed to `for select`), 0014 (`run_results_read` dropped) |
+| Policies | 0002 | 0013 (four `for all` policies narrowed to `for select`), 0014 (`run_results_read` dropped), 0016 (a policy per `pvp_*` table), 0017 (the referee's own on `profiles`), **0026** (the two `pvp_name_reports` policies went with the table) |
 | Function grants | 0008 | 0010 (`finish_run_v2`), 0014 (`export_account` revoked) |
 | Signup trigger | 0004 | 0005 (the invite gate dropped, signup opened), **0023** (the address is folded on the way in, and a second trigger carries a change of address across) |
 | The collectible catalogue's ROWS | not here | `../seed/collectibles.sql`, generated - see below |

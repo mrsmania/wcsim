@@ -19,11 +19,13 @@
 // the set here is **Latin script, marks and digits** plus a short punctuation list. Accents
 // are in (this is a game about fourteen World Cups; refusing `Müller` would be absurd),
 // whole other alphabets are out. That is a real cost - somebody who writes their name in
-// Cyrillic cannot - and it is the trade P22's "unique and reportable" implies.
+// Cyrillic cannot - and it is the trade P22's unique-and-readable name implies.
 //
 // It is the enforceable HALF, and the module says so rather than implying more: `rn` and
-// `m` still look alike at 13px, and no rule short of a confusables table catches that. The
-// report button (`pvp_name_reports`) is the answer to the rest, by decision.
+// `m` still look alike at 13px, and no rule short of a confusables table catches that.
+// What answers the rest is the HOST, who can throw anybody out of their own room: the
+// report-this-name button that used to be P22's answer went on 2026-09-02, because a queue
+// only the owner ever read did nothing about the room you were sitting in at the time.
 // ---------------------------------------------------------------------------
 
 /** The length bounds, in codepoints of the normalised name rather than in UTF-16 units:
