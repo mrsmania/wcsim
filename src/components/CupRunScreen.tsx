@@ -465,7 +465,7 @@ export default function CupRunScreen({
         // of play reached from the build, not a place you navigate to.
         <StageHeader eyebrow="Your career" title="Cup Run Career" />
       ) : (
-        <StageCrumb dir="back" label="Back to the build" to={buildTo} className="mt-[30px]" />
+        <StageCrumb dir="back" label="Back to the build" to={buildTo} className="mt-[30px] mb-3" />
       )}
 
       {/* The career hub: the standing, the perk shop and the boost library, one card

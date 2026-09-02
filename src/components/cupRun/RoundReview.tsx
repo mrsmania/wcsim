@@ -10,7 +10,7 @@ import { RARITY_COLOR } from './types';
  *  the ladder: the round's result (+ boost taken), or the group's finishing summary. */
 export default function RoundReview({ record, onBack }: { record: RoundRecord; onBack: () => void }) {
   const backBtn = (
-    <StageCrumb dir="back" label="Back to the current round" onClick={onBack} className="mt-4" />
+    <StageCrumb dir="back" label="Back to the current round" onClick={onBack} className="mt-4 mb-3" />
   );
 
   const boost = record.boostId ? boonById(record.boostId) : undefined;

@@ -29,7 +29,6 @@ import {
     MONO_CAP,
     PRIMARY_BTN,
     SECONDARY_BTN,
-    StageCrumb,
     StageHeader,
     btn,
 } from '../matchUi';
@@ -330,7 +329,7 @@ export default function RoomScreen({ code }: { code: string }) {
                     // The same crumb the room itself carries, and here it is the only way
                     // out at all: "Taking your seat" has no buttons under it, so a join
                     // that sat there was a screen with nothing on it but the tab bar.
-                    crumb={<StageCrumb dir="back" label="Back to versus" to="/versus" />}
+                    crumb={{ dir: 'back', label: 'Back to versus', to: '/versus' }}
                 />
                 <div className={`${CARD_FLAT} p-5`}>
                     {wasIn ? (
@@ -402,7 +401,7 @@ export default function RoomScreen({ code }: { code: string }) {
                 // green button under all of it was the length of the page away from
                 // somebody who had read the score and was done - and it was the only
                 // control there, which is what makes it navigation rather than an action.
-                // Same atom as the run screen's "Back to the build", above the eyebrow.
+                // Same atom as the run screen's "Back to the build", under the title.
                 //
                 // THE TWO OF THEM DO DIFFERENT THINGS AND WEAR ONE LABEL ON PURPOSE, the
                 // way the run screen's does: a crumb goes somewhere, it does not abandon
@@ -418,21 +417,19 @@ export default function RoomScreen({ code }: { code: string }) {
                 // it tells the referee, drops the pointer so the strip stops offering a
                 // room that is over, and re-reads the duels list.
                 crumb={
-                    view.status === 'ended' ? (
-                        <StageCrumb
-                            dir="back"
-                            label="Back to versus"
-                            onClick={leave}
-                            disabled={navBusy}
-                        />
-                    ) : (
-                        <StageCrumb
-                            dir="back"
-                            label="Back to versus"
-                            to="/versus"
-                            disabled={navBusy}
-                        />
-                    )
+                    view.status === 'ended'
+                        ? {
+                              dir: 'back',
+                              label: 'Back to versus',
+                              onClick: leave,
+                              disabled: navBusy,
+                          }
+                        : {
+                              dir: 'back',
+                              label: 'Back to versus',
+                              to: '/versus',
+                              disabled: navBusy,
+                          }
                 }
             />
 

@@ -430,19 +430,18 @@ export function SpeedControl({
     );
 }
 
-/** A small breadcrumb / back link, used above a stage header to jump between the
- *  group and knockout screens, and as the top-of-page "back" link on the album /
- *  Cup Run screens. `dir` picks which side the arrow sits and animates on hover;
- *  pass either an `onClick` (renders a button) or a router `to` (renders a Link).
- *  `className` sets the margin (defaults to `mb-1.5` for the stage-header case). */
-export function StageCrumb({
-    dir,
-    label,
-    onClick,
-    to,
-    disabled,
-    className = 'mb-1.5',
-}: {
+/** A small breadcrumb / back link: the top-of-page "back" link on the Cup Run and
+ *  versus screens, and the way out of a round review. `dir` picks which side the arrow
+ *  sits and animates on hover; pass either an `onClick` (renders a button) or a router
+ *  `to` (renders a Link).
+ *
+ *  `className` IS THE ONLY MARGIN NOW, and it was not before: the base string carried a
+ *  hardcoded `mb-3` as well, and Tailwind emits `mb-1.5` BEFORE `mb-3` in the stylesheet,
+ *  so the default lost to it and the knob did nothing - every crumb in the app was spaced
+ *  the same whatever it asked for. It is a real knob now, which is what lets a crumb the
+ *  stage header carries sit tight under the page title (a top margin and no bottom one)
+ *  while a standalone one keeps the `mb-3` it has always had. */
+export type StageCrumbProps = {
     dir: 'back' | 'fwd';
     label: string;
     onClick?: () => void;
@@ -455,8 +454,17 @@ export function StageCrumb({
      *  would read as a fault. */
     disabled?: boolean;
     className?: string;
-}) {
-    const cls = `group inline-flex items-center gap-1.5 mb-3 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:text-pitch-ink ${disabled ? 'pointer-events-none opacity-40' : ''} ${className}`;
+};
+
+export function StageCrumb({
+    dir,
+    label,
+    onClick,
+    to,
+    disabled,
+    className = 'mb-3',
+}: StageCrumbProps) {
+    const cls = `group inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:text-pitch-ink ${disabled ? 'pointer-events-none opacity-40' : ''} ${className}`;
     const inner = (
         <>
             {dir === 'back' && (
@@ -495,8 +503,20 @@ export function StageCrumb({
     );
 }
 
-/** A stage header (eyebrow + display heading), optionally carrying a breadcrumb
- *  link above the eyebrow and the playback controls on the right. */
+/** A stage header (eyebrow + display heading), optionally carrying a breadcrumb link
+ *  and the playback controls on the right.
+ *
+ *  THE CRUMB SITS UNDER THE TITLE, not above the eyebrow (2026-09-02, asked for). Above
+ *  it, the way out was the first thing on the page and the page did not say what it was
+ *  until the second line; under it, the title leads and the way back reads as belonging
+ *  to the screen you are on.
+ *
+ *  IT TAKES THE CRUMB'S PROPS RATHER THAN A RENDERED CRUMB, which is what makes that
+ *  placement a fact about the header instead of an instruction every caller has to
+ *  remember: the header is the only thing that knows the gap between a title and the
+ *  line under it, so it is the only thing that passes a margin. Handing it a node meant
+ *  four call sites each spelling one out, and four copies of a spacing are how two of
+ *  them come to differ. */
 export function StageHeader({
     eyebrow,
     title,
@@ -508,7 +528,7 @@ export function StageHeader({
     title: string;
     controls?: ReactNode;
     headingRef?: Ref<HTMLDivElement>;
-    crumb?: ReactNode;
+    crumb?: Omit<StageCrumbProps, 'className'>;
 }) {
     return (
         <div
@@ -516,11 +536,11 @@ export function StageHeader({
             className="mb-[18px] mt-[30px] flex flex-wrap items-end justify-between gap-4"
         >
             <div>
-                {crumb}
                 <div className={PAGE_EYEBROW}>{eyebrow}</div>
                 <h2 className="mt-0.5 font-display text-[30px] font-extrabold leading-none tracking-[-0.02em] max-sm:text-2xl">
                     {title}
                 </h2>
+                {crumb && <StageCrumb {...crumb} className="mt-2.5" />}
             </div>
             {controls}
         </div>

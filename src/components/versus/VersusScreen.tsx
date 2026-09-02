@@ -11,7 +11,7 @@ import {
     handshake,
     readInvite,
 } from '../../state/pvp/referee';
-import { CARD, MONO_CAP, PRIMARY_BTN, StageCrumb, StageHeader } from '../matchUi';
+import { CARD, MONO_CAP, PRIMARY_BTN, StageHeader } from '../matchUi';
 import RoomScreen from './RoomScreen';
 import VersusHome from './VersusHome';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
@@ -355,9 +355,9 @@ function NamePanel({
                 // Picking a name for the first time has nowhere: versus does not open
                 // until there is one, so a crumb there would lead back to this same panel.
                 crumb={
-                    onCancel ? (
-                        <StageCrumb dir="back" label="Back to versus" onClick={onCancel} />
-                    ) : undefined
+                    onCancel
+                        ? { dir: 'back', label: 'Back to versus', onClick: onCancel }
+                        : undefined
                 }
             />
             <form className={`${CARD} max-w-[460px] p-5`} onSubmit={submit}>
