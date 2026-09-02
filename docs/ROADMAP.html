@@ -336,7 +336,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-09-02<br>
-    <strong>Open:</strong> 5 items<br>
+    <strong>Open:</strong> 3 items<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -348,126 +348,6 @@
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
 
-<details class="item" open>
-  <summary>
-    <span class="num">55</span>
-    <span class="title">Rebuild the versus server, so a host can throw somebody out
-      <span class="sub"><b>QUEUED 2026-09-02.</b> The whole feature is written, checked and on
-      <code>main</code>, and <b>migration 0025 is applied</b> - but the container is still the
-      one built on 2026-09-02, which has no <code>/remove</code> route. Until it is rebuilt the
-      host sees the button and pressing it says the two sides are on different versions.
-      <b>It needs the home machine</b>: retried 2026-09-02 and the work machine cannot reach
-      the NAS at all, corporate VPN or not.</span>
-    </span>
-    <span class="tag">Versus</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>What is waiting.</strong> Asked for from the game: "as the room owner I want to
-    be able to throw out another user from a room". The host may now remove anybody from a
-    lobby - a live room of two, four or eight, and a duel alike - and <b>the removal
-    sticks</b>: that is the whole of why it needed a schema change rather than four lines of
-    the state machine. Arriving at a room is taking the seat, so without somewhere to record
-    the removal the player's own screen re-joins on its next read and the host watches them
-    walk back in two seconds later.</p>
-
-    <p><strong>What is already live.</strong> <code>0025_pvp_remove_member.sql</code> was
-    rehearsed in a rolled-back transaction and then applied on 2026-09-02: it adds
-    <code>pvp_rooms.removed uuid[] not null default '{}'</code>, and all 55 existing rooms
-    read back as an empty array with no nulls. <b>The order is the standing one</b> and it
-    holds here - nothing is dropped, so the running container is unaffected (it never selects
-    the column, and the default fills it on insert). Only the rebuild is outstanding.</p>
-
-    <p><strong>Which machine can do it.</strong> The home one. Retried on 2026-09-02 from the
-    work machine with its VPN up: it lands on a corporate network (192.168.110.x plus a
-    10.119.240.x tunnel, DNS through <code>pistor.local</code>), and 192.168.1.115 answers
-    neither ssh nor ping while <code>https://wcsim-api.mariosmania.ch</code> serves normally -
-    the public IP does not take ssh either, so there is no fallback route. That asymmetry is
-    the thing to remember: <code>push:sql</code> goes over HTTPS to the public name and works
-    from anywhere, which is why <b>0025 could be applied from a machine that cannot deploy the
-    container</b>.</p>
-
-    <p><strong>What a rebuild is.</strong> The same one item 52 and item 53 shared:
-    <code>bash scripts/deploy-referee.sh --build mario@192.168.1.115</code>, then
-    <code>--up</code> (which recreates the referee container alone, so nothing else in the
-    stack restarts), then <code>--verify</code>. Have DSM open first: any container
-    create/remove can wipe the docker bridge rules, and the fix is the boot-up task in Task
-    Scheduler.</p>
-
-    <p><strong>How to know it worked</strong>, beyond <code>--verify</code>'s six steps, and
-    the second one is the point of the whole item:</p>
-    <ol>
-      <li>Open a room of four from one account, join from a second, and remove it. The seat
-      goes back to "Empty seat" and their screen says <b>"You were removed"</b> within a
-      couple of seconds, with no Try again under it.</li>
-      <li><b>Follow the link again as that account.</b> The chair is free and the join is
-      still refused - <code>403 removed-from-room</code> - which is the half nothing else can
-      show. A third account can still walk into the same chair.</li>
-      <li><code>select removed from pvp_rooms where code = '&lt;CODE&gt;';</code> holds exactly
-      that one account id.</li>
-    </ol>
-
-    <p><strong>Until then</strong>, the button is visible to the host and answers "the versus
-    server does not recognise what this page asked it for, so the two are on different
-    versions", which is the honest reading of a route that is not there yet. Nothing else in
-    versus is affected: <code>PVP_PROTOCOL</code> was deliberately not bumped, for the reason
-    the practice opponents did not bump it either - a version bump takes the whole of Versus
-    down until the container catches up, which is a much larger price than one broken button.</p>
-    <p class="files"><a class="dl" href="../supabase/migrations/0025_pvp_remove_member.sql" target="_blank" rel="noopener">supabase/migrations/0025_pvp_remove_member.sql</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/domain/pvpRoom.ts" target="_blank" rel="noopener">src/domain/pvpRoom.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/referee/src/api.ts" target="_blank" rel="noopener">referee/src/api.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
-  </div>
-</details>
-
-
-<details class="item">
-  <summary>
-    <span class="num">55</span>
-    <span class="title">Rebuild the referee, so leaving a duel's lobby really is free
-      <span class="sub"><b>QUEUED 2026-09-02.</b> The rule that a duel is free to walk out of
-      until its squads are dealt is written, checked and pushed, and it lives in
-      <code>domain/pvpRoom.ts</code> - which the REFEREE runs. Until the container is rebuilt
-      the deployed server still scores a lobby departure as a defeat, so the screen's "Call it
-      off" is currently a promise it cannot keep. No migration.</span>
-    </span>
-    <span class="tag">Versus</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>What changed and why it is queued.</strong> Taking a seat in a duel used to
-    commit you: from the moment somebody followed the link, walking out was a forfeit at
-    either end. That is a whole phase too early, reported from the game as <em>"when a player
-    enters a room via invitation and takes his seat, walking out of the room is directly
-    counted as a loss. That's too early."</em> The line now sits at the DEAL rather than at the
-    seat count, which is decision P57 in <code>docs/pvp-plan.md</code>: free in the lobby at
-    either end, a forfeit from the instant the draft starts. The rule is one function in
-    <code>domain/pvpRoom.ts</code>, and that module is bundled into the referee, so the change
-    is inert on the server until the image is rebuilt. This session could not do it: the NAS
-    was unreachable, no LAN and no VPN.</p>
-
-    <p><strong>THE ORDER IS THE USUAL ONE, and here it matters more than usual.</strong> The
-    client half shipped first, which is the direction that hurts: a browser telling somebody a
-    departure is free while the server charges them a defeat costs a real game, where the
-    reverse only over-warns. So until the rebuild, treat the lobby's <em>Call it off</em> and
-    <em>Leave</em> as still costing the duel, and do not test that button expecting it to be
-    free. Nothing else in Versus is affected, and a duel already being drafted behaves exactly
-    as it always has.</p>
-
-    <p><strong>How to do it.</strong> <code>bash scripts/deploy-referee.sh --build
-    user@192.168.1.115</code> then <code>--up</code> then <code>--verify</code>, from a
-    machine on the LAN or the VPN, off a checkout of <code>main</code> that carries this
-    change. No migration and no seed: the encoding of a walkover has not moved, and nothing
-    the referee writes is new.</p>
-
-    <p><strong>How to know it worked.</strong> Open a duel, follow the link from a second
-    account, and with both seats taken and neither player ready, leave from each end in turn.
-    The person who opened it should see the room close with nobody having won it; the other
-    should hand the seat back and leave the challenge waiting, with the link working again for
-    whoever opens it next. Then press Ready at both ends, let the draft start, and leave: that
-    one must still end the room with the player who stayed as the winner, and it must still
-    move both accounts' records. <code>npm run checks</code> already holds all of it against
-    the referee's own handlers, so what the rebuild is being verified for is the container,
-    not the rule.</p>
-  </div>
-</details>
 
 
 
@@ -1085,6 +965,130 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
     <h3>Closed 2026-09-02</h3>
+<details class="item">
+  <summary>
+    <span class="num">55</span>
+    <span class="title">Rebuild the versus server, so a host can throw somebody out
+      <span class="sub"><b>CLOSED 2026-09-02.</b> The referee is rebuilt from
+      <code>main</code>, so the <code>/remove</code> route exists and the host's button does
+      what it says: the seat goes back to empty and the removal sticks, because the player
+      who was thrown out is refused when their own screen tries to re-join. <b>No migration
+      was owed</b> - 0025 had already been applied from a machine that could not deploy the
+      container, which is the asymmetry this item was really about.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What it was fixing.</strong> Asked for from the game: "as the room owner I
+    want to be able to throw out another user from a room". The host may remove anybody from
+    a lobby - a live room of two, four or eight, and a duel alike - and the removal has to
+    STICK, which is the whole reason it needed a schema change rather than four lines of the
+    state machine. Arriving at a room is taking the seat, so without somewhere to record the
+    removal the player's own screen re-joins on its next read and the host watches them walk
+    back in two seconds later.</p>
+
+    <p><strong>The item was wrong about which machine could do it, and that is the finding
+    worth keeping.</strong> It said <b>"it needs the home machine"</b> on the evidence of a
+    retry that landed on a corporate network (192.168.110.x plus a 10.119.240.x tunnel, DNS
+    through pistor.local) where 192.168.1.115 answered neither ssh nor ping. That was the
+    <b>wrong VPN</b>, not the wrong machine: on the right one the same laptop came up on
+    10.8.0.6, ping answered in 33 ms and ssh let straight in, and the whole deploy ran from
+    it. So the rule to carry is narrower than the one that was written down - <b>a failed
+    reach proves the route you were on, not the machine you were on</b> - and it is worth
+    checking the tunnel before concluding a deploy has to wait.</p>
+
+    <p><strong>What was already live, and how it was confirmed rather than assumed.</strong>
+    The schema was checked against the referee's own source before anything was built,
+    because the standing rule cuts the dangerous way here: a new server against an old schema
+    fails on its first read. Every artifact of 0019 through 0025 was probed over HTTPS -
+    <code>pvp_bots</code> and <code>pvp_matches.bot_sides</code>, <code>pvp_rooms.pace</code>,
+    <code>draft_seconds</code> and <code>pvp_members.done</code>, the unique index and both
+    triggers 0023 adds, the walkover branch in the <code>pvp_records</code> view, and
+    <code>pvp_rooms.removed</code>, a not-null uuid array defaulting to empty. One apparent
+    mismatch resolved itself and is the reason to read forwards as well as back:
+    <code>pvp_rooms.invited_id</code> is absent from the live database and 0020 adds it -
+    <b>0022 drops it again</b>, and the referee at <code>main</code> selects
+    <code>r.removed</code> and never <code>invited_id</code>, so the live shape was correct
+    and it was a stale checkout doing the disagreeing.</p>
+
+    <p><strong>What the deploy touched.</strong> The image was built on the NAS from
+    <code>699c604</code> against a clean tree, only the referee container was recreated, and
+    the gateway was restarted after it so envoy re-read its routes. Nothing else in the stack
+    went down, the docker bridge rules survived it, and all six steps of
+    <code>scripts/deploy-referee.sh --verify</code> passed first time: the dataset hash
+    <code>a6f9cf5f</code> matches the client, no-token and anon-key are both refused, a real
+    room was created, read back, changed and deleted, and the sessionless invitation read
+    answered for a private room.</p>
+
+    <p><strong>What was verified on the running container.</strong> Short of two browsers,
+    the route itself was proved live: <code>POST /v1/rooms/ZZZZZZ/remove</code> with a session
+    minted on the box answers <code>no-such-room</code>, where the old image had no such
+    route at all - which is the 404 the client was reading as "the two sides are on different
+    versions". The deployed bundle also carries <code>removed-from-room</code> and
+    <code>bad-remove</code>, the refusal and the validation that only this build has.</p>
+
+    <p><strong>How to try it.</strong> Open a room of four from one account, join from a
+    second, and remove it. The seat goes back to "Empty seat" and their screen says "You were
+    removed" within a couple of seconds, with no Try again under it. Then follow the link
+    again as that account: the chair is free and the join is still refused, which is the half
+    nothing else can show, while a third account can still walk into the same chair.
+    <code>select removed from pvp_rooms where code = '&lt;CODE&gt;';</code> holds exactly that
+    one account id.</p>
+    <p class="files"><a class="dl" href="../supabase/migrations/0025_pvp_remove_member.sql" target="_blank" rel="noopener">supabase/migrations/0025_pvp_remove_member.sql</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/domain/pvpRoom.ts" target="_blank" rel="noopener">src/domain/pvpRoom.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/referee/src/api.ts" target="_blank" rel="noopener">referee/src/api.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
+  </div>
+</details>
+<details class="item">
+  <summary>
+    <span class="num">56</span>
+    <span class="title">Rebuild the referee, so leaving a duel's lobby really is free
+      <span class="sub"><b>CLOSED 2026-09-02.</b> Carried by the same rebuild as item 55, and
+      it needed nothing of its own: the rule is one function in
+      <code>domain/pvpRoom.ts</code>, which the referee bundles, so the client half that had
+      already shipped is no longer a promise the server refuses to keep. Free in the lobby at
+      either end, a forfeit from the instant the draft starts. <b>No migration.</b></span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What it was fixing.</strong> Taking a seat in a duel used to commit you: from
+    the moment somebody followed the link, walking out was a forfeit at either end. That is a
+    whole phase too early, reported from the game as "when a player enters a room via
+    invitation and takes his seat, walking out of the room is directly counted as a loss.
+    That's too early." The line now sits at the DEAL rather than at the seat count, which is
+    decision P57 in <code>docs/pvp-plan.md</code>.</p>
+
+    <p><strong>Why it was queued at all, and why the order mattered.</strong> The client half
+    shipped first, which is the direction that hurts: a browser telling somebody a departure
+    is free while the server charges them a defeat costs a real game, where the reverse only
+    over-warns. So this was the one of the two queued rebuilds with a live wrong answer in it
+    rather than a dead button, and it is closed by the container catching up rather than by
+    any change to the rule.</p>
+
+    <p><strong>What the rebuild put on the server.</strong> Only the reading of the lobby.
+    <code>leaveDuel</code> now returns early while the room is still a lobby - closing it if
+    the person who opened it leaves, since the challenge belongs to them, and handing the seat
+    back otherwise so the link works again for whoever opens it next - and reaches
+    <code>forfeitDuel</code> only once the squads are dealt. The encoding of a walkover has
+    not moved, so nothing the referee writes is new and no seed was owed.</p>
+
+    <p><strong>What was verified.</strong> <code>npm run checks</code> holds the rule against
+    the referee's own handlers and passes 455 of 455 on the commit that was built, so what the
+    rebuild was being verified for is the container, not the rule. That the container is the
+    right one was proved two ways: the six <code>--verify</code> steps, and the deployed
+    bundle carrying <code>forfeitDuel</code> and the walkover encoding alongside item 55's
+    <code>/remove</code> route, which the previous image did not have.</p>
+
+    <p><strong>How to try it.</strong> Open a duel, follow the link from a second account,
+    and with both seats taken and neither player ready, leave from each end in turn. The
+    person who opened it should see the room close with nobody having won it; the other should
+    hand the seat back and leave the challenge waiting, with the link working again. Then
+    press Ready at both ends, let the draft start, and leave: that one must still end the room
+    with the player who stayed as the winner, and it must still move both accounts' records.</p>
+    <p class="files"><a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/domain/pvpRoom.ts" target="_blank" rel="noopener">src/domain/pvpRoom.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/docs/pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
+  </div>
+</details>
 <details class="item">
   <summary>
     <span class="num">52</span>

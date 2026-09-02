@@ -3007,14 +3007,33 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**ONE REBUILD IS QUEUED, AND THE SCHEMA IS AT 0025.** `0025_pvp_remove_member.sql` (the
-host throwing somebody out, below) was applied on 2026-09-02 by a session that could not
-reach the NAS over ssh, so the container is still the one built the same morning and has no
-`/remove` route: **roadmap item 55** carries the rebuild and how to know it worked. The order
-is the standing one and nothing is dropped, so the running container is unaffected - it never
-selects the new column and the default fills it on insert. Until it is rebuilt the host sees
-the button and pressing it says the two sides are on different versions, which is the honest
-reading of a route that is not there yet.
+**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0025.** `0025_pvp_remove_member.sql` (the host
+throwing somebody out, below) was applied on 2026-09-02, and the **referee was rebuilt the
+same day** from `699c604`, which closed the two rebuilds that were waiting on it (roadmap
+items **55** and **56**): the `/remove` route is live, and so is the rule that leaving a
+duel's LOBBY costs nothing. Both were verified on the running container - all six
+`--verify` steps, plus `POST /v1/rooms/ZZZZZZ/remove` answering `no-such-room` rather than
+having no such route.
+
+**AND THE THING THAT COST AN HOUR THERE WAS A VPN, NOT THE NAS.** The item those two
+rebuilds sat in said in bold that it "needs the home machine", on the evidence of a retry
+that landed on a corporate network (192.168.110.x plus a 10.119.240.x tunnel) where
+192.168.1.115 answered neither ssh nor ping. That was the **wrong tunnel**, not the wrong
+machine: on the right one the same laptop came up on 10.8.0.6 and ssh let straight in. So
+**a failed reach proves the route you were on, not the machine you were on** - check the
+tunnel before concluding a deploy has to wait for different hardware. The asymmetry worth
+remembering either way is real and unchanged: `push:sql` goes over HTTPS to the public
+name and works from anywhere, which is why a migration can be applied from a machine that
+cannot deploy the container.
+
+**AND BEFORE A REBUILD, CHECK THE SCHEMA AGAINST THE REFEREE'S OWN SOURCE, not against
+this file.** The standing order (migrations before server) cuts the dangerous way round at
+a rebuild: an old server against a new schema is harmless, a new server against an old one
+fails on its first read. The 2026-09-02 rebuild was preceded by probing every artifact of
+0019 through 0025 over HTTPS, and one apparent mismatch resolved itself in a way worth
+knowing - **`pvp_rooms.invited_id` is absent from the live database and 0020 adds it,
+because 0022 drops it again**. The live shape was right and a stale checkout was doing the
+disagreeing, which is also the reminder to `git pull` before believing a drift.
 
 **The two rebuilds before it went in on 2026-09-02** (roadmap items 52 and 53, both closed). That rebuild carried two things whose client halves
 had already shipped: the week that resolves an abandoned duel (below), which is read by the
@@ -3181,8 +3200,8 @@ substitution took the script down mid-step. A verification that stops without sa
 worse than none, and `npm run checks` now asserts every stage detects docker before using it.
 
 **THE HOST CAN THROW SOMEBODY OUT, AND THE WHOLE FEATURE IS THE FACT THAT IT STICKS**
-(2026-09-02, asked for from the game, migration **0025**, applied; **the referee rebuild is
-QUEUED as roadmap item 55**). A code gets passed around and a public lobby is open to
+(2026-09-02, asked for from the game, migration **0025**, applied, and the **referee rebuilt
+the same day** - roadmap item 55, closed). A code gets passed around and a public lobby is open to
 anybody signed in, so the person who opened the room needs a way to say "not you" - and
 every other answer they had was worse than the question: close the room and open another,
 losing everybody already in it, or play it smaller, which throws away the seat rather than
