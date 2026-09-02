@@ -13,7 +13,7 @@ import { useLiveMatch } from './nav/liveMatch';
 import { useHeldVersusRoom } from './nav/versusRoom';
 import { useDuelAlert } from './hooks/useDuelAlert';
 import { duelAlertLine } from './domain/pvpView';
-import { ROOM_STRIP, SubTabs, TabBottomBar, TabRow, type TabItem } from './components/navUi';
+import { ROOM_STRIP, SubTabs, TabBottomBar, type TabItem } from './components/navUi';
 import { requestRunStart } from './nav/pendingRun';
 import { setStoreErrorHandler, store, type AccountSnapshot } from './state/store';
 import { useStickerAlbum } from './hooks/useStickerAlbum';
@@ -326,20 +326,19 @@ export default function App({
         <div className="min-h-full text-ink">
             {/* The extra bottom padding below 700px is the room the phone tab bar occupies. */}
             <div className="mx-auto max-w-[1180px] px-[22px] pb-20 pt-5 max-[699px]:pb-28">
+                {/* The identity block and the six destinations are ONE row now
+                    (2026-09-02): the masthead renders the tab row inside its own line, so
+                    the chrome is 45px rather than 89. The phone's fixed bottom bar is
+                    still its own element, because it is fixed to the bottom of the
+                    window rather than laid out in this column. */}
                 <Masthead
+                    tabs={tabs}
+                    locked={liveMatch}
                     accountEmail={accountEmail}
                     onOpenAccount={() => setAccountOpen(true)}
                     onOpenSettings={() => setSettingsOpen(true)}
                 />
-
-                {/* The five destinations (roadmap item 27, concept 2): a row here and a
-                    fixed bottom bar on a phone. */}
-                {tabs.length > 0 && (
-                    <>
-                        <TabRow items={tabs} locked={liveMatch} />
-                        <TabBottomBar items={tabs} locked={liveMatch} />
-                    </>
-                )}
+                {tabs.length > 0 && <TabBottomBar items={tabs} locked={liveMatch} />}
 
                 {/* One line saying a versus match wants you, and taking you to it. For a
                     LIVE room that is the room itself - it runs on a clock somebody else is

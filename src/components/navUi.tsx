@@ -19,14 +19,34 @@ import { LayoutGrid, List, Play, Swords, Trophy, Users } from 'lucide-react';
  * not about your own career. Do not add a seventh without a reason of that shape.
  *
  * Two renderings of the same labels in the same order, so muscle memory carries between
- * devices: a row under the masthead from 700px up, and a fixed bottom bar at thumb height
- * below it. Both stand on a `line` HAIRLINE, and that is a deliberate step down from the
- * 2px ink rule they carried until 2026-09-02: a near-black bar across the full width was
- * the heaviest thing on every screen in the app, and it was the chrome rather than the
- * content. The line is still there because both renderings need one - the row is the foot
- * of the identity block, and the phone bar is a floating panel that content scrolls under -
- * but it is now the same hairline every card in the app is drawn with, so the FILLED tab is
- * the only ink in the navigation and the accent is the only thing that says where you are.
+ * devices: a row INSIDE the masthead from 700px up, and a fixed bottom bar at thumb height
+ * below it.
+ *
+ * THE 2px NEAR-BLACK RULE THEY BOTH STOOD ON IS GONE (2026-09-02). It was the heaviest
+ * line on every screen in the app, spent on the strip with the least to say, and in the
+ * dark theme it came out as a near-WHITE bar brighter than the game under it. Both are a
+ * `line` hairline now, the same one every card is drawn with. A rule is still needed at
+ * both ends - the row is the foot of the identity block and the phone bar is a panel the
+ * page scrolls under - but at one pixel it is structure rather than a statement.
+ *
+ * AND THE DESKTOP TAB IS AN UNDERLINE, NOT A FILLED FOLDER TAB (2026-09-02, chosen from
+ * six header treatments). The row moved up onto the masthead's own line, where a green
+ * block per destination would be the loudest thing in a header that is now one line tall;
+ * six words with the current one in full-strength ink and a 2px green rule under it says
+ * the same thing at chrome weight. Three consequences worth keeping:
+ *   - `Masthead` owns the hairline, so the nav draws no border: the underline is placed at
+ *     `-bottom-px` and covers that rule, which is what makes it read as one edge rather
+ *     than as a bar sitting on top of a line.
+ *   - The green is `pitch-ink`, never `pitch-dark`. It is the token that FLIPS (deep green
+ *     on paper, bright green on graphite) and this underline is the whole "you are here"
+ *     signal, so the surface green would have been a 2px line nobody could see in the dark
+ *     theme.
+ *   - The shared minimum width went with the fill. Even columns are a chip idiom - a block
+ *     wants a consistent shape - and an underline belongs to its label, so each tab is as
+ *     wide as its word plus equal padding. It also gives about 80px back, which is what
+ *     keeps the single line alive on a small laptop.
+ * The PHONE bar is untouched by all of this: it has never had a chip, it marks where you
+ * are by colouring the icon and the label, and that still reads at thumb size.
  *
  * A tab is its label and nothing else. The row used to carry a mono sub-line per tab
  * (level and Prestige, album completion, challenges earned, cups in the pool), which put
@@ -60,13 +80,28 @@ const ICONS: Record<TabKey, ReactNode> = {
     versus: <Users size={17} strokeWidth={2.2} />,
 };
 
-/** The desktop row. Hidden below 700px, where the bottom bar takes over. */
+/** The desktop row, rendered INSIDE the masthead's one line. Hidden below 700px, where
+ *  the bottom bar takes over; wrapped onto its own full-width line below 1040px, where
+ *  the crest, the six labels and the two buttons stop fitting side by side. */
 export function TabRow({ items, locked }: { items: TabItem[]; locked?: boolean }) {
     return (
         <nav
             aria-label="Main"
-            // items-stretch so every tab is the same height as the filled one.
-            className="hidden items-stretch gap-[2px] border-b border-line min-[700px]:flex"
+            // No border: the masthead's hairline is this row's rule, and the active tab's
+            // underline sits on it. items-stretch so each tab fills the header's height,
+            // which is what puts every underline on that one edge.
+            //
+            // `w-full` below 1040px is the whole of the two-row fallback: `flex-wrap` on
+            // the header then pushes the nav onto its own line and the buttons keep the
+            // first. One nav in the DOM either way - a second copy behind a media query
+            // would announce itself as the main navigation twice.
+            //
+            // `max-[1040px]`, and the number is not a typo: Tailwind's max variant is
+            // STRICTLY less than what it is given, so `max-[1039px]` would leave a window
+            // of exactly 1039px on the single-line layout it does not fit. Measured: the
+            // row needs 978px, plus the 64px the account button can still grow by before
+            // its label truncates.
+            className="hidden items-stretch gap-1 max-[1040px]:order-last max-[1040px]:w-full min-[700px]:flex"
         >
             {items.map((t) => {
                 const inert = !!locked && !t.active;
@@ -78,10 +113,13 @@ export function TabRow({ items, locked }: { items: TabItem[]; locked?: boolean }
                         aria-disabled={inert || undefined}
                         tabIndex={inert ? -1 : undefined}
                         className={[
-                            'block min-w-[92px] rounded-t-[5px] border border-b-0 px-[15px] pb-2 pt-[9px] transition',
+                            // The underline is a pseudo-element rather than a border, so
+                            // switching it on and off cannot move the label by a pixel.
+                            'relative flex items-center px-[13px] py-[9px] transition',
+                            "after:absolute after:inset-x-0 after:-bottom-px after:h-[2px] after:content-['']",
                             t.active
-                                ? 'border-pitch-dark bg-pitch-dark text-white'
-                                : 'border-transparent text-muted hover:bg-ink/5 hover:text-ink',
+                                ? 'text-ink after:bg-pitch-ink'
+                                : 'text-muted hover:text-ink hover:after:bg-line',
                             inert ? 'pointer-events-none opacity-40' : '',
                         ].join(' ')}
                     >
@@ -91,8 +129,14 @@ export function TabRow({ items, locked }: { items: TabItem[]; locked?: boolean }
                     </Link>
                 );
             })}
+            {/* The note only exists while a match reveals, and it is the second signal
+                rather than the first: the tabs themselves go dim and unclickable. So it
+                hides below 1120px instead of being allowed to push the nav onto a second
+                line mid-playback - a header that grows 38px taller while a goal is being
+                revealed is worse than a header that explains itself only when there is
+                room. The phone bar has never carried it at all, for the same reason. */}
             {locked && (
-                <span className="ml-auto pb-2 pr-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-ink">
+                <span className="ml-auto self-center whitespace-nowrap pl-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-ink max-[1120px]:hidden">
                     Match in play
                 </span>
             )}

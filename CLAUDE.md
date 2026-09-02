@@ -275,7 +275,9 @@ path (`/wcsim/`, and changing it means rebuilding every deployed asset URL, see
 "Hosting"), the npm package name, the Docker image, and above all the **localStorage keys**
 (`wcsim_album_v1` and its four siblings) - renaming those orphans every save on the
 machine that holds them, including the author's own. The wordmark is one word in two tones
-(`Mondial` + a green `ino`); the tagline is unchanged.
+(`Mondial` + a green `ino`). The tagline it sat beside, "Draft a random XI. Win the cup.",
+was **deleted from the chrome on 2026-09-02** to pay for the one-line header (see
+"Navigation" below); the front page's hero says the same thing at the size it deserves.
 
 **The sign-in email took TWO passes, and the second was 2026-08-27.** The rename commit
 changed the wordmark inside `public/email/otp.html` and stopped there, which looked
@@ -376,10 +378,12 @@ matches the static mockups in `docs/redesign-2026/turf-flat/`.
   it, so the reducer never has to know the shape of the chain.
 - **Layout** (`App.tsx`): a 3-column grid (settings/squad/complete | pitch |
   ratings+chemistry+line-up) using the comps' breakpoints (1 col < 760px, 2 col
-  760-1080, 3 col >= 1080). A masthead (gold-trophy logo, the amber `lucide` `Trophy` on
-  a pitch-dark tile matching the champion node, doubling as the favicon in `index.html` +
-  MONDIALINO wordmark + tagline
-  + phase status stamp) and a phase-aware section header sit above it.
+  760-1080, 3 col >= 1080). Above it sits ONE header row - the gold-trophy crest (the
+  amber `lucide` `Trophy` on a pitch-dark tile matching the champion node, doubling as the
+  favicon in `index.html`), the MONDIALINO wordmark, the six tabs and the account and
+  settings buttons, all on the same line - and then the phase-aware section header. See
+  "Navigation" below: the tabs moved up into the masthead on 2026-09-02 and the tagline
+  went to make room.
 
 The comps (`home`, `selected-xi`, `tournament`, `index` launcher) carry a live
 5-scheme colour switcher that is deliberately **comp-only**; the app ships the single
@@ -784,13 +788,50 @@ onto a second row below the fold. Do not add a seventh without a reason of that 
 - **What replaced what:** the footer text nav (four of eleven destinations, 11px, below the
   fold) is gone, and so are the two launcher door cards and the two navigation cards that
   sat inside the build page's left column. In their place: **Play, Career, Album, Records,
-  Squads** (and now Versus) - as a row that carries the masthead's ink rule from 700px up
-  and a fixed bottom bar below it. Settings and account stay masthead buttons: they are
+  Squads** (and now Versus) - as a row on the masthead's own line from 1040px up, its own
+  row down to 700px, and a fixed bottom bar below that. Settings and account stay masthead
+  buttons: they are
   sheets you adjust without leaving, not places you go. A route crumb shipped alongside
   the tabs as a second "where am I" signal (the active tab being the first) and was
   **removed 2026-08-23**, `RouteCrumb` with it: it restated the tab and spent a line on a
   right-aligned count ("0 of 11 picked", "272 squads") that the panel below it already
   shows.
+- **THE HEADER IS ONE ROW, AND THE TAB IS AN UNDERLINE** (2026-09-02, chosen by the owner
+  from six drawn treatments). The crest, the wordmark, the six labels and the two buttons
+  share one line; the chrome is **45px** where it was **89**, and the page's own title
+  starts 44px higher on every screen in the game. Four things about it, each a decision
+  rather than a detail:
+  - **The tagline paid for it, and that is arithmetic.** The tab row needs **581px** and
+    the crest row had **575px** spare, so the tabs missed fitting beside the crest by SIX
+    pixels; "Draft a random XI. Win the cup." was 196 of them. It never cost any HEIGHT
+    (it sat beside the crest, which sets the row height on its own), so removing it buys
+    width and nothing else - which is exactly what was short. It was already hidden below
+    640px, so no phone lost anything.
+  - **The 2px near-black rule under the tabs is a `line` hairline**, at both ends. It was
+    the heaviest line in the app on the strip with the least to say, and in the dark theme
+    it rendered as a near-WHITE bar brighter than the game under it. Three replacements
+    were drawn (hairline / a green edge / no rule at all with a lifted phone bar) and the
+    hairline won on the phone, where the bar is a panel the page scrolls under.
+  - **The desktop active tab is a 2px `pitch-ink` underline, not a filled chip.** On a
+    header one line tall a green block per destination is the loudest thing on the screen.
+    `pitch-ink` and never `pitch-dark`: it is the token that FLIPS (deep green on paper,
+    bright green on graphite), and this underline is the whole "you are here" signal, so
+    the surface green would have been a line nobody could see in the dark theme. It is a
+    pseudo-element at `-bottom-px`, so it covers the header's hairline and cannot shift
+    the label by a pixel. The shared minimum tab width went with the fill (even columns
+    are a chip idiom, an underline belongs to its label), which also gave back ~80px.
+  - **Below 1040px the nav wraps to its own line**, by `flex-wrap` on the header plus
+    `w-full` on the nav, so there is ONE `<nav>` in the DOM rather than a second copy
+    behind a media query announcing itself as the main navigation twice. `max-[1040px]`,
+    not 1039: **Tailwind's max variant is strictly less than what it is given**, so the
+    obvious number leaves a 1039px window on the layout it does not fit. The measured
+    minimum is 978px plus the 64px the account button can still grow by before its label
+    truncates - which is why that label is capped at all. The "Match in play" note hides
+    below 1120px for the same reason: a header that grows 38px taller mid-goal is worse
+    than one that explains itself only when there is room, and the dimmed tabs are the
+    signal either way.
+  The **phone bar is untouched** by all of it: it has never had a chip, it marks the
+  destination by colouring the icon and label, and the tagline was already hidden there.
 - **A tab is its label and nothing else** (2026-08-25). The desktop row carried a mono
   sub-line per tab - where the run is, "Lv 26 · 303", album completion, challenges earned,
   cups in the pool - so the chrome restated four live counters at once, each of them
