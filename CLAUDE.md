@@ -3052,15 +3052,18 @@ which took four sentences off the screen per decision. The exception is a card y
 choosing BETWEEN on its own merits, and the boost offer is the case: there the description
 is the choice.
 
-**THE ONE THING LEFT UNDONE, and it is a coordination problem rather than a decision**: the
-masthead's two chrome controls (the account button and the settings gear) are still the
-deleted `quiet` tone written out by hand at a 12px non-uppercase label, i.e. a fourth look.
-They were converted and the change was backed out, because another session was rewriting
-`Masthead.tsx` at the same time and its new `tabs` prop is coupled to `App.tsx` and
-`navUi.tsx` - so committing the conversion meant either breaking the build or publishing
-somebody else's in-flight work. It is two class strings: `btn('secondary', 'compact')` plus
-`h-[30px]` for row alignment, and `normal-case` on the label span only when it holds an
-email address, since MARIO.SMANIA is not an improvement on mario.smania.
+**THE MASTHEAD'S TWO CONTROLS ARE THE SECOND DESIGN TOO**, and how they got there is worth
+a line for the next session that hits it. They were the deleted `quiet` tone written out by
+hand at a 12px non-uppercase label, so converting them was part of the same job - but
+`Masthead.tsx` was being rewritten by ANOTHER session at that moment, and its new `tabs`
+prop was coupled to `App.tsx` and `navUi.tsx`, so committing the conversion meant either
+breaking the build or publishing somebody else's unfinished work. The conversion was
+therefore backed out, the rest of the pass was committed without it, and it went in
+immediately afterwards once that session had pushed its own commit and the file was clean
+again. **Backing a change out of one file beats carrying three files of somebody else's
+topic**, and the wait was about ten minutes. The one detail in it: `normal-case` on the
+account label's span only when it holds an email address, since MARIO.SMANIA is not an
+improvement on mario.smania.
 
 ## UI gotchas
 

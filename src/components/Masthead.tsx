@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Settings as SettingsIcon, Trophy, User } from 'lucide-react';
 import { FEATURES } from '../config';
 import { TabRow, type TabItem } from './navUi';
+import { btn } from './matchUi';
 
 /** The identity block AND the six destinations, on ONE row (2026-09-02).
  *
@@ -29,7 +30,11 @@ import { TabRow, type TabItem } from './navUi';
  *  the nav hides itself and the fixed bottom bar takes over, as it always did.
  *
  *  The account and settings buttons stay here, and stay sheets rather than destinations:
- *  you adjust them without leaving. The account label is capped and truncates, because it
+ *  you adjust them without leaving. BOTH ARE `btn('secondary', 'compact')` (2026-09-02):
+ *  they were the deleted `quiet` tone written out by hand at a 12px non-uppercase label,
+ *  which is to say two more button looks in the one strip that is on every screen. The
+ *  `h-[30px]` stays because this row's height is set by the crest beside them, so matching
+ *  it is alignment rather than a size of their own. The account label is capped and truncates, because it
  *  prints whatever is in front of the `@` and an unbounded button on a row this tight is
  *  what would break the single line. */
 export default function Masthead({
@@ -77,10 +82,19 @@ export default function Masthead({
                         type="button"
                         onClick={onOpenAccount}
                         title={accountEmail ?? 'Sign in to keep your album on every device'}
-                        className="flex h-[30px] shrink-0 items-center gap-1.5 rounded-[5px] border border-line bg-panel px-2.5 text-[12px] font-semibold text-muted transition hover:border-pitch hover:text-pitch-ink"
+                        className={`${btn('secondary', 'compact')} h-[30px] shrink-0`}
                     >
                         <User size={15} strokeWidth={2.2} />
-                        <span className="min-w-0 max-w-[110px] truncate max-sm:hidden">
+                        {/* `normal-case` only when the label is an ADDRESS. The button's
+                            voice is the app's - display face, uppercase - and "Sign in"
+                            takes it; what sits in front of somebody's `@` is a name rather
+                            than a label, and MARIO.SMANIA is not an improvement on
+                            mario.smania. Nothing else about the design moves. */}
+                        <span
+                            className={`min-w-0 max-w-[110px] truncate max-sm:hidden ${
+                                accountEmail ? 'normal-case' : ''
+                            }`}
+                        >
                             {accountEmail ? accountEmail.split('@')[0] : 'Sign in'}
                         </span>
                     </button>
@@ -90,7 +104,7 @@ export default function Masthead({
                     onClick={onOpenSettings}
                     aria-label="Settings"
                     title="Settings"
-                    className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[5px] border border-line bg-panel text-muted transition hover:border-pitch hover:text-pitch-ink"
+                    className={`${btn('secondary', 'compact')} h-[30px] shrink-0`}
                 >
                     <SettingsIcon size={16} strokeWidth={2} />
                 </button>
