@@ -403,7 +403,7 @@ export default function BudgetMarket({
                   aria-label={`${v} view`}
                   aria-pressed={view === v}
                   className={`grid h-[26px] w-[28px] place-items-center border-l border-line transition first:border-l-0 ${
-                    view === v ? 'bg-ink text-ground' : 'bg-panel text-muted hover:text-ink'
+                    view === v ? 'bg-pitch-dark text-white' : 'bg-panel text-muted hover:text-ink'
                   }`}
                 >
                   <Icon size={13} strokeWidth={2.5} />

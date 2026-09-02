@@ -748,6 +748,12 @@ target. Defaults to every year; it is **never empty** (an empty selection falls 
 all), and loading tolerates years that are not in the dataset. Keeping settings on their
 own key is deliberate: resetting the game, album, career or run never touches them.
 
+**The year grid is the whole control now**, since the three shortcuts above it (All / 2006
+and newer / Last 3) were deleted on 2026-09-02. So widening the pool back out is one tap a
+cup - and note the way back to everything already exists without a button, because an empty
+selection falls back to all: turning the last one off reopens the lot. Worth knowing before
+anybody re-adds a shortcut on the grounds that there is no route back.
+
 **"Every tournament" is stored as `null`, NEVER as a list of every current year**, and this
 was a real bug that hid a whole tournament. `useSettings` persists on mount, so every player
 has a saved `poolYears` whether or not they ever opened the sheet; the old shape wrote "all"
@@ -2930,7 +2936,7 @@ TONES**, which are the three designs the app has:
 
 - **`primary`** - the main one. The action you came to the screen to take. Solid green.
 - **`secondary`** - the second one, and everything quieter with it: Back, Refresh, Cancel,
-  Auto-fill, Clear, the album's Trade, the settings sheet's pool shortcuts. Ink outline.
+  Auto-fill, Clear, the album's Trade, the squad browser's Back. Ink outline.
 - **`danger`** - the third one. Destructive, and the only reason it survives the cut to
   three: delete the account, reset the album, discard the XI in progress. None of those can
   be told from an ordinary button by its wording, and a fourth emphasis level is worth less
@@ -2968,22 +2974,43 @@ glow, a stacked icon-over-label layout and two hand-rolled disabled states - **a
 icon itself**, which is arithmetic rather than taste: three buttons share a third of a narrow
 column, about 66px inside the padding, and the circular arrow plus its gap took 23 of them,
 so "Another team" had 43px to sit in and came out as a cramped two-line label with a symbol
-wedged beside it); the album's
+wedged beside it - **and then the two-tone split**, since "Roll again" being the only green
+one read as a recommendation, and the three are equal ways to spend the same re-roll rather
+than a best and two others: all three are the main design now); the settings sheet's three
+pool shortcuts (All / 2006 and newer / Last 3), deleted outright on 2026-09-02 rather than
+restyled - **the year grid below them is the control, and going back to every cup is now
+fifteen taps**, which is the accepted cost; the album's
 Trade button, which built its look out of the TIER's accent colour with two mouse handlers
 to paint a hover an inline style cannot express; the market's `hover:!border-loss` red hover
 and its bespoke mono "Clear filters"; and the error boundary's own green. **`!` OVERRIDES
 ARE THE TELL**: an override that fights the token is a new design wearing the token's name,
 and both of the ones that existed were exactly that.
 
-**SELECTORS ARE DELIBERATELY NOT BUTTONS AND KEEP THEIR OWN LOOKS** (decided 2026-09-02).
-The formation and Ascension chips, the two sets of year pills, the market's Affordable and
-Collectible toggles, and the five segmented groups are things you PICK, not things you
-press, and they were left alone on purpose. Folding them in is a separate job with a
-separate decision behind it; do not do it as a side effect of touching a button. What is
-worth knowing is that the five segmented groups still disagree with each other (two fill
-the active cell with `ink`, two with `pitch-dark`, and the type is mono in one, display in
-another and plain in a third), and the two year-pill designs disagree too - so if the next
-consistency pass is asked for, that is where it is.
+**SELECTORS ARE NOT BUTTONS AND KEEP THEIR OWN SHAPES, BUT THEY ALL AGREE ON ONE GREEN**
+(decided 2026-09-02, in two steps). The formation and Ascension chips, the two sets of year
+pills, the market's two filter toggles and the five segmented groups are things you PICK,
+not things you press, so they were left out of the three-button pass: their padding, their
+type and their radius are still their own, and folding those in is a separate job.
+
+**WHAT DID GET UNIFIED IS THE ONE THING THAT WAS ACTUALLY WRONG: THE CHOSEN CELL'S FILL.**
+Half the app filled it near-black (`bg-ink text-ground`: the settings sheet's two segmented
+controls, `CHIP_ON`, the squad browser's By World Cup / By Team, the market's list/grid
+toggle) and half filled it green (the honours sub-tabs, the build page's style row, the
+squad browser's year pills) - so **the same question had two answers on one screen**, at
+`/records` (green sub-tabs over near-black filter chips) and in the squad browser
+(near-black toggle over green years). It is `bg-pitch-dark text-white` everywhere now, at
+8.08 / 10.34 against white, which is the same block the primary button and the champion
+node use. The near-black is gone from every selected state in `src/`; **do not bring it
+back for a "different kind" of group**, because that is precisely how there came to be two.
+The settings sheet's year grid went from a green TINT to the same fill with it, which is the
+loudest single consequence (fifteen filled tiles when the whole pool is on) and is correct:
+it is the same control as the squad browser's years, which was already filled.
+
+The worry worth recording, because it was checked and did not hold: the fill is the primary
+button's own colour, so a chosen chip could have read as a button on the build page's setup
+panel, where the formation chips, the style row and a green "Roll a squad" now stack in one
+column. They stay distinct - the button is much larger, uppercase, in the display face and
+carries an icon - and one accent beats two.
 
 **ONE THING ABOUT THEM DID CHANGE: `SegControl` NO LONGER CARRIES A CAPTION INSIDE ITSELF**
 (2026-09-02, reported as "the only buttons with a label to the left of it", which is exactly

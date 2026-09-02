@@ -109,13 +109,15 @@ const BTN_SIZE: Record<BtnSize, string> = {
 // needs the dark ink in both, and `text-ink` is near-white in dark and would vanish.
 const BTN_TONE: Record<BtnSurface, Record<BtnTone, string>> = {
     light: {
-        primary: 'border-pitch-dark bg-pitch-dark text-white hover:bg-pitch-hover active:scale-[0.99]',
+        primary:
+            'border-pitch-dark bg-pitch-dark text-white hover:bg-pitch-hover active:scale-[0.99]',
         secondary: 'border-ink bg-panel text-ink hover:border-pitch hover:text-pitch-ink',
         danger: 'border-loss-deep bg-loss-deep text-white hover:opacity-90 active:scale-[0.99]',
     },
     dark: {
         primary: 'border-white bg-white text-[#13211a] hover:bg-white/90 active:scale-[0.99]',
-        secondary: 'border-white/40 bg-white/[0.08] text-white hover:border-white/70 hover:bg-white/[0.16]',
+        secondary:
+            'border-white/40 bg-white/[0.08] text-white hover:border-white/70 hover:bg-white/[0.16]',
         danger: 'border-loss-deep bg-loss-deep text-white hover:opacity-90 active:scale-[0.99]',
     },
 };
@@ -275,11 +277,20 @@ function StripCell({
 /** The pitch gradient fill, used by the two honours meters. */
 export const METER_GRADIENT = 'bg-gradient-to-r from-pitch to-pitch-dark';
 
-/** A chip's two states: filled ink when it is the chosen one, outlined otherwise. The
+/** A chip's two states: filled GREEN when it is the chosen one, outlined otherwise. The
  *  exact pair was written out at three sites (the challenge ledger's filters, and both
  *  of the build page's pickers). A caller with a third state - the Ascension picker's
- *  locked tier - keeps that at the call site. */
-export const CHIP_ON = 'border-ink bg-ink text-ground';
+ *  locked tier - keeps that at the call site.
+ *
+ *  THE FILL WAS `ink` UNTIL 2026-09-02, and the change is about the app having ONE answer
+ *  to "this is the one you chose". Half the app's groups filled the chosen cell near-black
+ *  and half filled it green - the settings sheet and the challenge filters against the
+ *  honours sub-tabs, the build page's style row and the squad browser's years - so the
+ *  same question had two colours on the same screen at /records. Green is the one that
+ *  won: it is the identity, and it is already what the active tab, the champion node and
+ *  the trophy shelf use. Do not reintroduce the near-black for a "different kind" of
+ *  group; that is how there came to be two. */
+export const CHIP_ON = 'border-pitch-dark bg-pitch-dark text-white';
 export const CHIP_OFF = 'border-line bg-panel text-ink hover:border-pitch hover:text-pitch-ink';
 
 /** A card's footer disclosure: a full-width chalk strip carrying a mono label and a
@@ -431,7 +442,7 @@ export function SegControl<T extends string>({
                         aria-pressed={o.value === value}
                         className={`whitespace-nowrap border-l border-line px-[11px] py-[9px] text-xs font-semibold transition first:border-l-0 max-sm:flex-1 ${
                             o.value === value
-                                ? 'bg-ink text-ground'
+                                ? 'bg-pitch-dark text-white'
                                 : 'bg-panel text-muted hover:text-ink'
                         }`}
                     >

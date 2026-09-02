@@ -115,7 +115,7 @@ export default function SquadBrowser() {
                                 className={[
                                     'border-r border-line px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.06em] transition last:border-r-0',
                                     mode === m
-                                        ? 'bg-ink text-ground'
+                                        ? 'bg-pitch-dark text-white'
                                         : 'bg-panel text-muted hover:text-pitch-ink',
                                 ].join(' ')}
                             >

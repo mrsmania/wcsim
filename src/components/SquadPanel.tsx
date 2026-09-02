@@ -229,7 +229,6 @@ export default function SquadPanel({
                         <RerollButton
                             key={kind}
                             label={REROLL_LABEL[kind]}
-                            primary={kind === 'any'}
                             disabled={rerollDisabled || !CAN[kind]}
                             onClick={() => onReroll(kind)}
                         />
@@ -252,12 +251,10 @@ export default function SquadPanel({
 
 function RerollButton({
     label,
-    primary = false,
     disabled,
     onClick,
 }: {
     label: string;
-    primary?: boolean;
     disabled: boolean;
     onClick: () => void;
 }) {
@@ -272,11 +269,16 @@ function RerollButton({
     // and came out as a cramped two-line label with a symbol wedged beside it. Without it
     // each label has the whole cell, wraps between its two words where it needs to, and
     // centres. `leading-tight` is what keeps that second line close.
+    //
+    // ALL THREE ARE THE MAIN DESIGN (2026-09-02). Two of them were the outlined one and
+    // "Roll again" was green, which read as a row where one of three equal choices was the
+    // recommended one - and it is not: they are three ways to spend the same re-roll, and
+    // which one you want depends on the squad in front of you rather than on which is best.
     return (
         <button
             disabled={disabled}
             onClick={onClick}
-            className={`${btn(primary ? 'primary' : 'secondary', 'compact')} w-full leading-tight`}
+            className={`${btn('primary', 'compact')} w-full leading-tight`}
         >
             {label}
         </button>

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import Overlay from './Overlay';
-import { CARD_FLAT, SegControl, SpeedControl, btn } from './matchUi';
+import { CARD_FLAT, SegControl, SpeedControl } from './matchUi';
 import type { MatchSpeed } from '../domain/clock';
 import type { Difficulty } from '../domain/difficulty';
 import { WORLD_CUP_YEARS } from '../data/squads';
@@ -11,12 +11,6 @@ import type { Pool } from '../hooks/usePool';
 const GROUP = 'border-t border-line px-5 py-4 first:border-t-0';
 const GH = 'font-display text-[14px] font-extrabold';
 const HINT = 'mt-0.5 text-[12px] leading-snug text-muted';
-
-// The three pool shortcuts. They were `!rounded-full` over the button token, so the sheet
-// carried a pill nothing else in the app has - and the `!` was the tell: an override that
-// fights the design is a new design wearing its name. They are the plain row-sized
-// secondary button now. (The year grid below them is a SELECTOR and keeps its own look.)
-const SHORTCUT_BTN = btn('secondary', 'compact');
 
 const DIFFICULTIES: { value: Difficulty; label: string }[] = [
     { value: 'casual', label: 'Casual' },
@@ -129,23 +123,6 @@ export default function SettingsModal({
                         your opponents, and the sticker album.
                     </p>
                     <div className="mt-2.5 flex flex-wrap gap-1.5">
-                        <button className={SHORTCUT_BTN} onClick={() => setPoolYears(WORLD_CUP_YEARS)}>
-                            All
-                        </button>
-                        <button
-                            className={SHORTCUT_BTN}
-                            onClick={() => setPoolYears(WORLD_CUP_YEARS.filter((y) => y >= 2006))}
-                        >
-                            2006 and newer
-                        </button>
-                        <button
-                            className={SHORTCUT_BTN}
-                            onClick={() => setPoolYears(WORLD_CUP_YEARS.slice(-3))}
-                        >
-                            Last 3
-                        </button>
-                    </div>
-                    <div className="mt-2.5 flex flex-wrap gap-1.5">
                         {WORLD_CUP_YEARS.map((y) => {
                             const on = s.poolYears.includes(y);
                             return (
@@ -156,7 +133,7 @@ export default function SettingsModal({
                                     onClick={() => togglePool(y)}
                                     className={`rounded-[5px] border px-2.5 py-1.5 font-mono text-[12px] font-bold transition ${
                                         on
-                                            ? 'border-pitch bg-pitch/10 text-accent'
+                                            ? 'border-pitch-dark bg-pitch-dark text-white'
                                             : 'border-line bg-panel text-muted hover:border-pitch'
                                     }`}
                                 >
