@@ -2455,15 +2455,35 @@ A read-only **`/cabinet`** screen: what a career has to show for itself. Roadmap
   `cupsByAscension`, `bestCupAscension`, `cupFormations`, the three streak counters,
   `everLostFinal`, `runsAtHighAscension`, `prestigeSpent` and `bestScore` were all being
   written and read by nothing but `domain/challenges.ts` (and `bestScore` by nothing at
-  all). So the cabinet is a **readout**, not a recording job: `domain/cabinet.ts`
+  all - and, since the row that showed it was deleted on 2026-09-02, that is true again). So the cabinet is a **readout**, not a recording job: `domain/cabinet.ts`
   `cabinetView(career, album, allPlayers)` derives every figure on the page, which is why
   it needed no new state, no migration, and behaves identically for a guest and an
   account. `CabinetScreen` only lays the result out.
-- **Blocks:** a headline strip, the **shelf** (one trophy per cup), the Ascension
-  **ladder**, **Records**, the formations a cup has been won with, an **honours** summary
-  (counter, tier bars, all 12 families, linking to `/challenges` for the full ledger),
-  **badges**, album completion with the Monumental strip, the **run archive**, and two
-  leaderboards: **Most used**, **Top scorers** and **Most titles**.
+- **Blocks:** three leaderboards (**Most used**, **Top scorers**, **Most titles**), the
+  **shelf** (one trophy per cup), **Records**, the formations a cup has been won with, and
+  **badges**.
+- **FOUR BLOCKS WERE DELETED ON 2026-09-02, and every one of them said something the page
+  already said.** Do not re-add one without a reason that answers this: **a headline strip**
+  (cups / level / prestige / runs) restated the shelf, the records column and the career
+  page's own standing card; the **Ascension ladder** printed the same per-tier count the
+  shelf prints under every trophy, so its two-gate sentence (`LadderNote`) went with it; the
+  **run archive** was the one RECORDED thing on a screen whose whole premise is that every
+  figure is derived, it only ever covered runs played since it started recording, and it
+  needed an explanatory empty state to say so; and **Best score** is the points a stage is
+  worth (10 for the group, 140 for the cup), so it depends on nothing but how far the run
+  got and said exactly what **Best finish** says one line above it, as a number nobody can
+  read without the table. What a career has to show for itself is the shelf and the boards,
+  not a log. The **honours summary** went earlier the same day, with the career page's split
+  into cards, for the same reason: `/records` is the honours ledger's own tab.
+  **The career still RECORDS the archive and `bestScore`.** Both are read by
+  `domain/challenges.ts` and the badges, and `cabinetView` still returns `history` /
+  `historyHeld` / `historyLimit` and `records.bestScore` - what changed is what the cabinet
+  SHOWS, not what a career remembers, so nothing had to be migrated and the deletion is
+  reversible.
+- **Records is FULL WIDTH**, because the archive that used to sit beside it has gone: a
+  half-width card next to white space reads as one that failed to load, which is the same
+  reason the titles board spans the pair above it below 1320px. The "nothing left to win"
+  note keeps its place under it.
 - **Rank is one hue getting deeper, plus a numeral** - not six colours. Same rule the
   challenge ledger arrived at when 130 painted entries stopped reading (`TIER_COLOR` is
   gone). The top step needs its own token: `bg-ink` would make the **highest** tier the
@@ -2484,6 +2504,16 @@ A read-only **`/cabinet`** screen: what a career has to show for itself. Roadmap
   screen was recomputing it) and `collectiblesByTier` in `domain/album.ts` (H45 - six
   callers were re-deriving a tier they had just proved). `AlbumScreen` still hand-rolls
   its own grouping; pointing it at the shared one is what is left of H45.
+- **"FINALS LOST" IS A COUNT, and it was printed as "yes" until 2026-09-02.** Nothing
+  counted them: `everLostFinal` is a FLAG the challenge catalogue reads for Nearly Man, and
+  the records column was showing it as though it were a figure. `CareerStats.finalsLost` is
+  the counter (on `stats`, so no migration), kept BESIDE the flag rather than replacing it -
+  the two answer different questions and the catalogue still wants the flag. What the screen
+  prints is `finalsLostOf`, which takes the **largest of three lower bounds** on the same
+  lifetime number: the counter, the run archive's `final` outcomes, and the flag itself as
+  proof of one. So a career older than the counter still reports what it can prove instead
+  of a zero it cannot stand behind, and a career that has only played since the counter
+  reports the counter exactly. Same reasoning as the bullet below.
 - **"Best cup streak" is not a stored field**, and this is the one number on the screen
   that took thought. `cupStreak` is a live counter that resets on any lesser finish, so
   nothing records the best run ever. Rather than add a counter (which would only work
