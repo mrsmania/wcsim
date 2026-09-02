@@ -341,7 +341,7 @@ Memory and operational fragility are.
 - **`pvp_lineups`** - formation and style, in their own table. Section 7 offered "column
   grants or a separate table" and the separate table won: a column grant has to be restated
   every time the member row changes shape, and row-level security is row-level either way.
-- ~~**`pvp_name_reports`** - insert-only from the client, read by the owner.~~ **Dropped 2026-09-02** (migration 0026), and with it the only `grant insert` the client had on any table. See P22.
+- ~~**`pvp_name_reports`** - insert-only from the client, read by the owner.~~ **Dropped 2026-09-02** (migration 0026, applied the same day), and with it the last insert POLICY a client role held anywhere in `public` - said as a policy rather than as a grant on purpose, since the Supabase image's blanket grants leave 34 insert privileges for `anon` / `authenticated` standing and it is row-level security that holds those shut. See P22.
 
 **Row-level security:** a public room in its lobby phase is readable by any signed-in player;
 after it starts, and always for a private room, members only. Nobody reads another player's

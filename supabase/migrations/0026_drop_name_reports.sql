@@ -16,12 +16,24 @@
 --     `pvp_name_reports_referee` policy, every grant on the table, and the sequence behind
 --     its `bigserial` primary key.
 --
--- IT CLOSES THE CLIENT'S ONLY WRITE PATH INTO A TABLE, anywhere in the game. Every other
--- write the browser makes goes through a `security definer` function or through the
--- referee's own role; this was the one `grant insert ... to authenticated` in the schema,
--- and an authenticated caller with the public key could add rows to it for as long as it
--- exists, unbounded and read by nobody. That is the second reason to drop the table rather
--- than merely deleting the button.
+-- IT CLOSES THE LAST INSERT POLICY A CLIENT ROLE HAD, anywhere in the public schema, which
+-- is the second reason to drop the table rather than only deleting the button: while it
+-- stood, anybody with an account and the public key could add rows to it, unbounded and
+-- read by nobody. Measured on the live server right after this was applied: every remaining
+-- INSERT or ALL policy in `public` belongs to `pvp_referee`, so the browser can now insert
+-- into no table at all, and every other write it makes goes through a `security definer`
+-- function or through the referee.
+--
+-- SAID PRECISELY, BECAUSE THE FIRST DRAFT OF THIS HEADER SAID IT WRONG. `grant insert on
+-- pvp_name_reports to authenticated` (0016) was the only insert grant THIS REPO ever wrote
+-- for a client role, and it was never the only one that EXISTS: the Supabase image adds
+-- blanket grants over the public schema, so `career`, `game_state`, `collectibles`,
+-- `economy_constants` and storage's own tables all still carry an INSERT privilege for
+-- `anon` and `authenticated` - 34 rows in `role_table_grants` after this ran. What holds
+-- those shut is row-level security having no insert policy for them, exactly as 0002 and
+-- 0013 intend, and NOT the absence of a grant. So the claim worth making is about the
+-- policy; the grant is the lesser half, and 0016's own comment on the image's blanket
+-- grants is the thing to re-read before believing any "only grant" sentence.
 --
 -- THE ROWS GO WITH IT AND THEY CANNOT BE RECOVERED. Read them out first if the history is
 -- wanted, since nothing else holds a copy:

@@ -115,8 +115,8 @@ done and why. What that means for anyone working in this tree now:
   0019/0020/0021 the three versus features applied 2026-08-30, 0022 the duel-by-link
   column drop and 0023 the email address as the identifier, both applied 2026-08-31; 0024
   teaches `pvp_records` to count a duel somebody walked out of, applied 2026-09-01, and
-  0025 the host's removal, applied 2026-09-02. **0026 is written and NOT applied** - it
-  drops the name-reports table, see roadmap item 57.)
+  0025 the host's removal and 0026 the name-reports table dropped, both applied
+  2026-09-02.)
   **0014 had to be corrected before it could be applied**, and the trap is worth carrying:
   the audit found four columns holding nothing and concluded all four were dead, but `xi` was
   still WRITTEN by `finish_run_v2` (the literal `'[]'::jsonb` on every banked run). A plpgsql
@@ -3266,12 +3266,15 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**THE SERVER IS AT 0025, AND `0026` IS QUEUED** (roadmap item **57**):
-`0026_drop_name_reports.sql` drops `pvp_name_reports`, reporting a display name having been
-removed from the game on 2026-09-02 - see "REPORTING A NAME IS GONE" below for why, and
-mind that it is the ONE migration here whose client half deploys FIRST (the browser was the
-writer, and the thing is going away, which is the 0022 lesson rather than a new one). It
-needs no referee rebuild in either direction. `0025_pvp_remove_member.sql` (the host
+**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** `0026_drop_name_reports.sql` (applied
+2026-09-02, roadmap item **57**) drops `pvp_name_reports`, reporting a display name having
+been removed from the game the same day - see "REPORTING A NAME IS GONE" below for why. Two
+things about it are worth carrying. It is the ONE migration here whose client half deploys
+FIRST, because the browser was the writer and the thing was going away, which is the 0022
+lesson rather than a new one; and it needed **no referee rebuild in either direction**, the
+referee having held grants and a policy on that table and never named it in any statement.
+Rehearsed in a rolled-back transaction first, which is what said what was actually there
+(one report, two policies, nineteen grants, nothing depending on it). `0025_pvp_remove_member.sql` (the host
 throwing somebody out, below) was applied on 2026-09-02, and the **referee was rebuilt the
 same day** from `699c604`, which closed the two rebuilds that were waiting on it (roadmap
 items **55** and **56**): the `/remove` route is live, and so is the rule that leaving a
@@ -4275,9 +4278,16 @@ seat row, and the table had **no select policy at all**, by decision, so nothing
 could look a report up again. Finishing it (a read of your own rows, a quiet mark only the
 reporter sees) was the alternative, and removal is the call. **`reportName` and the flag are
 deleted, `state/pvp/records.ts` now writes nothing at all, and migration `0026` drops the
-table** - which also closes the client's ONLY `grant insert` on any table in the schema. Do
-not reinstate the insert without that grant, and do not reinstate the button at all without
-reopening P22.
+table** (applied 2026-09-02) - which also closes **the last insert POLICY a client role
+held** anywhere in `public`: measured right after it ran, every remaining INSERT or ALL
+policy there belongs to the referee's own role, so the browser inserts into no table at
+all. **Say that as a policy and not as a grant, which is a correction rather than a
+nicety**: it was the only insert grant this REPO ever wrote for a client role, and 34
+insert privileges for `anon` / `authenticated` still exist on the server because the
+Supabase image grants the public schema wholesale (`career`, `game_state`, `collectibles`,
+`economy_constants`, storage's own tables). What holds those shut is row-level security
+having no insert policy, exactly as 0002 and 0013 intend. Do not reinstate any of it
+without reopening P22.
 
 **A ROOM OF MORE THAN TWO ADDED NO SERVER BEHAVIOUR, and that is worth knowing before
 looking for some.** The referee has taken 2, 4 and 8 since wave 1: `drawRound` shuffles the
