@@ -1704,10 +1704,11 @@ deleted with the plain World Cup it used to gate). Design:
   (`RoundRecord.boostId`, see below): a KO review re-renders the finished match card
   (`FinishedKoCard`, from the record's stored `events`/`pens`/ratings) + the boost; the
   group review shows the finishing position + its three matchday scorelines
-  (`RoundRecord.groupResults`) + the boost - all from `RunState.history`. The career hub
-  collapses to a slim strip with a chevron during a run (shown in full
-  only between runs). The XI panel lists **active boosts** as chips and tags players a roster boost
-  brought in (`RunState.boostedIds`, an amber "Boost" mark).
+  (`RoundRecord.groupResults`) + the boost - all from `RunState.history`. There is no career
+  hub during a run at all: it used to collapse to a slim strip with a chevron, and the
+  navigation rework gave it its own route, after which the run screen simply stopped
+  mounting it (see the three cards below). The XI panel lists **active boosts** as chips and
+  tags players a roster boost brought in (`RunState.boostedIds`, an amber "Boost" mark).
 - **Boost pick flow.** A boost is picked right after each round's games (except the final /
   a group exit), so the shared `BoostOffer` (the 3 rarity-topped cards + a "Next: flag name
   **year** in round" line) shows in two places: on the **group-results screen** (the first
@@ -1891,6 +1892,39 @@ deleted with the plain World Cup it used to gate). Design:
   data-driven off `PERKS`, so a new perk or tier appears by being added there; what needs
   wiring is only its effect. A trophy record (runs/cups/best) sits in
   the `CupRunScreen` hub. Separate storage from the game + album.
+- **THE CAREER PAGE IS THREE CARDS, one per thing you came for** (`cupRun/CareerHub`,
+  2026-09-02, asked for from the game: everything sat in one card, so telling the boosts
+  from the perks was hard). **Standing** (level, wallet, XP to the next level, runs / cups /
+  best, and the link to the trophy cabinet), **Perks**, and the **Boost library**. It was
+  one card with those as `border-t` separated bands, which put a lot of unlike things under
+  one shadow - and the two SHOPS in particular ran straight into each other, since a perk
+  tile and a boost tile are the same tile and the only thing telling them apart was the
+  caption above the grid. Each card has a head strip saying what it is, what you can spend
+  (the Prestige chip, deliberately repeated on both shops - it is the price context of the
+  card you are reading, not a duplicated headline) and what you already hold (the boost
+  library counts its own pool, which is the one number that says how much of it you have
+  bought). The head is the trophy cabinet's `BlockHead` shape rather than a new one, so the
+  two career surfaces read alike; the two are worth folding into `matchUi` once the
+  cabinet's own rework lands. Three things went with the split:
+  - **The challenge overview** - the counter, the Prestige earned and the last three
+    completed. `/records` is the honours ledger, so it was a second, smaller answer to a
+    question that has a whole page (and the ledger's own counter says more).
+  - **The collapse, which was DEAD.** The hub was a collapsible card whose whole header bar
+    was the toggle, with an animated body, a `showToggle` / `showBody` / `hubOpen` /
+    `onToggleHub` prop set, a `hubOpen` state in `CupRunScreen` and an effect re-collapsing
+    it whenever a run started. Roadmap item 27 split the hub onto its own route (a shop and
+    a step of play cannot be the same address) and the run screen stopped mounting it, which
+    left every one of those permanently at "open" - including the effect, which was
+    collapsing something nothing rendered. The Cabinet link had been INSIDE that dead
+    branch, so it survived the split by moving to the standing card's head.
+  - **Two buttons that had never met AA**, `bg-pitch text-white` in both shops - the exact
+    pre-rework primary the contrast pass measured at 4.00 / 3.25. They are `btn()` now, and
+    the not-yet-buyable state stopped being a button at all: `btn()` dims a disabled button
+    to half opacity, which put "Need 25" and "Reach level 3" - the most informative label on
+    the tile - at the faintest contrast on the page. A full-strength chip states the reason
+    instead, the same chip "Maxed", "In pool" and "Starter" already use, since none of the
+    five is an action. **A disabled button is not a good way to say why you cannot buy
+    something.**
   **Two perks reach outside the run**, both read in `App`:
   `transfer-budget` -> `BUDGET_BY_TIER` -> the
   market's budget (nine tiers, $70 to $160; tier 9 was added 2026-08-23 as the endgame
@@ -2309,13 +2343,16 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   answer it on its own: winning one tier below an already-unlocked ceiling leaves the same
   number behind. It reads `cupsByAscension` instead - a cup is the **first at its own tier**
   exactly when it unlocks the next, because reaching tier T at all means T-1 was already won.
-- **Surfaces:** a Challenges block in the career hub (`CareerHub`: counter, Prestige
-  earned, the three most recently completed, link to the catalogue), the **`/challenges`**
-  route (`ChallengesScreen`, lazy-loaded: the album's completion counter, filters for
-  available / completed, and every entry grouped by family), and the
+- **Surfaces: TWO, and the career hub is no longer one of them.** The **`/records`** route
+  (`ChallengesScreen`, lazy-loaded: the album's completion counter, filters for
+  available / completed, and every entry grouped by family, folding), and the
   run-end panel listing what the run completed. Shared atoms live in
   `components/challengeUi.tsx` (family accents, `TierPips`, `ChallengeRow`,
   `ChallengeLedgerRow`).
+  The hub used to carry a third - a counter, the Prestige earned and the three most recently
+  completed - and it went with the career page's split into cards (2026-09-02, see "THE
+  CAREER PAGE IS THREE CARDS" above): a ledger with its own tab does not need a smaller copy
+  of itself on the page next door. `ChallengeRow` is still live, in the run-end panel.
 - **The catalogue is a ledger, not a grid of cards** (2026-08-19, the "Ledger" option in
   `docs/redesign-2026/turf-flat/challenges-quieter-mock.html`). The rule it exists to keep:
   **130 entries cannot each be painted.** The card version spent a family hue, a filled tier

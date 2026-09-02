@@ -106,7 +106,7 @@ export default function CupRunScreen({
   /** Which half of this screen to render. The tabs navigation gives the career hub and
    *  the live run separate routes (roadmap item 27, finding F4 - a shop and a step of
    *  play cannot be the same address), so App mounts this screen twice: `hub` for the
-   *  Career tab (hub only, always open) and `run` under Play (the run, no hub). The
+   *  Career tab (the hub alone) and `run` under Play (the run, no hub). The
    *  career state and the purchase handlers stay here either way, so the split is a
    *  render branch rather than a state lift.
    *
@@ -156,10 +156,6 @@ export default function CupRunScreen({
   const { toast, showToast } = useToast();
   // The boost-pick panel, scrolled into view when a run enters the boost phase.
   const boostRef = useRef<HTMLDivElement | null>(null);
-  // The career hub starts collapsed to a slim strip (so the Play CTA is visible without
-  // scrolling); the whole-bar toggle opens it to shop perks. It re-collapses when a run
-  // starts so the match reveal is not hidden (see the run-presence effect below).
-  const [hubOpen, setHubOpen] = useState(false);
   // The Ascension tier for the next run. Chosen on the build page, which persists it as
   // the career's `lastAscension`; read here and clamped to what is currently selectable, so
   // a stale saved tier (a career that lost a level gate, or a save from another device)
@@ -170,14 +166,6 @@ export default function CupRunScreen({
   // and knockout round r is r + 1; null means the live round.
   const { reviewIndex, setReviewIndex, reviewableRounds, groupRecord, reviewRecord } =
     useRoundReview(run);
-
-  // Collapse the hub whenever a run starts (so the match reveal is not buried); only fires
-  // when the run presence flips, so a manual toggle sticks until then. Pre-run it keeps the
-  // collapsed default (or whatever the user last set).
-  const hasRun = !!run;
-  useEffect(() => {
-    if (hasRun) setHubOpen(false);
-  }, [hasRun]);
 
   // Bank the run's collectibles to the album once, when it ends. Reload-safe via the
   // persisted stickersApplied flag (so a refresh on the ended screen won't re-bank).
@@ -433,20 +421,16 @@ export default function CupRunScreen({
   };
 
   const prog = levelProgress(career.xp);
-  const showHubBody = hubOpen;
   const boostedIds = new Set(run?.boostedIds ?? []);
 
-  // The career hub element. On the pre-run screen it renders BELOW the preview so the
-  // "Play group stage" button stays visible; for an active run / no XI it sits on top.
+  // The career hub, which is the Career TAB and nothing else: the run view below never
+  // mounts it (a shop and a step of play are not the same address), which is why it no
+  // longer takes a collapsed state or a toggle.
   const hubOnly = view === 'hub';
   const hub = (
     <CareerHub
       career={career}
       prog={prog}
-      hubOpen={hubOnly || hubOpen}
-      onToggleHub={() => setHubOpen((o) => !o)}
-      showBody={hubOnly || showHubBody}
-      showToggle={!hubOnly}
       onPurchase={buyPerk}
       onUnlockBoost={unlockBoost}
     />
@@ -484,8 +468,8 @@ export default function CupRunScreen({
         <StageCrumb dir="back" label="Back to the build" to={buildTo} className="mt-[30px]" />
       )}
 
-      {/* Career hub - open above the content; a slim strip during an active run. Its own
-          page in the tabs navigation, where the run is a separate route. */}
+      {/* The career hub: the standing, the perk shop and the boost library, one card
+          each. Its own page in the tabs navigation - the run below never shows it. */}
       {hubOnly && hub}
 
       {/* Pre-run: the drafted XI with one "Play group stage" button, or a pointer back

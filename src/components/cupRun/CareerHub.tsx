@@ -1,9 +1,6 @@
 import type { ReactNode } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FEATURES } from '../../config';
-import { AWARDS_ON, challengeById, challengeProgress } from '../../domain/challenges';
-import ChallengeRow from '../challengeUi';
 import {
     PERKS,
     FINISH_LABEL,
@@ -12,7 +9,7 @@ import {
     type CareerState,
 } from '../../domain/career';
 import { BOONS, type Rarity } from '../../domain/boons';
-import { CARD, CARD_FLAT, Meter, METER_GRADIENT, MONO_CAP } from '../matchUi';
+import { btn, CARD_FLAT, CARD_SM, Meter, MONO_CAP } from '../matchUi';
 
 /** Rarity dot colour in the boost library (reuses the palette tokens). */
 const RARITY_DOT: Record<Rarity, string> = {
@@ -33,359 +30,270 @@ function PrestigeChip({ prestige }: { prestige: number }) {
     );
 }
 
-/** The hub header's title line: the name, the Level chip, then whatever the branch puts
- *  third. It was written out once per branch of `showToggle`, and the ONLY difference was
- *  that the toggle's Level chip reacts to the row's hover - which is `hoverable`. What
- *  goes third is genuinely per branch (the toggle swaps the Prestige chip for a sentence
- *  when collapsed), so it stays a child rather than becoming a fourth prop. */
-function HubTitle({
-    level,
-    hoverable,
-    children,
+/** One card's head strip: the title, an optional count, the wallet chip, a sentence
+ *  saying what the card is for, and an optional link on the right.
+ *
+ *  It is deliberately the trophy cabinet's own `BlockHead` shape, so the two career
+ *  surfaces read alike. It is not shared yet only because that copy is mid-rework in
+ *  another session's tree; folding the two into `matchUi` is the obvious next step. */
+function CardHead({
+    title,
+    count,
+    chip,
+    hint,
+    link,
 }: {
-    level: number;
-    hoverable?: boolean;
-    children: ReactNode;
+    title: string;
+    count?: string;
+    chip?: ReactNode;
+    hint?: string;
+    link?: { to: string; label: string };
 }) {
     return (
-        <>
-            <span className="font-display text-[17px] font-extrabold tracking-[-0.01em]">
-                Cup Run Hub
-            </span>
-            <span
-                className={`rounded-full bg-chalk px-2 py-0.5 font-mono text-[11px] font-semibold text-accent ${
-                    hoverable ? 'transition group-hover:bg-panel' : ''
-                }`}
-            >
-                Level {level}
-            </span>
-            {children}
-        </>
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-b border-hair px-3.5 pb-2.5 pt-3">
+            <h3 className="font-display text-[14.5px] font-extrabold tracking-[-0.01em]">
+                {title}
+            </h3>
+            {count && (
+                <span className="font-mono text-[11.5px] font-bold tabular-nums text-muted">
+                    {count}
+                </span>
+            )}
+            {chip}
+            {hint && <span className="text-[12px] leading-snug text-muted">{hint}</span>}
+            {link && (
+                <Link
+                    to={link.to}
+                    className="ml-auto font-display text-[10.5px] font-extrabold uppercase tracking-[0.05em] text-accent transition hover:underline"
+                >
+                    {link.label} &rarr;
+                </Link>
+            )}
+        </div>
     );
 }
 
-/** The career hub - a collapsible card. When `showToggle`, the whole header bar is the
- *  toggle button; `showBody` gates (and animates) the progress + perk-shop body, which
- *  collapses to just the header strip. */
+/** A shop tile's bottom line when there is nothing to press: either you already hold it
+ *  ("Maxed", "In pool", "Starter") or something is still in the way ("Need 25", "Reach
+ *  level 3"). A chip rather than a disabled button in BOTH cases, and the second one is
+ *  why: `btn()` dims a disabled button to half opacity, which put the most informative
+ *  label on the card - the reason you cannot buy it - at the faintest contrast on the
+ *  page. Nothing here is an action, so nothing here is a button. */
+function StateChip({ label, held }: { label: string; held?: boolean }) {
+    return (
+        <div
+            className={`mt-2 w-full rounded-[5px] px-2 py-1.5 text-center font-mono text-[11px] font-bold uppercase tracking-[0.06em] ${
+                held ? 'bg-pitch/10 text-pitch-ink' : 'border border-line bg-chalk text-muted'
+            }`}
+        >
+            {label}
+        </div>
+    );
+}
+
+/** The career page: three cards rather than one.
+ *
+ *  It used to be a single card holding the standing, a challenge overview, the perk shop
+ *  and the boost library as `border-t` separated bands - a lot of unlike things under one
+ *  shadow, and the two SHOPS in particular ran straight into each other, so telling a
+ *  perk tier from a boost unlock meant reading the caption above the grid rather than
+ *  seeing it. One card per thing instead, each with a head saying what it is, what it
+ *  costs and what you already hold.
+ *
+ *  The challenge overview went with the split: `/records` is the honours ledger, and a
+ *  counter plus the last three earned was a second, smaller answer to the same question.
+ *
+ *  It was also collapsible, and that machinery went too, because it was dead. The hub was
+ *  split off the run screen by the navigation rework (a shop and a step of play cannot be
+ *  the same address), so it only ever renders on the Career tab, always fully open: the
+ *  toggle branch, the animated body and their four props had no caller left. */
 export default function CareerHub({
     career,
     prog,
-    hubOpen,
-    onToggleHub,
-    showBody,
-    showToggle,
     onPurchase,
     onUnlockBoost,
 }: {
     career: CareerState;
     prog: { into: number; needed: number };
-    hubOpen: boolean;
-    onToggleHub: () => void;
-    showBody: boolean;
-    showToggle: boolean;
     onPurchase: (perkId: string) => void;
     onUnlockBoost: (boonId: string) => void;
 }) {
-    const challenges = challengeProgress(career.completedChallenges);
-    // The three most recently completed, newest first (the set is append-ordered).
-    const latest = career.completedChallenges
-        .slice(-3)
-        .reverse()
-        .map(challengeById)
-        .filter((c) => !!c);
+    // Derived once: the head strip counts what is already in the offer pool, and each
+    // tile reads its own price and state off the same answer.
+    const boosts = BOONS.map((b) => ({ boon: b, ...boonUnlockState(career, b.id) }));
+    const inPool = boosts.filter((b) => b.inPool).length;
     return (
-        <section className={`mb-4 mt-1 overflow-hidden ${CARD}`}>
-            {/* The header IS the collapse toggle. When `showToggle`, the whole bar is a
-                button (pointer + hover tint) so it plainly invites a click: collapsed it
-                shows a "Prestige to spend" hint and an "Open" chevron-in-a-ring; open it
-                shows the Prestige chip and a "Hide" ring. */}
-            {showToggle ? (
-                // The toggle and the cabinet link are siblings rather than nested: a
-                // <Link> inside a <button> is invalid, and the link has to survive the
-                // hub being collapsed (its first home was in the body, which is clipped
-                // when closed - so the cabinet had no reachable entry point at all).
-                <div
-                    className={`flex items-stretch ${showBody ? 'border-b border-line' : ''}`}
-                >
-                    <button
-                        type="button"
-                        onClick={onToggleHub}
-                        aria-expanded={hubOpen}
-                        className="group flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-left transition hover:bg-chalk"
-                    >
-                        <span className="flex flex-wrap items-center gap-2.5">
-                            <HubTitle level={career.level} hoverable>
-                                {hubOpen ? (
-                                    <PrestigeChip prestige={career.prestige} />
-                                ) : (
-                                    <span className="text-[12.5px] text-muted">
-                                        &middot;{' '}
-                                        <b className="font-semibold text-accent">
-                                            {career.prestige} Prestige
-                                        </b>{' '}
-                                        to spend on perks
-                                    </span>
-                                )}
-                            </HubTitle>
-                        </span>
-                        <span className="inline-flex shrink-0 items-center gap-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-pitch-ink">
-                            {hubOpen ? 'Hide' : 'Open'}
-                            <span className="grid h-[26px] w-[26px] place-items-center rounded-full border-[1.5px] border-pitch transition group-hover:bg-pitch group-hover:text-white">
-                                {hubOpen ? (
-                                    <ChevronUp size={14} strokeWidth={2.5} />
-                                ) : (
-                                    <ChevronDown size={14} strokeWidth={2.5} />
-                                )}
-                            </span>
-                        </span>
-                    </button>
-                    {FEATURES.trophyCabinet && (
-                        <Link
-                            to="/records/cabinet"
-                            className="flex shrink-0 items-center border-l border-line px-3 font-display text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-accent transition hover:bg-chalk"
-                        >
-                            Cabinet
-                        </Link>
-                    )}
-                </div>
-            ) : (
-                <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-                    <div className="flex items-baseline gap-2.5">
-                        <HubTitle level={career.level}>
-                            <PrestigeChip prestige={career.prestige} />
-                        </HubTitle>
-                    </div>
-                </div>
-            )}
-
-            {/* Animate open/close by transitioning the body's grid row from 0fr to 1fr
-                (smoothly animates to its natural height, no fixed max-height needed). The
-                body stays mounted and is clipped when closed. */}
-            <div
-                className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${showBody ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
-            >
-                <div className="min-h-0 overflow-hidden">
-                    <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-[minmax(0,1fr)_auto]">
-                        <div className="bg-panel p-4">
-                            <div className="mb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                                Progress
-                            </div>
-                            <Meter pct={(prog.into / prog.needed) * 100} height={8} />
-                            <div className="mt-1 font-mono text-[10px] text-muted">
-                                {prog.into} / {prog.needed} XP to level {career.level + 1}
-                            </div>
+        <>
+            {/* Standing: the level, the wallet, the XP to the next one, and what the
+                career has to show for itself so far. */}
+            <section className={`mb-3.5 mt-1 overflow-hidden ${CARD_SM}`}>
+                <CardHead
+                    title={`Level ${career.level}`}
+                    chip={<PrestigeChip prestige={career.prestige} />}
+                    hint="to spend on perks and boosts"
+                    link={
+                        FEATURES.trophyCabinet
+                            ? { to: '/records/cabinet', label: 'Trophy cabinet' }
+                            : undefined
+                    }
+                />
+                <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <div className="bg-panel p-4">
+                        <div className={`mb-1.5 ${MONO_CAP}`}>Progress</div>
+                        <Meter pct={(prog.into / prog.needed) * 100} height={8} />
+                        <div className="mt-1 font-mono text-[10px] text-muted">
+                            {prog.into} / {prog.needed} XP to level {career.level + 1}
                         </div>
-                        <div className="grid grid-cols-3 gap-px bg-line sm:w-[300px]">
-                            {(
+                    </div>
+                    <div className="grid grid-cols-3 gap-px bg-line sm:w-[300px]">
+                        {(
+                            [
+                                ['Runs', String(career.stats.runs)],
+                                ['Cups', String(career.stats.cups)],
                                 [
-                                    ['Runs', String(career.stats.runs)],
-                                    ['Cups', String(career.stats.cups)],
-                                    [
-                                        'Best',
-                                        career.stats.bestFinish
-                                            ? FINISH_LABEL[career.stats.bestFinish]
-                                            : '-',
-                                    ],
-                                ] as const
-                            ).map(([label, val]) => (
-                                <div key={label} className="bg-panel px-2 py-4 text-center">
-                                    <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">
-                                        {label}
-                                    </div>
-                                    <div className="mt-0.5 font-display text-[15px] font-extrabold leading-tight">
-                                        {val}
-                                    </div>
+                                    'Best',
+                                    career.stats.bestFinish
+                                        ? FINISH_LABEL[career.stats.bestFinish]
+                                        : '-',
+                                ],
+                            ] as const
+                        ).map(([label, val]) => (
+                            <div key={label} className="bg-panel px-2 py-4 text-center">
+                                <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">
+                                    {label}
                                 </div>
-                            ))}
-                        </div>
+                                <div className="mt-0.5 font-display text-[15px] font-extrabold leading-tight">
+                                    {val}
+                                </div>
+                            </div>
+                        ))}
                     </div>
+                </div>
+            </section>
 
-                    {/* Challenges: the completion counter and the latest few, with the
-                        full catalogue a click away. Permanent honours, so this is a
-                        record rather than a to-do list. */}
-                    {FEATURES.challenges && (
-                        <div className="border-t border-line p-4">
-                            <div className="mb-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                                <span className={MONO_CAP}>
-                                    Challenges
+            {/* Perk shop: six tracks, each tiered and level-gated. */}
+            <section className={`mb-3.5 overflow-hidden ${CARD_SM}`}>
+                <CardHead
+                    title="Perks"
+                    chip={<PrestigeChip prestige={career.prestige} />}
+                    hint="Every tier you buy applies to all your future runs."
+                />
+                <div className="grid gap-2.5 p-3.5 sm:grid-cols-2">
+                    {PERKS.map((perk) => {
+                        // The rule and the label's precedence both come from the
+                        // domain now: the component picks only the words.
+                        const { owned: lvl, next, canBuy, reason } = perkPurchaseState(
+                            career,
+                            perk.id,
+                        );
+                        // What the player currently owns (the active effect), if any.
+                        const owned = lvl > 0 ? perk.tiers[lvl - 1] : null;
+                        return (
+                            <div key={perk.id} className={`${CARD_FLAT} p-3`}>
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="font-display text-[13.5px] font-extrabold">
+                                        {perk.name}
+                                        {lvl > 0 && (
+                                            <span className="ml-1.5 rounded bg-pitch/10 px-1.5 py-[1px] align-middle font-mono text-[10px] font-bold text-accent">
+                                                {ROMAN[lvl] ?? lvl}
+                                            </span>
+                                        )}
+                                    </span>
+                                    {next && (
+                                        <span className="font-mono text-[11px] font-semibold text-amber-ink">
+                                            {next.cost}
+                                        </span>
+                                    )}
+                                </div>
+                                {/* What you have right now (or, if unowned, what the first tier unlocks). */}
+                                <p className="mt-1 text-[11.5px] leading-snug text-muted">
+                                    {owned ? (
+                                        <>
+                                            <span className="font-semibold text-pitch-ink">
+                                                Active:
+                                            </span>{' '}
+                                            {owned.description}
+                                        </>
+                                    ) : (
+                                        next?.description
+                                    )}
+                                </p>
+                                {/* The upgrade on offer, once you already own a tier. */}
+                                {owned && next && (
+                                    <p className="mt-1 text-[11px] leading-snug text-muted">
+                                        <span className="font-semibold text-ink">Next:</span>{' '}
+                                        {next.description}
+                                    </p>
+                                )}
+                                {!next ? (
+                                    <StateChip label="Maxed" held />
+                                ) : canBuy ? (
+                                    <button
+                                        onClick={() => onPurchase(perk.id)}
+                                        className={`mt-2 w-full ${btn('primary', 'sm')}`}
+                                    >
+                                        {reason === 'upgrade' ? 'Upgrade' : 'Unlock'}
+                                    </button>
+                                ) : (
+                                    <StateChip
+                                        label={
+                                            reason === 'level'
+                                                ? `Reach level ${next.levelReq}`
+                                                : `Need ${next.cost}`
+                                        }
+                                    />
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </section>
+
+            {/* Boost library: unlock more boosts into every future run's offer pool. */}
+            <section className={`mb-4 overflow-hidden ${CARD_SM}`}>
+                <CardHead
+                    title="Boost library"
+                    count={`${inPool} / ${boosts.length} in the pool`}
+                    chip={<PrestigeChip prestige={career.prestige} />}
+                    hint="Unlocked boosts join the three a run offers between rounds."
+                />
+                <div className="grid gap-2.5 p-3.5 sm:grid-cols-2">
+                    {boosts.map(({ boon: b, cost, inPool: held, starter, affordable }) => (
+                        <div key={b.id} className={`${CARD_FLAT} p-3`}>
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="flex items-center gap-1.5">
+                                    <span
+                                        className={`inline-block h-2 w-2 shrink-0 rounded-full ${RARITY_DOT[b.rarity]}`}
+                                    />
+                                    <span className="font-display text-[13.5px] font-extrabold">
+                                        {b.name}
+                                    </span>
                                 </span>
-                                <span className="font-mono text-[12px] font-bold">
-                                    {challenges.completed} / {challenges.total}
-                                </span>
-                                {AWARDS_ON && (
-                                    <span className="font-mono text-[11px] text-muted">
-                                        {challenges.prestige} Prestige earned
+                                {!held && (
+                                    <span className="font-mono text-[11px] font-semibold text-amber-ink">
+                                        {cost}
                                     </span>
                                 )}
-                                <Link
-                                    to="/records"
-                                    className="ml-auto font-display text-[11.5px] font-extrabold uppercase tracking-[0.06em] text-accent transition hover:underline"
-                                >
-                                    All challenges &rarr;
-                                </Link>
                             </div>
-                            <Meter
-                                pct={Math.round((challenges.completed / challenges.total) * 100)}
-                                fill={METER_GRADIENT}
-                            />
-                            {latest.length > 0 ? (
-                                <ul className="mt-3 flex flex-col gap-2">
-                                    {latest.map((c) => (
-                                        <li key={c.id}>
-                                            <ChallengeRow challenge={c} />
-                                        </li>
-                                    ))}
-                                </ul>
+                            <p className="mt-1 text-[11.5px] leading-snug text-muted">
+                                {b.description}
+                            </p>
+                            {held ? (
+                                <StateChip label={starter ? 'Starter' : 'In pool'} held />
+                            ) : affordable ? (
+                                <button
+                                    onClick={() => onUnlockBoost(b.id)}
+                                    className={`mt-2 w-full ${btn('primary', 'sm')}`}
+                                >
+                                    Unlock
+                                </button>
                             ) : (
-                                <p className="mt-2.5 text-[12.5px] text-muted">
-                                    None yet. They are judged when a Cup Run ends, and the first
-                                    cup alone completes a handful.
-                                </p>
+                                <StateChip label={`Need ${cost}`} />
                             )}
                         </div>
-                    )}
-
-                    {/* Perk shop */}
-                    <div className="border-t border-line p-4">
-                        <div className={`mb-2.5 ${MONO_CAP}`}>
-                            Perks (spend Prestige - applies to future runs)
-                        </div>
-                        <div className="grid gap-2.5 sm:grid-cols-2">
-                            {PERKS.map((perk) => {
-                                // The rule and the label's precedence both come from the
-                                // domain now: the component picks only the words.
-                                const { owned: lvl, next, canBuy, reason } = perkPurchaseState(
-                                    career,
-                                    perk.id,
-                                );
-                                // What the player currently owns (the active effect), if any.
-                                const owned = lvl > 0 ? perk.tiers[lvl - 1] : null;
-                                return (
-                                    <div
-                                        key={perk.id}
-                                        className={`${CARD_FLAT} p-3`}
-                                    >
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="font-display text-[13.5px] font-extrabold">
-                                                {perk.name}
-                                                {lvl > 0 && (
-                                                    <span className="ml-1.5 rounded bg-pitch/10 px-1.5 py-[1px] align-middle font-mono text-[10px] font-bold text-accent">
-                                                        {ROMAN[lvl] ?? lvl}
-                                                    </span>
-                                                )}
-                                            </span>
-                                            {next && (
-                                                <span className="font-mono text-[11px] font-semibold text-amber-ink">
-                                                    {next.cost}
-                                                </span>
-                                            )}
-                                        </div>
-                                        {/* What you have right now (or, if unowned, what the first tier unlocks). */}
-                                        <p className="mt-1 text-[11.5px] leading-snug text-muted">
-                                            {owned ? (
-                                                <>
-                                                    <span className="font-semibold text-pitch-ink">
-                                                        Active:
-                                                    </span>{' '}
-                                                    {owned.description}
-                                                </>
-                                            ) : (
-                                                next?.description
-                                            )}
-                                        </p>
-                                        {/* The upgrade on offer, once you already own a tier. */}
-                                        {owned && next && (
-                                            <p className="mt-1 text-[11px] leading-snug text-muted">
-                                                <span className="font-semibold text-ink">
-                                                    Next:
-                                                </span>{' '}
-                                                {next.description}
-                                            </p>
-                                        )}
-                                        <button
-                                            disabled={!canBuy}
-                                            onClick={() => onPurchase(perk.id)}
-                                            className={[
-                                                'mt-2 w-full rounded-[5px] px-2 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] transition',
-                                                !next
-                                                    ? 'cursor-default bg-pitch/10 text-pitch-ink'
-                                                    : canBuy
-                                                      ? 'bg-pitch text-white hover:bg-pitch-dark'
-                                                      : 'cursor-not-allowed border border-line bg-panel text-muted/50',
-                                            ].join(' ')}
-                                        >
-                                            {reason === 'maxed'
-                                                ? 'Maxed'
-                                                : reason === 'level'
-                                                  ? `Reach level ${next!.levelReq}`
-                                                  : reason === 'prestige'
-                                                    ? `Need ${next!.cost}`
-                                                    : reason === 'upgrade'
-                                                      ? 'Upgrade'
-                                                      : 'Unlock'}
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Boost library: unlock more boosts into every future run's offer pool. */}
-                    <div className="border-t border-line p-4">
-                        <div className={`mb-2.5 ${MONO_CAP}`}>
-                            Boost library (spend Prestige - adds to future runs' offers)
-                        </div>
-                        <div className="grid gap-2.5 sm:grid-cols-2">
-                            {BOONS.map((b) => {
-                                const { cost, inPool, affordable } = boonUnlockState(career, b.id);
-                                return (
-                                    <div
-                                        key={b.id}
-                                        className={`${CARD_FLAT} p-3`}
-                                    >
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="flex items-center gap-1.5">
-                                                <span
-                                                    className={`inline-block h-2 w-2 shrink-0 rounded-full ${RARITY_DOT[b.rarity]}`}
-                                                />
-                                                <span className="font-display text-[13.5px] font-extrabold">
-                                                    {b.name}
-                                                </span>
-                                            </span>
-                                            {!inPool && (
-                                                <span className="font-mono text-[11px] font-semibold text-amber-ink">
-                                                    {cost}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="mt-1 text-[11.5px] leading-snug text-muted">
-                                            {b.description}
-                                        </p>
-                                        {inPool ? (
-                                            <div className="mt-2 w-full rounded-[5px] bg-pitch/10 px-2 py-1.5 text-center font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-pitch-ink">
-                                                {b.starter ? 'Starter' : 'In pool'}
-                                            </div>
-                                        ) : (
-                                            <button
-                                                disabled={!affordable}
-                                                onClick={() => onUnlockBoost(b.id)}
-                                                className={[
-                                                    'mt-2 w-full rounded-[5px] px-2 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] transition',
-                                                    affordable
-                                                        ? 'bg-pitch text-white hover:bg-pitch-dark'
-                                                        : 'cursor-not-allowed border border-line bg-panel text-muted/50',
-                                                ].join(' ')}
-                                            >
-                                                {affordable ? 'Unlock' : `Need ${cost}`}
-                                            </button>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
+                    ))}
                 </div>
-            </div>
-        </section>
+            </section>
+        </>
     );
 }
