@@ -272,6 +272,22 @@ export const startRoom = (code: string): Promise<RoomView> =>
 export const leaveRoom = (code: string): Promise<RoomView> =>
     call('POST', `/v1/rooms/${code}/leave`);
 
+/**
+ * Throw somebody out of the lobby, as the host.
+ *
+ * THE ID GOES IN THE BODY AND THE HOST IS THE TOKEN, which is the referee's own rule
+ * working in both directions at once: this call says who is going and cannot say who is
+ * asking, so nothing here can remove anybody from a room it does not host.
+ *
+ * A LOBBY'S, like a resize and the practice opponents, and refused everywhere else by the
+ * state machine rather than by this side: past the start a member's XI is in a bracket
+ * other people are playing, and the round pairs the survivors, so taking one out is a draw
+ * that no longer works. The button is not offered there, and the referee answering with the
+ * room unchanged is what makes that a rule rather than a habit.
+ */
+export const removeMember = (code: string, userId: string): Promise<RoomView> =>
+    call('POST', `/v1/rooms/${code}/remove`, { userId });
+
 /** Play with fewer people than the room was opened for (P7). The host only, downwards
  *  only, and no byes are ever created: a room of eight that will not fill becomes a room
  *  of four or two and plays a full bracket, rather than sitting in a lobby for ever. */

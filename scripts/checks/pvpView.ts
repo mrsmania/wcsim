@@ -1448,6 +1448,51 @@ export function pvpViewChecks(): void {
     }
   }
 
+  // --- THROWING SOMEBODY OUT: who is offered it, and what the player who went is told ---
+  //
+  // NOTHING BEHAVIOURAL CAN SEE ANY OF THIS. The state machine refuses every wrong removal
+  // and the referee names the refused join, so a lobby that offered the button to everybody
+  // would look perfectly correct: each tap comes back with the room unchanged, and the row
+  // is still there. What would actually be wrong is what the screen SAYS - four people
+  // holding a control that only one of them can use - and that is text.
+  //
+  // The removed player's own screen is the other half, and the more important one: arriving
+  // at a room is taking the seat, so their client sends the join that gets refused, lands on
+  // "Could not get in", and would sit there pressing a Try again that can only ever say no.
+  {
+    const lobby = readFileSync('src/components/versus/RoomLobby.tsx', 'utf8');
+    const screen = readFileSync('src/components/versus/RoomScreen.tsx', 'utf8');
+    const hook = readFileSync('src/hooks/useVersusRoom.ts', 'utf8');
+    check(
+      'versus: only the host is offered a removal, and the player who went gets a screen with no retry',
+      () =>
+        // The three exclusions, on one line in the lobby so they cannot drift apart: the
+        // host makes it, never about themselves, and never about a practice opponent (which
+        // is a COUNT, and the chips below the list are how it changes).
+        /isHost && !m\.bot && m\.userId !== view\.hostId/.test(lobby) &&
+        lobby.includes('<RemoveSeat') &&
+        // Vacuity: the seat list really is what this is on, and the host-only controls
+        // beside it are still host-only - so the scan is reading a live file rather than
+        // matching a comment.
+        lobby.includes('seatsOf(view)') &&
+        /isHost && !duel && freeSeats > 0/.test(lobby) &&
+        // The removed player's screen. The retry is suppressed by the refusal's own name,
+        // and the title says what happened rather than that something went wrong.
+        screen.includes("room.commandError?.code === 'removed-from-room'") &&
+        /\{problem && !thrownOut &&/.test(screen) &&
+        screen.includes("'You were removed'") &&
+        // And the chrome lets go of the room, which nothing else does for it: the pointer
+        // is refreshed by every answer carrying a seat, and they get no more of those.
+        /'removed-from-room'\) holdVersusRoom\(null\)/.test(screen) &&
+        // Which needs the hold itself to be seat-conditional, or a PUBLIC lobby stays
+        // readable to them and the very next poll puts the pointer straight back.
+        /if \(next\.you\) holdVersusRoom\(/.test(hook),
+      () =>
+        `lobby ${/isHost && !m\.bot/.test(lobby)}, retry ${/\{problem && !thrownOut &&/.test(screen)}, ` +
+        `hold ${/if \(next\.you\) holdVersusRoom\(/.test(hook)}`,
+    );
+  }
+
   // --- The way out, and which of the four it is -----------------------------
   //
   // FOUR THINGS WEAR ONE BUTTON and one of them costs the game, so the screen has to say

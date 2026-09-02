@@ -872,6 +872,65 @@ export async function refereeChecks(): Promise<void> {
     );
   }
 
+  // --- THE HOST THROWING SOMEBODY OUT, THROUGH THE REAL HANDLERS -------------
+  // The state machine's own checks cover the rule; this covers the two things only the
+  // edge can get wrong, and both of them are the difference between a working button and a
+  // decorative one. The route has to EXIST - `/remove` reaches the router through the same
+  // optional group as `/leave`, so a typo answers `no-such-route` and the screen says the
+  // two sides are on different versions - and the refused join has to come back as its own
+  // named refusal rather than as "that room is full", because the client sends that join by
+  // itself (arriving at a room is taking the seat) and has to know not to offer a retry.
+  {
+    const clock = { now: T0 };
+    const store = new MemStore();
+    store.names = { u1: 'Ada', u2: 'Bruno', u3: 'Carla' };
+    const deps = depsFor(store, clock);
+    const made = await post(deps, '/referee/v1/rooms', session('u1'), {
+      visibility: 'public',
+      size: 4,
+      method: 'budget',
+      budget: 110,
+      pickSeconds: 20,
+      years: [],
+    });
+    const code = (made.body as RoomView).code;
+    await post(deps, `/referee/v1/rooms/${code}/join`, session('u2'));
+    // Not the host's to give: the same instruction from a guest changes nothing.
+    const byGuest = await post(deps, `/referee/v1/rooms/${code}/remove`, session('u2'), {
+      userId: 'u1',
+    });
+    const sent = await post(deps, `/referee/v1/rooms/${code}/remove`, session('u1'), {
+      userId: 'u2',
+    });
+    const backAgain = await post(deps, `/referee/v1/rooms/${code}/join`, session('u2'));
+    const somebodyElse = await post(deps, `/referee/v1/rooms/${code}/join`, session('u3'));
+    const nobodyNamed = await post(deps, `/referee/v1/rooms/${code}/remove`, session('u1'), {});
+    check(
+      'referee: the host removes a member, and the referee refuses their next join BY NAME',
+      () =>
+        // Vacuity: the route is really there, and it really did something. A missing route
+        // answers 404 `no-such-route`, which would otherwise read as a refused removal.
+        sent.status === 200 &&
+        (sent.body as RoomView).members.length === 1 &&
+        // The guest's attempt was answered and changed nothing, which is how every refusal
+        // in this file reads: the room comes back saying what happened.
+        byGuest.status === 200 &&
+        (byGuest.body as RoomView).members.length === 2 &&
+        // The half that matters, and it must not be `room-full`: there is a free chair, and
+        // somebody else can take it.
+        backAgain.status === 403 &&
+        (backAgain.body as { error?: string }).error === 'removed-from-room' &&
+        somebodyElse.status === 200 &&
+        // A removal with nobody named is a request the referee cannot carry out, so it says
+        // so rather than answering 200 with a room it did not change.
+        nobodyNamed.status === 422 &&
+        (nobodyNamed.body as { error?: string }).error === 'bad-remove',
+      () =>
+        `remove ${sent.status}, rejoin ${backAgain.status} ${JSON.stringify(backAgain.body)}, ` +
+        `other ${somebodyElse.status}, unnamed ${nobodyNamed.status}`,
+    );
+  }
+
   // --- One room at a time (P39), and a name before a room -------------------
 
   {

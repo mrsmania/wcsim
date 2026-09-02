@@ -10,6 +10,7 @@ import {
     postDone,
     postXi,
     readRoom,
+    removeMember,
     rerollDeal,
     resizeRoom,
     seen,
@@ -89,6 +90,9 @@ export interface VersusRoom {
     resize: (size: number) => Promise<void>;
     /** The host filling the empty chairs with practice opponents, as a TARGET count. */
     setBots: (count: number) => Promise<void>;
+    /** The host throwing somebody out of the lobby. The removal sticks, so this is not the
+     *  same thing as their seat coming free: they cannot walk back in. */
+    remove: (userId: string) => Promise<void>;
     /** Give up your seat. A no-op on the server once the room has started (your XI plays
      *  on), so the caller may always send it. */
     leave: () => Promise<void>;
@@ -157,7 +161,16 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         setDraftRemainingMs(d?.remainingMs ?? null);
         // The strip's sentence is written HERE, by the room's own reading of itself, so the
         // chrome does not compose a second one out of a status and a count.
-        holdVersusRoom({ code: next.code, status: next.status, line: roomLine(next) });
+        //
+        // ONLY WHEN YOU ARE ACTUALLY IN IT, which `you` is exactly ("null for somebody
+        // looking at a public lobby they have not joined"). The pointer means "you are in a
+        // versus room and it is this one", and there are two ways to be reading a room you
+        // are not in: a public lobby a moment before the join lands, which is harmless, and
+        // one the host has thrown you out of (`removeMember`), which is not - a public
+        // lobby stays readable to everybody signed in, so the strip would go on offering
+        // the room across every screen in the game, for a room that will never take the
+        // player back.
+        if (next.you) holdVersusRoom({ code: next.code, status: next.status, line: roomLine(next) });
     }, []);
 
     /** Run a call, recording what it cost so the lock lead is a measurement. */
@@ -334,6 +347,10 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         (count: number) => command(() => setRoomBots(code, count)),
         [code, command],
     );
+    const remove = useCallback(
+        (userId: string) => command(() => removeMember(code, userId)),
+        [code, command],
+    );
     const leave = useCallback(() => command(() => leaveRoom(code)), [code, command]);
     const join = useCallback(() => command(() => joinRoom(code)), [code, command]);
     const reroll = useCallback(() => command(() => rerollDeal(code)), [code, command]);
@@ -395,6 +412,7 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         start,
         resize,
         setBots,
+        remove,
         leave,
         join,
         reroll,

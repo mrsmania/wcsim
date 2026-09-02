@@ -84,6 +84,15 @@ const CODES: Record<string, { text: string; deployment?: boolean }> = {
     'already-in-a-room': { text: 'You are already in a room.' },
     'room-full': { text: 'That room is full.' },
     'room-started': { text: 'That room has already started.' },
+    // THE ONE REFUSAL WITH NOTHING TO TRY. Arriving at a room is taking the seat, so a
+    // removed player's own screen sends the join that gets this back - which means the
+    // sentence has to say what happened, not what went wrong, or they would sit there
+    // pressing Try again at a lobby that will never take them. `RoomScreen` offers no
+    // retry for it, for the same reason.
+    'removed-from-room': {
+        text: 'The host removed you from that room. You cannot go back in, but you can open one of your own or join another.',
+    },
+    'bad-remove': { text: 'The versus server did not understand who to remove.' },
     // P52's two. A board is only refused for a reason the player can see on it, so the
     // sentence points at the board rather than at the server.
     'bad-xi': { text: 'The versus server would not read that team sheet.' },

@@ -41,6 +41,7 @@ import {
   leaveRoom,
   reduceSize,
   remainingBudget,
+  removeMember,
   rerollDeal,
   rerollsLeft,
   setBots,
@@ -303,6 +304,11 @@ export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiRespons
       return bots(req, deps, userId, code, now);
     case 'start':
       return command(deps, userId, code, now, (room) => startRoom(room, userId, now));
+    // The host throwing somebody out (`removeMember`). A lobby's, like `size` and `bots`,
+    // and refused everywhere else by the state machine rather than here - the answer is
+    // the room, so a screen that offered the button too late shows why it did nothing.
+    case 'remove':
+      return remove(req, deps, userId, code, now);
     case 'leave':
       // A lobby seat given up for real (P39). It is a no-op once the room has started,
       // where an XI is in a bracket other people are playing - so the command always
@@ -418,6 +424,11 @@ async function join(
   if (!out) return fail(404, 'no-such-room');
   if (out.result === 'full') return fail(409, 'room-full');
   if (out.result === 'started') return fail(409, 'room-started');
+  // THROWN OUT, AND IT HAS TO BE SAID. This is the one refusal that must not read as a
+  // room problem: arriving at a room is taking the seat, so the screen sends this by
+  // itself, and "that room is full" of a room with an empty chair in it would have the
+  // player tapping Try again until the lobby closed. See `removeMember`.
+  if (out.result === 'removed') return fail(403, 'removed-from-room');
   return { status: 200, body: viewOf(out.room, userId, now), publish: code };
 }
 
@@ -445,6 +456,26 @@ async function size(
   const want = Number(req.body.size);
   if (!(ROOM_SIZES as readonly number[]).includes(want)) return fail(422, 'bad-size');
   return command(deps, userId, code, now, (room) => reduceSize(room, userId, want as RoomSize));
+}
+
+/**
+ * Throw one member out of the lobby, as the host (`removeMember`).
+ *
+ * The id travels in the BODY and the host comes from the TOKEN, which is this file's
+ * first rule read in both directions at once: the referee is told who is being removed and
+ * works out for itself who is asking, so a forged body can name a victim and can never
+ * name an executioner.
+ */
+async function remove(
+  req: ApiRequest,
+  deps: ApiDeps,
+  userId: string,
+  code: string,
+  now: number,
+): Promise<ApiResponse> {
+  const target = String(req.body.userId ?? '');
+  if (!target) return fail(422, 'bad-remove');
+  return command(deps, userId, code, now, (room) => removeMember(room, userId, target, now));
 }
 
 /**

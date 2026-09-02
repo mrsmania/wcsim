@@ -57,6 +57,7 @@ import {
   recoverFromOutage,
   reduceSize,
   remainingBudget,
+  removeMember,
   rerollDeal,
   setDone,
   setLineup,
@@ -968,8 +969,176 @@ export function pvpRoomChecks(): void {
     });
   }
 
+  removeChecks();
   duelLeaveChecks();
   botChecks();
+}
+
+/** A four-seat lobby with two chairs still empty, so a practice opponent can be seated in
+ *  one: `roomOf` fills every seat, and `setBots` refuses a room with nowhere to put them. */
+function halfFullLobby(): PvpRoom {
+  const room = createRoom({
+    id: 'r8',
+    code: 'HALF01',
+    hostId: 'u0',
+    hostName: 'Host',
+    visibility: 'private',
+    size: 4,
+    rules: BUDGET,
+    pickSeconds: 20,
+    hostBudget: BUDGET.budget,
+    now: T0,
+  });
+  return joinRoom(room, { userId: 'u1', name: 'P1', budget: BUDGET.budget }, T0).room;
+}
+
+/** Predictable bot ids, so a fixture can find the seat it has just made. */
+function botIds(): () => string {
+  let n = 0;
+  return () => `bot-${++n}`;
+}
+
+/** A duel with nobody in it but its host. */
+const duelRoom = (): PvpRoom =>
+  createRoom({
+    id: 'r7',
+    code: 'DU9001',
+    hostId: 'u0',
+    hostName: 'Host',
+    visibility: 'private',
+    size: 2,
+    rules: BUDGET,
+    pickSeconds: 20,
+    hostBudget: BUDGET.budget,
+    pace: 'async',
+    now: T0,
+  });
+
+/**
+ * THE HOST THROWING SOMEBODY OUT, and the one thing that makes it worth a button.
+ *
+ * A removal that did not stick would be indistinguishable from a working one for about two
+ * seconds, which is the whole reason this needs checking at all: arriving at a room is
+ * taking the seat, so the removed player's own screen re-joins on its next read. Every
+ * assertion below is either "the seat went", which a screen would show correctly either
+ * way, or "and they cannot come back", which is the half nothing else can see.
+ */
+function removeChecks(): void {
+  {
+    const lobby = roomOf(4, BUDGET);
+    const gone = removeMember(lobby, 'u0', 'u2', T0 + 1000);
+    const backAgain = joinRoom(gone, { userId: 'u2', name: 'P2', budget: 110 }, T0 + 2000);
+    const somebodyElse = joinRoom(gone, { userId: 'u9', name: 'New', budget: 110 }, T0 + 2000);
+    check(
+      'room: the host removes a member, the seat frees, and THEY cannot walk back in',
+      () =>
+        // Vacuity: they were in it, and the seat really is free afterwards - so the
+        // refusal below is about the person rather than about a full room.
+        lobby.members.some((m) => m.userId === 'u2') &&
+        gone.status === 'lobby' &&
+        gone.members.length === 3 &&
+        !gone.members.some((m) => m.userId === 'u2') &&
+        gone.removed.includes('u2') &&
+        // The half that matters. And it is not a refusal of everybody: the chair the
+        // removal freed is still a chair.
+        backAgain.outcome === 'removed' &&
+        backAgain.room === gone &&
+        somebodyElse.outcome === 'ok',
+      () => `${backAgain.outcome} / ${somebodyElse.outcome} / removed ${gone.removed.join(',')}`,
+    );
+  }
+
+  {
+    // REFUSED BEFORE THE SEAT COUNT IS EVEN LOOKED AT, which is not the claim above: there
+    // the chair was free. A removed player must get the same answer whether or not somebody
+    // has since taken the seat, or the refusal would come and go as other people arrive and
+    // leave - and "the room is full" is a thing to wait out rather than a decision somebody
+    // made about you.
+    const gone = removeMember(roomOf(4, BUDGET), 'u0', 'u2', T0 + 1000);
+    const refilled = joinRoom(gone, { userId: 'u9', name: 'New', budget: 110 }, T0 + 2000).room;
+    const asRemoved = joinRoom(refilled, { userId: 'u2', name: 'P2', budget: 110 }, T0 + 3000);
+    check(
+      'room: a removed player is refused for being removed, not for the room being full',
+      () =>
+        // Vacuity: the room really is full again, so `full` is what the seat count alone
+        // would answer - which is exactly what this rules out.
+        refilled.members.length === refilled.size &&
+        joinRoom(refilled, { userId: 'u8', name: 'Late', budget: 110 }, T0 + 3000).outcome ===
+          'full' &&
+        asRemoved.outcome === 'removed',
+      () => `${asRemoved.outcome}`,
+    );
+  }
+
+  {
+    // THE FIVE THINGS IT WILL NOT DO. Identity is the test, because that is exactly what
+    // tells the store there is nothing to write - and a "removal" that quietly wrote a room
+    // it had not changed would still stamp `touched_at` and hold a lobby open.
+    const lobby = roomOf(4, BUDGET);
+    const withBot = setBots(halfFullLobby(), 'u0', 1, T0, botIds());
+    const bot = withBot.members.find((m) => m.bot);
+    withSeed(91, () => {
+      const drafting = startRoom(roomOf(4, BUDGET), 'u0', T0);
+      const { room: ended } = runToEnd(drafting);
+      check(
+        'room: a removal is the HOST making it, in a LOBBY, about somebody else who is a PERSON',
+        () =>
+          // Vacuity: the one call that IS allowed changes the room.
+          removeMember(lobby, 'u0', 'u2', T0 + 1000) !== lobby &&
+          // Not by anybody else, including the person being removed.
+          removeMember(lobby, 'u1', 'u2', T0 + 1000) === lobby &&
+          removeMember(lobby, 'u2', 'u2', T0 + 1000) === lobby &&
+          // Not the host, to themselves: leaving already means something (the room closes,
+          // or the next seat is promoted) and this must not be a second name for it.
+          removeMember(lobby, 'u0', 'u0', T0 + 1000) === lobby &&
+          // Not somebody who is not in it.
+          removeMember(lobby, 'u0', 'nobody', T0 + 1000) === lobby &&
+          // Not a practice opponent: that is a COUNT the host chooses, and taking one out
+          // from underneath it would leave the chips disagreeing with the room.
+          !!bot &&
+          removeMember(withBot, 'u0', bot.userId, T0 + 1000) === withBot &&
+          // And not once the football has started, for the reason the liveness sweep stops
+          // at the lobby: the round is drawn by pairing the survivors.
+          removeMember(drafting, 'u0', 'u2', T0 + 1000) === drafting &&
+          removeMember(ended, 'u0', 'u2', T0 + 1000) === ended,
+        () => `bot ${bot?.userId ?? 'none'}`,
+      );
+    });
+  }
+
+  {
+    // A DUEL IS A ROOM, so its host may say "not you" to whoever opened the link - and only
+    // while it is still a lobby, which in a duel is exactly the window before anything is
+    // dealt. Past that the room is drafting and the only way out is the forfeit, which is
+    // the rule that stops a challenger re-rolling their squad by walking away.
+    const duel = duelRoom();
+    const taken = joinRoom(duel, { userId: 'u1', name: 'Bruno', budget: BUDGET.budget }, T0 + 500)
+      .room;
+    const sent = removeMember(taken, 'u0', 'u1', T0 + 1000);
+    const drafting = tickRoom(
+      setLineup(setLineup(taken, 'u0', '4-3-3', 'bal', true), 'u1', '4-4-2', 'bal', true),
+      T0 + 1000,
+    );
+    check(
+      'room: a duel host can remove the challenger in the lobby, and not once it is drafting',
+      () =>
+        // Vacuity: somebody really had taken it up.
+        taken.members.length === 2 &&
+        sent.status === 'lobby' &&
+        sent.members.length === 1 &&
+        sent.removed.includes('u1') &&
+        // The link works again for anybody else, and never again for them - which is the
+        // difference between removing somebody and calling the challenge off.
+        joinRoom(sent, { userId: 'u5', name: 'Carla', budget: BUDGET.budget }, T0 + 2000)
+          .outcome === 'ok' &&
+        joinRoom(sent, { userId: 'u1', name: 'Bruno', budget: BUDGET.budget }, T0 + 2000)
+          .outcome === 'removed' &&
+        // Vacuity for the second half: the duel really did start.
+        drafting.status === 'drafting' &&
+        removeMember(drafting, 'u0', 'u1', T0 + 2000) === drafting,
+      () => `${sent.status}/${sent.members.length}, drafting ${drafting.status}`,
+    );
+  }
 }
 
 /**

@@ -56,7 +56,7 @@ import type {
 const SELECT_ROOM = `select r.id, r.code, r.visibility, r.host_id, r.pace,
     r.size, r.method, r.budget, r.years, r.show_ratings, r.rerolls, r.pick_seconds,
     r.draft_seconds,
-    r.status, r.round, r.champion_id, r.started_at, r.swept_at, r.touched_at
+    r.status, r.removed, r.round, r.champion_id, r.started_at, r.swept_at, r.touched_at
   from pvp_rooms r
   where r.code = $1`;
 
@@ -121,7 +121,7 @@ export function pgStore(pool: Pool): RoomStore {
     const id = Number(room.id);
     await db.query(
       `update pvp_rooms set size = $2, status = $3, round = $4, champion_id = $5,
-              started_at = $6, touched_at = $7, swept_at = $7
+              started_at = $6, touched_at = $7, swept_at = $7, removed = $8::uuid[]
          where id = $1`,
       [
         id,
@@ -131,6 +131,10 @@ export function pgStore(pool: Pool): RoomStore {
         room.championId ?? null,
         room.startedAt ? atOf(room.startedAt) : null,
         atOf(now),
+        // Whole, not appended to: this is the same write every other field here makes,
+        // and the list only ever grows by one under a row lock, so there is nothing an
+        // `array_append` would win and one more way for the room and the row to differ.
+        room.removed,
       ],
     );
 

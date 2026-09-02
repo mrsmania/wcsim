@@ -370,6 +370,20 @@ export interface PvpRoom {
   deals: Record<string, string[]>;
   windows: Record<string, PickWindow | undefined>;
   ties: PvpTie[];
+  /**
+   * Who the host has thrown out (`removeMember`).
+   *
+   * IT HAS TO BE STORED OR THE BUTTON IS DECORATION. Arriving at a room IS taking the
+   * seat (`RoomScreen`), so a removed player's own screen re-joins on its next read: the
+   * host would watch them walk straight back in, about two seconds later, for ever. So
+   * the removal is a fact about the ROOM rather than an event, `joinRoom` reads it, and
+   * it is per room and permanent - a lobby lasts fifteen minutes, and "let them back in"
+   * is a second decision nobody asked for.
+   *
+   * IDS, NOT MEMBERS, which is what lets it outlive the seat it is about: the row is gone
+   * by the time this is read, and that is the whole point of keeping it here.
+   */
+  removed: string[];
   round: number;
   championId?: string;
   startedAt?: number;
@@ -589,6 +603,7 @@ export function createRoom(input: {
     deals: {},
     windows: {},
     ties: [],
+    removed: [],
     round: 0,
     touchedAt: input.now,
   };
@@ -636,7 +651,7 @@ function newMember(
 const nextSeat = (room: PvpRoom): number =>
   room.members.reduce((max, m) => Math.max(max, m.seat + 1), 0);
 
-export type JoinOutcome = 'ok' | 'full' | 'started' | 'already-in';
+export type JoinOutcome = 'ok' | 'full' | 'started' | 'already-in' | 'removed';
 
 export function joinRoom(
   room: PvpRoom,
@@ -644,6 +659,11 @@ export function joinRoom(
   now: number,
 ): { room: PvpRoom; outcome: JoinOutcome } {
   if (memberOf(room, member.userId)) return { room, outcome: 'already-in' };
+  // THROWN OUT, AND IT STICKS. Checked BEFORE the seat count, so "there is room for you"
+  // is never the answer a removed player gets: the host emptying a chair is exactly the
+  // moment one becomes free, and refusing on fullness would have the refusal come and go
+  // as other people arrive and leave. See `removeMember`, and `PvpRoom.removed`.
+  if (room.removed.includes(member.userId)) return { room, outcome: 'removed' };
   // A DUEL'S SEAT IS TAKEN IN ITS LOBBY, like any other, and there is no mid-draft join:
   // nothing has been dealt or bought until both players are in and ready (`tickDuel`), so
   // there is nothing to be late for and nothing to catch up on.
@@ -1281,6 +1301,60 @@ export function leaveRoom(room: PvpRoom, userId: string, now: number): PvpRoom {
   return withoutMembers(room, everyoneBut(room, userId), now);
 }
 
+/**
+ * Throw somebody out, as the host.
+ *
+ * THE HOST'S ROOM IS THE HOST'S ROOM. A code gets passed around and a public lobby is
+ * open to anybody signed in, so the person who opened it needs a way to say "not you"
+ * about somebody who turned up: a name they will not sit opposite, a seat somebody took
+ * and then went quiet in, or simply the wrong four people for the eight chairs. Every
+ * other answer the host had was worse than the question - close the room and open another,
+ * losing everybody who is here, or play it smaller, which throws away the seat rather than
+ * the person in it.
+ *
+ * IT IS A LOBBY RULE, AND THAT IS NOT A LIMITATION OF THIS FUNCTION. It is the same rule
+ * `leaveRoom` keeps, arrived at from the other side: past the start a member's XI is in a
+ * bracket other people are playing, and the round is drawn by pairing the survivors
+ * (`drawRound`), so taking one out mid-tournament is not "one fewer player", it is a draw
+ * that no longer works and seven other people's evening voided by one tap. The button is
+ * simply not offered there, and the refusal here is what makes that true rather than
+ * polite.
+ *
+ * WHAT IT WILL NOT DO, each for its own reason rather than as a list of guards:
+ *
+ *   * THE HOST, to themselves. Leaving has a meaning already - the room closes, or the
+ *     next seat is promoted (`withoutMembers`) - and a second name for it that skipped
+ *     that reasoning would be a host quietly deleting the room out from under everybody.
+ *   * A PRACTICE OPPONENT. Those are a COUNT the host chooses (`setBots`), which is
+ *     idempotent precisely so a flaky tap fills the room once; removing one from
+ *     underneath that count would leave the chips on the screen disagreeing with the room.
+ *     The way to have fewer is to ask for fewer.
+ *   * ANYBODY, FOR ANYBODY BUT THE HOST. There is one host, promoted when the first one
+ *     goes, and this is the only thing in the room that is theirs alone besides Start.
+ *
+ * The seat is given up through `withoutMembers`, which is the same path the liveness sweep
+ * and `leaveRoom` take, so a removal and a departure leave a room in exactly the same
+ * shape. The room can never CLOSE here, whatever that helper does with its last human: the
+ * host is a person, the host is staying, and the host is who asked.
+ */
+export function removeMember(
+  room: PvpRoom,
+  hostId: string,
+  userId: string,
+  now: number,
+): PvpRoom {
+  if (room.status !== 'lobby' || hostId !== room.hostId) return room;
+  if (userId === hostId) return room;
+  const target = memberOf(room, userId);
+  if (!target || target.bot) return room;
+  const next = withoutMembers(room, everyoneBut(room, userId), now);
+  // AND IT HAS TO STICK. Without this the whole thing is decoration: arriving at a room is
+  // taking the seat, so the screen the removed player is looking at re-joins on its next
+  // read and the host watches them come back in two seconds later.
+  next.removed = [...next.removed, userId];
+  return next;
+}
+
 /** Has this duel's match been played? Its two endings - a result, and closing - are both
  *  past the point where anybody may take anything back. */
 const duelPlayed = (room: PvpRoom): boolean =>
@@ -1680,5 +1754,6 @@ function clone(room: PvpRoom): PvpRoom {
       Object.entries(room.windows).map(([k, v]) => [k, v ? { ...v } : undefined]),
     ),
     ties: room.ties.map((t) => ({ ...t })),
+    removed: [...room.removed],
   };
 }

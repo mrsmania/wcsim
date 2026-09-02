@@ -110,7 +110,7 @@ done and why. What that means for anyone working in this tree now:
   the audit.
 - **`0013` and `0014` are APPLIED** (2026-08-25): `0013` narrowed four `for all` policies to
   `for select`, `0014` dropped the dead `run_results` columns, revoked `export_account` and
-  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0024.**
+  dropped `run_results_read`. **The server matches `supabase/migrations/` through 0025.**
   (0015 the bank cap, 0016 the PvP room tables, 0017 the referee's grants, 0018,
   0019/0020/0021 the three versus features applied 2026-08-30, 0022 the duel-by-link
   column drop and 0023 the email address as the identifier, both applied 2026-08-31; 0024
@@ -464,7 +464,7 @@ otherwise go on printing "not recorded" and say nothing.
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
 harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
-per concern in `scripts/checks/`, **448 checks** as of 2026-09-02. It exercises the sim, penalty
+per concern in `scripts/checks/`, **455 checks** as of 2026-09-02. It exercises the sim, penalty
 shootout, knockout bracket, standings, and chemistry thousands of times and asserts
 invariants (a shootout always has a winner, a bracket always crowns one champion,
 standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on
@@ -3007,8 +3007,16 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**NOTHING IS QUEUED: the referee was rebuilt on 2026-09-02, and the schema is at 0024**
-(roadmap items 52 and 53, both closed). That rebuild carried two things whose client halves
+**ONE REBUILD IS QUEUED, AND THE SCHEMA IS AT 0025.** `0025_pvp_remove_member.sql` (the
+host throwing somebody out, below) was applied on 2026-09-02 by a session that could not
+reach the NAS over ssh, so the container is still the one built the same morning and has no
+`/remove` route: **roadmap item 55** carries the rebuild and how to know it worked. The order
+is the standing one and nothing is dropped, so the running container is unaffected - it never
+selects the new column and the default fills it on insert. Until it is rebuilt the host sees
+the button and pressing it says the two sides are on different versions, which is the honest
+reading of a route that is not there yet.
+
+**The two rebuilds before it went in on 2026-09-02** (roadmap items 52 and 53, both closed). That rebuild carried two things whose client halves
 had already shipped: the week that resolves an abandoned duel (below), which is read by the
 SWEEPER, and the **invitation read** a link's sign-in screen asks for
 (`GET /v1/rooms/:code/invite`). Shipping the client first was safe because both degrade to
@@ -3171,6 +3179,69 @@ through compose on the NAS, which Synology needs a full path and root for, and t
 never ran the probe that finds it, so under `set -euo pipefail` a failing command
 substitution took the script down mid-step. A verification that stops without saying so is
 worse than none, and `npm run checks` now asserts every stage detects docker before using it.
+
+**THE HOST CAN THROW SOMEBODY OUT, AND THE WHOLE FEATURE IS THE FACT THAT IT STICKS**
+(2026-09-02, asked for from the game, migration **0025**, applied; **the referee rebuild is
+QUEUED as roadmap item 55**). A code gets passed around and a public lobby is open to
+anybody signed in, so the person who opened the room needs a way to say "not you" - and
+every other answer they had was worse than the question: close the room and open another,
+losing everybody already in it, or play it smaller, which throws away the seat rather than
+the person in it. The rule itself is four lines of `removeMember` (domain/pvpRoom). What
+needed a column is that **arriving at a room IS taking the seat**, so a removed player's own
+screen re-joins on its next read - the host would watch them walk back in about two seconds
+later, for as long as the tab is open. Hence `PvpRoom.removed`, `joinRoom` refusing on it,
+and `pvp_rooms.removed uuid[]`. Six things about it:
+
+- **IT IS A LOBBY RULE, and that is the same rule `leaveRoom` keeps, reached from the other
+  side.** Past the start a member's XI is in a bracket other people are playing and the round
+  is drawn by **pairing the survivors** (`drawRound`), so taking one out mid-tournament is not
+  "one fewer player", it is a draw that no longer works and seven other people's evening
+  voided by one tap (P15, P24). So the button is offered in the lobby alone, and the state
+  machine refuses it everywhere else rather than the screen merely not asking.
+- **A DUEL IS A ROOM, so its host may say "not you" to whoever opened the link** - and only
+  while it is a lobby, which in a duel is exactly the window before anything is dealt. It
+  therefore costs neither side anything, which is consistent rather than generous: the forfeit
+  (`leaveDuel`) exists for abandoning a match that is under way, and a duel's lobby is
+  precisely the part before commitment. Past that the room is drafting and the only way out is
+  the forfeit, which is what stops a challenger re-rolling their squad by walking away. It is
+  now the exact MIRROR of the challenger handing the seat back (P57, same day): both go
+  through `withoutMembers`, both leave the challenge open for somebody else, and both cost
+  nothing, because the line is the DEAL rather than the seat.
+- **THE REFUSAL IS TESTED BEFORE THE SEAT COUNT, and that ordering is load-bearing.** The host
+  emptying a chair is the exact moment one becomes free, so a removed player refused on
+  fullness would get a refusal that came and went as other people arrived and left - and "the
+  room is full" is a thing to wait out, where this is a decision somebody made. `npm run
+  checks` pins it with a room that has been refilled, so `full` really is what the seat count
+  alone would have answered.
+- **IT WILL NOT REMOVE THE HOST, A BOT, OR ANYBODY FOR ANYBODY BUT THE HOST.** Not the host to
+  themselves, because leaving already means something (the room closes, or the next seat is
+  promoted) and a second name for it would skip that reasoning. **Not a practice opponent**,
+  because those are a COUNT the host chooses (`setBots`, idempotent so a flaky tap fills the
+  room once), and taking one out from underneath that count leaves the chips on the screen
+  disagreeing with the room - the way to have fewer is to ask for fewer.
+- **THE SEAT GOES THROUGH `withoutMembers`**, the same path the liveness sweep and `leaveRoom`
+  take, so a removal and a departure leave a room in exactly the same shape. The room can
+  never CLOSE there whatever that helper does with its last human: the host is a person, the
+  host is staying, and the host is who asked.
+- **THE REMOVED PLAYER'S SCREEN IS THE OTHER HALF, and it is the one nothing behavioural can
+  see.** Their client sends the join itself, so the refusal has its own name
+  (`removed-from-room`, 403) rather than `room-full`; the screen reads "You were removed" and
+  **offers no Try again**, since every other reason a join fails is a moment and this is a
+  decision that sticks; and the chrome's room pointer is dropped, which needed
+  `useVersusRoom`'s hold to become seat-conditional (`if (next.you)`) - a PUBLIC lobby stays
+  readable to somebody who is not in it, so the very next poll would otherwise put the strip
+  straight back, advertising a room that will never take them.
+
+**A COLUMN AND NOT A TABLE, stated because the precedent could be read either way.**
+`pvp_bots` earned its own table because a bot is an entity with a name, a shape and an XI;
+this is a set of at most seven ids, written whole by the `update pvp_rooms` that already
+writes the status and read by the select that already reads it - so a table would be a fifth
+round trip per room load plus a policy and a grant, to store less than `years` already
+stores. What is given up is the foreign key: a deleted account leaves its id sitting in the
+arrays of rooms it was thrown out of, which is harmless in both directions, since an id
+matching nobody can never refuse anybody. It also means `npm run checks` covers the new
+column for free, through the scan that reads `pgStore`'s `select` text against `rows.ts`'s
+interfaces.
 
 **LEAVING A ROOM HAS TO TELL THE REFEREE, and for a while it did not** (reported and fixed
 2026-08-27). The Leave button cleared the local pointer and navigated, so the seat stayed

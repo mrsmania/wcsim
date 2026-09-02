@@ -61,6 +61,9 @@ export interface RoomRow {
    *  on a room stored before it, which reads as the default. */
   draft_seconds: number | null;
   status: RoomStatus;
+  /** Who the host threw out, so the throw sticks (migration 0025, `removeMember`). Null on
+   *  a room stored before it, which reads as nobody. */
+  removed: string[] | null;
   round: number;
   champion_id: string | null;
   started_at: Date | string | null;
@@ -317,6 +320,7 @@ export function roomFromRows(rows: RoomRows): PvpRoom {
     deals,
     windows,
     ties,
+    removed: r.removed ?? [],
     round: r.round,
     touchedAt: msOf(r.touched_at),
     ...(r.champion_id ? { championId: r.champion_id } : {}),
@@ -487,6 +491,7 @@ export function rowsFromRoom(
       pick_seconds: room.pickSeconds,
       draft_seconds: draftSecondsOf(room),
       status: room.status,
+      removed: [...room.removed],
       round: room.round,
       champion_id: room.championId ?? null,
       started_at: room.startedAt ? atOf(room.startedAt) : null,

@@ -20,6 +20,7 @@ import {
     InviteRoom,
     KickoffCountdown,
     ReadyMark,
+    RemoveSeat,
     ReportName,
     RoomNote,
     SeatRow,
@@ -273,6 +274,23 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                                             named by this build. */}
                                         {!m.bot && m.userId !== view.you?.userId && (
                                             <ReportName userId={m.userId} name={m.name} />
+                                        )}
+                                        {/* THE HOST'S ROOM IS THE HOST'S ROOM. Same three
+                                            exclusions as the report beside it and one
+                                            more: a practice opponent is a COUNT, so the
+                                            way to have fewer is the chips below, not a
+                                            row the count would then disagree with. */}
+                                        {isHost && !m.bot && m.userId !== view.hostId && (
+                                            <RemoveSeat
+                                                name={m.name}
+                                                onRemove={() => {
+                                                    setBusy(true);
+                                                    void room
+                                                        .remove(m.userId)
+                                                        .catch(() => undefined)
+                                                        .finally(() => setBusy(false));
+                                                }}
+                                            />
                                         )}
                                     </span>
                                 }

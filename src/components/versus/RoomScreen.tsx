@@ -189,6 +189,19 @@ export default function RoomScreen({ code }: { code: string }) {
         );
     }, [code, room, view]);
 
+    /**
+     * THROWN OUT, SO THE POINTER GOES (`removeMember`).
+     *
+     * It was written while they were still seated, and nothing else takes it back: the hold
+     * is refreshed on every answer that has a seat in it, and a removed player gets no more
+     * of those. Left behind, the chrome's strip would go on offering the room from every
+     * other screen in the game - which is the same dead end Leave already clears, reached
+     * without pressing anything.
+     */
+    useEffect(() => {
+        if (room.commandError?.code === 'removed-from-room') holdVersusRoom(null);
+    }, [room.commandError]);
+
     // The tie the viewer is in, this round, turned round so they are the home side - and
     // the opponent the DRAW gave them, which in a room of more than two is not "the other
     // seat" and after an exit is nobody.
@@ -293,12 +306,27 @@ export default function RoomScreen({ code }: { code: string }) {
         // opened himself. The pointer tells the two apart: it is written on every answer
         // the room gives and cleared only by pressing Leave.
         const wasIn = held?.code === code && room.commandError?.code === 'no-such-room';
+        // THROWN OUT, WHICH IS THE ONE REFUSAL WITH NOTHING TO TRY. Every other reason a
+        // join fails is a moment - a room that filled up, a session that lapsed, a server
+        // that blinked - so the screen ends in Try again. This one is a decision somebody
+        // made about this player and this room, and it sticks (`removeMember`), so a retry
+        // is a button that can only ever say no. The pointer goes with it: the chrome's
+        // strip would otherwise go on offering the room across every other screen.
+        const thrownOut = room.commandError?.code === 'removed-from-room';
         const problem = failed ? refereeMessage(failed, 'take a seat') : null;
         return (
             <>
                 <StageHeader
                     eyebrow="Versus"
-                    title={wasIn ? 'The room is gone' : failed ? 'Could not get in' : 'Taking your seat'}
+                    title={
+                        thrownOut
+                            ? 'You were removed'
+                            : wasIn
+                              ? 'The room is gone'
+                              : failed
+                                ? 'Could not get in'
+                                : 'Taking your seat'
+                    }
                     // The same crumb the room itself carries, and here it is the only way
                     // out at all: "Taking your seat" has no buttons under it, so a join
                     // that sat there was a screen with nothing on it but the tab bar.
@@ -333,7 +361,7 @@ export default function RoomScreen({ code }: { code: string }) {
                     )}
                     {/* Retrying is the only ACTION here - the way out went up to the
                         crumb, where it is the same one every room screen carries. */}
-                    {problem && (
+                    {problem && !thrownOut && (
                         <div className="mt-3">
                             <button
                                 className={PRIMARY_BTN}

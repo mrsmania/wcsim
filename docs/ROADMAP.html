@@ -348,6 +348,65 @@
 
 <div class="band"><h2>Next up</h2><span>in order</span></div>
 
+<details class="item" open>
+  <summary>
+    <span class="num">55</span>
+    <span class="title">Rebuild the versus server, so a host can throw somebody out
+      <span class="sub"><b>QUEUED 2026-09-02.</b> The whole feature is written, checked and on
+      <code>main</code>, and <b>migration 0025 is applied</b> - but the container is still the
+      one built on 2026-09-02, which has no <code>/remove</code> route. Until it is rebuilt the
+      host sees the button and pressing it says the two sides are on different versions.
+      Needs the LAN or the VPN, which this session did not have.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What is waiting.</strong> Asked for from the game: "as the room owner I want to
+    be able to throw out another user from a room". The host may now remove anybody from a
+    lobby - a live room of two, four or eight, and a duel alike - and <b>the removal
+    sticks</b>: that is the whole of why it needed a schema change rather than four lines of
+    the state machine. Arriving at a room is taking the seat, so without somewhere to record
+    the removal the player's own screen re-joins on its next read and the host watches them
+    walk back in two seconds later.</p>
+
+    <p><strong>What is already live.</strong> <code>0025_pvp_remove_member.sql</code> was
+    rehearsed in a rolled-back transaction and then applied on 2026-09-02: it adds
+    <code>pvp_rooms.removed uuid[] not null default '{}'</code>, and all 55 existing rooms
+    read back as an empty array with no nulls. <b>The order is the standing one</b> and it
+    holds here - nothing is dropped, so the running container is unaffected (it never selects
+    the column, and the default fills it on insert). Only the rebuild is outstanding.</p>
+
+    <p><strong>What a rebuild is.</strong> The same one item 52 and item 53 shared:
+    <code>bash scripts/deploy-referee.sh --build mario@192.168.1.115</code>, then
+    <code>--up</code> (which recreates the referee container alone, so nothing else in the
+    stack restarts), then <code>--verify</code>. Have DSM open first: any container
+    create/remove can wipe the docker bridge rules, and the fix is the boot-up task in Task
+    Scheduler.</p>
+
+    <p><strong>How to know it worked</strong>, beyond <code>--verify</code>'s six steps, and
+    the second one is the point of the whole item:</p>
+    <ol>
+      <li>Open a room of four from one account, join from a second, and remove it. The seat
+      goes back to "Empty seat" and their screen says <b>"You were removed"</b> within a
+      couple of seconds, with no Try again under it.</li>
+      <li><b>Follow the link again as that account.</b> The chair is free and the join is
+      still refused - <code>403 removed-from-room</code> - which is the half nothing else can
+      show. A third account can still walk into the same chair.</li>
+      <li><code>select removed from pvp_rooms where code = '&lt;CODE&gt;';</code> holds exactly
+      that one account id.</li>
+    </ol>
+
+    <p><strong>Until then</strong>, the button is visible to the host and answers "the versus
+    server does not recognise what this page asked it for, so the two are on different
+    versions", which is the honest reading of a route that is not there yet. Nothing else in
+    versus is affected: <code>PVP_PROTOCOL</code> was deliberately not bumped, for the reason
+    the practice opponents did not bump it either - a version bump takes the whole of Versus
+    down until the container catches up, which is a much larger price than one broken button.</p>
+    <p class="files"><a class="dl" href="../supabase/migrations/0025_pvp_remove_member.sql" target="_blank" rel="noopener">supabase/migrations/0025_pvp_remove_member.sql</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/domain/pvpRoom.ts" target="_blank" rel="noopener">src/domain/pvpRoom.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/referee/src/api.ts" target="_blank" rel="noopener">referee/src/api.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
+  </div>
+</details>
+
 
 <details class="item">
   <summary>
