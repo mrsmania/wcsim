@@ -63,24 +63,39 @@ src/
                position display helpers), squads.ts (the dataset)
   domain/      pure logic: formations, draft, match (sim + shootout), tournament
                (group/standings), knockout + bracket (16-team tree), clock (playback),
-               chemistry, odds, difficulty, validateSquads (dev-time dataset checks),
+               chemistry, odds, difficulty, random, market + archive (the market's and
+               the squad browser's queries), validateSquads (dev-time dataset checks),
                plus the flagged layers: album (stickers), pricing + budget (transfer
-               market), boons / run / career / ascension (Cup Run), challenges
+               market), boons / effects / run / career / ascension (Cup Run),
+               challenges, badges + cabinet (the trophy cabinet), and the pvp* family
+               (the versus room's rules, its wire shape, the screens' derivations, the
+               practice opponents)
   state/       gameReducer.ts (phase machine: setup -> draft -> complete; the tournament
                itself lives in RunState, not the reducer)
-               + store/ (one persistence seam, local or account-backed)
-               over persist.ts / albumStorage.ts / careerStorage.ts / runStorage.ts /
-               settingsStorage.ts, and auth.ts for accounts
-  hooks/       useMatchClock (match reveal), useFollowBottom (auto-scroll),
-               useSettings (theme / difficulty / year pool), useStickerAlbum
-  components/  SetupPanel, SquadPanel, Pitch (+ PlayerBadge), BoxScore (ratings +
-               chemistry), XiTable (line-up sheet), CompletePanel, the run screen
-               (CupRunScreen + cupRun/*: GroupDrawReveal modal, StandingsTable,
-               MatchdayCard, RunBracket -> Bracket, RoundReview, RunEndPanel, Confetti),
-               the honours screens (ChallengesScreen, CabinetScreen), the squad
-               browser (SquadBrowser + TeamRoster), and shared atoms (Flag, Tooltip,
-               FixtureRow, GoalList) via matchUi/matchView + useMatchClock
+               + store/ (one persistence seam, local or account-backed) over
+               persist.ts / albumStorage.ts / careerStorage.ts / runStorage.ts /
+               settingsStorage.ts and storage/kv.ts, buildIo.ts (the two writes a build
+               makes, so a versus room can turn both off), routes.ts + resume.ts,
+               auth.ts for accounts, and pvp/ (the one place that talks to the referee)
+  hooks/       useBuild (the whole build as a unit, so a versus room can hold a second
+               one), useSquadRoll / useBudgetBuild / useMovePlayer (the three draft
+               gestures), useCareer / useCupRun / usePool, useMatchClock (match reveal),
+               useFollowBottom + useStackedScroll (scrolling), useSettings (theme /
+               difficulty / year pool), useStickerAlbum, and useVersusRoom +
+               useDuelAlert for versus
+  components/  SetupPanel, SquadPanel, BudgetMarket (the transfer market), Pitch (+
+               PlayerBadge), BoxScore (ratings + chemistry), XiTable (line-up sheet),
+               CompletePanel, BuildPage + BuildSurface (the build's layout and wiring),
+               ModeSelect (the front page), the run screen (CupRunScreen + cupRun/*:
+               RunBracket -> Bracket, RoundReview, RunEndPanel, CareerHub), the honours
+               screens (ChallengesScreen, CabinetScreen), the squad browser
+               (SquadBrowser + TeamRoster), versus/* (the room, from the lobby to the
+               result), and shared atoms (Flag, Tooltip, FixtureRow, GoalList,
+               GroupDrawReveal, StandingsTable, MatchdayCard, Confetti) via
+               matchUi/matchView, navUi and challengeUi
   config.ts    FEATURES flags
+referee/       the versus server: the only writer of rooms, deployed by hand and
+               separately (see docs/pvp-plan.md and docs/nas-setup.md)
 ```
 
 App branches its screen by the URL (react-router); see `CLAUDE.md` for the full
@@ -123,9 +138,9 @@ advanced bands. Add a row to `RAW_FORMATIONS` to add a formation.
 - [x] Settings: match speed, a casual/normal/hard difficulty, a light/dark theme, and which World Cups the game draws from
 - [x] Six-tab navigation (Play / Career / Album / Records / Squads / Versus): a row on a desktop, a bottom bar at thumb height on a phone, and one build page
 - [x] A Cup Run plays as a tournament: the group opens with the draw and a table that fills in as the matchdays play, and the knockouts run on a 16-team bracket, collapsed to your own path with the full draw one click away
-- [x] Trophy cabinet: a read-only account of what a career has to show for itself (the cup shelf, the Ascension ladder, records, badges, the run archive and the top-scorer boards), derived rather than stored, feature-flagged
-- [x] Versus: two, four or eight people play a whole knockout against each other, found on a public list or reached with a six-character link - roll a squad each or buy from a shared budget, with or without the ratings on show, and whoever goes out first stays and watches the rest. Needs accounts plus a referee server, so it is absent unless the build is given both
-- [x] Duels: a versus challenge sent by link and played in your own time - you each build whenever you get to it, the match plays itself the moment the second team is sent, and walking away from one loses it
+- [x] Trophy cabinet: a read-only account of what a career has to show for itself (a shelf carrying one trophy per cup won, three boards for the players most used / most prolific / most decorated, the records, and the earned badges), derived rather than stored, feature-flagged
+- [x] Versus: two, four or eight people play a whole knockout against each other, found on a public list or reached with a six-character link - roll a squad each or buy from a shared budget, with or without the ratings on show, and whoever goes out first stays and watches the rest. The host can fill the empty chairs with practice opponents that build a strong XI of their own, and can throw somebody out of the room before it starts. Needs accounts plus a referee server, so it is absent unless the build is given both
+- [x] Duels: a versus challenge sent by link and played in your own time - you each build whenever you get to it, the match plays itself the moment the second team is sent, and calling it off costs nothing until the squads are dealt, after which walking away loses it
 
 ## Hosting
 
