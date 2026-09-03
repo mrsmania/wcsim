@@ -3331,6 +3331,20 @@ remembering either way is real and unchanged: `push:sql` goes over HTTPS to the 
 name and works from anywhere, which is why a migration can be applied from a machine that
 cannot deploy the container.
 
+**AND THE SAME MISTAKE ONE LAYER IN: `sudo -n true` SAYS NOTHING ABOUT WHETHER YOU CAN RUN
+DOCKER** (2026-09-03, roadmap item 58, which it held open for a day). A session probed root
+on the NAS with `sudo -n true`, got `a password is required`, and wrote the container
+re-create up as blocked on hardware nobody had. **A sudoers NOPASSWD rule is written against
+a COMMAND**, and this box grants `mario` exactly two: `(ALL) ALL` with a password, and
+**`(ALL) NOPASSWD: /usr/local/bin/docker`** without one. So `sudo -i` and `sudo -n true`
+both fail while `sudo -n /usr/local/bin/docker compose ...` runs from a plain
+non-interactive SSH session, which is the whole of what a rebuild or a re-create needs. Two
+habits: **probe the command you intend to run, never a stand-in**, and read `sudo -n -l`
+first, which prints the rule list without a password. The **full path is required** rather
+than tidy, since the rule names it, so a bare `sudo -n docker` matches nothing. The general
+shape is the VPN lesson above, one layer further in: a negative probe proves what you
+probed, not what you concluded from it.
+
 **AND BEFORE A REBUILD, CHECK THE SCHEMA AGAINST THE REFEREE'S OWN SOURCE, not against
 this file.** The standing order (migrations before server) cuts the dangerous way round at
 a rebuild: an old server against a new schema is harmless, a new server against an old one
@@ -4576,6 +4590,13 @@ rediscovered:
   the redirect allowlist, so three of the four settings are not in this repo at all. A
   template URL that 404s does not fail loudly: it falls back to the stock "Magic Link"
   mail, complete with a login link the app cannot use. `docs/nas-setup.md` carries them.
+  **All three are written AND live inside the container** as of 2026-09-03: the `.env` was
+  edited that morning and the `auth` container re-created the same day, which is what
+  actually applies them (environment is fixed at creation, so an edit alone is inert and a
+  restart is not enough - `docker compose up -d --no-deps auth`). Verified from inside the
+  container, which is GoTrue's own network path: the template answers **200 in one hop**,
+  no redirect, so nothing about the mail depends on GitHub still redirecting the old
+  project address.
 - **The origin change ORPHANS every browser's saved album, career and run**, localStorage
   being per-origin. That was free on 2026-09-03 (no players, and the accounts were being
   wiped before launch anyway) and it will never be free again. Which is the argument for

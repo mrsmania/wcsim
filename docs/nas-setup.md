@@ -245,10 +245,23 @@ Worth knowing:
   placeholder is the token, and the app verifies with the code alone.
 - **Two obstacles from the shell**, if you are doing this over SSH rather than in Container
   Manager: `docker` is not on a non-root PATH (it is `/usr/local/bin/docker`), and a
-  non-root account cannot reach the daemon socket at all, so `sudo -i` first. Editing
-  `.env` and `docker-compose.yml` needs neither - they are owner-writable - and the edits
-  are inert until the re-create, which makes preparing them and rebuilding two separable
-  jobs.
+  non-root account cannot reach the daemon socket at all. Editing `.env` and
+  `docker-compose.yml` needs neither - they are owner-writable - and the edits are inert
+  until the re-create, which makes preparing them and rebuilding two separable jobs.
+- **AND THE SUDO RULE IS PER COMMAND, WHICH IS WHY THE OBSTACLE ABOVE IS NOT A BLOCKER**
+  (measured 2026-09-03, after a session had reported the re-create impossible). `mario`'s
+  sudoers entry is two lines, and only the second is the one that matters:
+  `(ALL) ALL` - everything, with a password - and
+  **`(ALL) NOPASSWD: /usr/local/bin/docker`**. So `sudo -i` wants a password and
+  `sudo -n true` fails, while **`sudo -n /usr/local/bin/docker ...` runs from a plain
+  non-interactive SSH session with no password at all**, `compose` subcommands included.
+  The trap is that the natural probe for "can I do root things here" is
+  `sudo -n true`, and `true` is not the permitted command, so it answers
+  `a password is required` about a box where the one command you actually need is free.
+  **Probe the command you intend to run, not a stand-in**:
+  `ssh mario@HOST 'sudo -n /usr/local/bin/docker ps'`. It also means the full path is
+  required rather than merely convenient - the NOPASSWD rule is written against that path,
+  so a bare `sudo -n docker` matches nothing.
 
 **Applied on this NAS 2026-08-18** and confirmed: all four values present inside the
 container, and the mail arrives as designed. The pre-change files are kept beside
