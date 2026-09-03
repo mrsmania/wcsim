@@ -22,6 +22,9 @@ import {
 } from '../../src/domain/pvp';
 import { BOT_SPEND, botXi } from '../../src/domain/pvpBot';
 import type { Filled } from '../../src/domain/draft';
+// The client's own move search, so a fixture asks for a rearrangement the same way a
+// player's board does rather than inventing one the referee would never be sent.
+import { planMove } from '../../src/domain/draft';
 import { FORMATIONS_DATA, STYLES, getFormation } from '../../src/domain/formations';
 import { resolveKoTie } from '../../src/domain/knockout';
 import { xiStrength } from '../../src/domain/match';
@@ -61,6 +64,7 @@ import {
   rerollDeal,
   setDone,
   setLineup,
+  movePlayers,
   setXi,
   startRoom,
   submitPick,
@@ -1889,6 +1893,259 @@ function botChecks(): void {
       () => `${again.room.picks.u0?.[pair.a.id]?.landedAt} vs ${bought.room.picks.u0?.[pair.a.id]?.landedAt}`,
     );
   }
+
+  // --- Moving a placed player in a PER-PICK room (P42) ---------------------
+  //
+  // The instruction a roll room was missing, and what makes it safe to take outside the
+  // pick protocol is one rule: a submission must be a PERMUTATION of the board already
+  // there. Two of the checks below are that rule refusing the ways it can be broken,
+  // because without it a "move" is a second, unmetered way to pick - a roll room's dealt
+  // squads ACCUMULATE, so `validateXi` alone would happily take an XI rebuilt out of
+  // eleven men from eleven earlier squads that were never picked.
+  withSeed(101, () => {
+    // A real draft rather than a board assembled by hand: half of what is tested here is
+    // the PICK LOG, and a hand-built XI has none.
+    const drafted = (stop: number): PvpRoom => {
+      let room = startRoom(roomOf(2, ROLL), 'u0', T0);
+      let at = T0;
+      for (let i = 0; i < stop && room.windows.u0; i++) {
+        at += 1000;
+        room = submitPick(room, 'u0', firstLegalPick(room, 'u0'), at).room;
+      }
+      return room;
+    };
+    /** Any legal rearrangement of this board, found the way the client finds one. */
+    const someMove = (room: PvpRoom, who: string) => {
+      const m = room.members.find((x) => x.userId === who)!;
+      const f = formationOf(m);
+      const filled = room.xi[who] ?? {};
+      for (const a of f.slots) {
+        if (!filled[a.id]) continue;
+        for (const b of f.slots) {
+          if (a.id === b.id) continue;
+          const moved = planMove(f, filled, a.id, b.id);
+          if (moved) return { f, filled, from: a.id, to: b.id, moved };
+        }
+      }
+      return null;
+    };
+    /** Who is on a board, whatever slot each of them is standing in. */
+    const roster = (x: Filled) =>
+      Object.values(x)
+        .filter((p): p is Player => !!p)
+        .map((p) => p.id)
+        .sort()
+        .join(',');
+
+    const full = drafted(11);
+    const plan = someMove(full, 'u0')!;
+    const moved = movePlayers(full, 'u0', plan.moved);
+
+    check(
+      'versus: a per-pick room takes a MOVE - the same eleven people, standing somewhere else',
+      () =>
+        moved.outcome === 'ok' &&
+        moved.room.xi.u0![plan.to]?.id === plan.filled[plan.from]?.id &&
+        roster(moved.room.xi.u0!) === roster(plan.filled) &&
+        // Vacuity, and it needs both halves: a board that did not change at all would
+        // satisfy the roster test trivially, and the arrangement is the whole gesture.
+        Object.entries(plan.filled).some(([s, p]) => moved.room.xi.u0![s]?.id !== p!.id),
+      () => `${moved.outcome}, ${plan.from} -> ${plan.to}`,
+    );
+
+    {
+      // THE PICK RECORD FOLLOWS THE PLAYER, which is the half nothing on screen can show.
+      // A record says how that man came into the team, `automatic` included, and
+      // `pvp_matches.loser_auto_picks` is one of the three facts a ladder needs to tell a
+      // real win from a farmed one - so re-stamping on a move would launder an auto-pick
+      // into a chosen one, silently, as often as the player liked.
+      //
+      // The flag is set on the fixture rather than waited for: the sweeper fills a slot
+      // for every member at once, and steering it onto the one player this board can move
+      // is a great deal of machinery to reach a state one assignment describes exactly.
+      const laundered = structuredClone(full);
+      laundered.picks.u0![plan.from]!.automatic = true;
+      const after = movePlayers(laundered, 'u0', plan.moved);
+      const was = new Map(
+        Object.entries(laundered.xi.u0!).map(([s, p]) => [p!.id, laundered.picks.u0![s]!]),
+      );
+      const has = new Map(
+        Object.entries(after.room.xi.u0!).map(([s, p]) => [p!.id, after.room.picks.u0![s]!]),
+      );
+      check(
+        'versus: a move carries each pick record with its PLAYER, so an automatic pick cannot be laundered',
+        () =>
+          after.outcome === 'ok' &&
+          was.size === has.size &&
+          [...was].every(([id, rec]) => {
+            const kept = has.get(id);
+            return (
+              !!kept &&
+              kept.automatic === rec.automatic &&
+              kept.landedAt === rec.landedAt &&
+              kept.ordinal === rec.ordinal
+            );
+          }) &&
+          // Vacuity: there IS an automatic record in the sample and it belongs to the man
+          // who moved, so this cannot pass on a board with nothing to launder.
+          has.get(plan.filled[plan.from]!.id)?.automatic === true,
+        () => `${after.outcome}, ${was.size} before / ${has.size} after`,
+      );
+    }
+
+    {
+      // THE PERMUTATION RULE, failing both ways it can. The added player is drawn from an
+      // EARLIER dealt squad on purpose: that is the real attack, and it is the one a check
+      // against a random stranger would miss, because `validateXi`'s `undealt` test would
+      // wave him straight through.
+      const earlier = full.deals.u0!.slice(0, -1);
+      const already = new Set(Object.values(plan.filled).map((p) => p!.personId));
+      const fromPos = plan.f.slots.find((s) => s.id === plan.from)!.position;
+      const intruder = roomPlayers(ROLL).find(
+        (p) =>
+          earlier.includes(p.squadId) && !already.has(p.personId) && p.positions.includes(fromPos),
+      )!;
+      const added = movePlayers(full, 'u0', { ...plan.filled, [plan.from]: intruder });
+      const dropped: Filled = { ...plan.filled };
+      delete dropped[plan.from];
+      const short = movePlayers(full, 'u0', dropped);
+      check(
+        'versus: a move may not add a player or drop one - it is a permutation, never a pick',
+        () =>
+          added.outcome === 'illegal' &&
+          short.outcome === 'illegal' &&
+          // Vacuity: the intruder is a legal player from a squad this player really was
+          // dealt and who really can play that slot, so nothing but the permutation rule
+          // is refusing him.
+          earlier.includes(intruder.squadId) &&
+          intruder.positions.includes(fromPos),
+        () => `${added.outcome} / ${short.outcome}, intruder ${intruder?.id}`,
+      );
+    }
+
+    {
+      // The rules still apply to the arrangement itself: the same eleven men, one of them
+      // standing somewhere he cannot play.
+      const gk = plan.f.slots.find((s) => s.position === 'GK')!;
+      const out = plan.f.slots.find((s) => s.position !== 'GK' && !!plan.filled[s.id])!;
+      const swapped: Filled = {
+        ...plan.filled,
+        [gk.id]: plan.filled[out.id]!,
+        [out.id]: plan.filled[gk.id]!,
+      };
+      const bad = movePlayers(full, 'u0', swapped);
+      check(
+        'versus: a move that puts a man where he cannot play is refused',
+        () =>
+          bad.outcome === 'illegal' &&
+          // Vacuity: it is ELIGIBILITY that refused this one and not the permutation rule,
+          // because the same eleven people are on the board.
+          roster(swapped) === roster(plan.filled),
+        () => bad.outcome,
+      );
+    }
+
+    {
+      // IT SPENDS NO WINDOW, which is what makes it something other than a pick. Checked
+      // MID-DRAFT, where there is a window to spend: on the full board above there is none
+      // left, and "the ordinal did not move" is true of a room that never had one.
+      const part = drafted(6);
+      const mid = someMove(part, 'u0')!;
+      const after = movePlayers(part, 'u0', mid.moved);
+      check(
+        'versus: a move spends no pick window, and no squad is dealt for it',
+        () =>
+          after.outcome === 'ok' &&
+          !!part.windows.u0 &&
+          after.room.windows.u0!.ordinal === part.windows.u0!.ordinal &&
+          after.room.windows.u0!.openedAt === part.windows.u0!.openedAt &&
+          after.room.deals.u0!.length === part.deals.u0!.length,
+        () =>
+          `${after.outcome}, ordinal ${part.windows.u0?.ordinal} -> ${after.room.windows.u0?.ordinal}`,
+      );
+    }
+
+    {
+      // The two states that are not a draft you may still rearrange. A whole-draft room is
+      // refused because it HAS this already, through `setXi` (P52), and two instructions
+      // for one gesture is two sets of rules to keep in step.
+      const budgetRoom = startRoom(roomOf(2, BUDGET), 'u0', T0);
+      const wholeRoom = movePlayers(budgetRoom, 'u0', {});
+      let drawn = full;
+      for (let i = 0; i < 60 && drawn.status === 'drafting'; i++) {
+        drawn = tickRoom(drawn, T0 + 20_000 + i * 25_000);
+      }
+      const afterDraw = movePlayers(drawn, 'u0', plan.moved);
+      check(
+        'versus: a whole-draft room and a room that has drawn both refuse a move',
+        () =>
+          wholeRoom.outcome === 'closed' &&
+          afterDraw.outcome === 'closed' &&
+          // Vacuity: the first really is a whole-draft room and the second really did
+          // leave the draft behind.
+          wholeDraft(budgetRoom) &&
+          drawn.status !== 'drafting',
+        () => `${wholeRoom.outcome} / ${afterDraw.outcome} at ${drawn.status}`,
+      );
+    }
+  });
+
+  // A SENT TEAM IS THE TEAM THAT PLAYS. A duel's match goes off the moment the second XI
+  // lands, so rearranging after the send would be changing a team that may already be on
+  // the pitch - which is why `setXi` refuses one too.
+  withSeed(101, () => {
+    let duel = createRoom({
+      id: 'r44',
+      code: 'DUEL44',
+      hostId: 'u0',
+      hostName: 'Host',
+      visibility: 'private',
+      size: 2,
+      rules: ROLL,
+      pickSeconds: 20,
+      hostBudget: 0,
+      pace: 'async',
+      now: T0,
+    });
+    duel = joinRoom(duel, { userId: 'u1', name: 'P1', budget: 0 }, T0).room;
+    // Both ready is the only way a duel ever reaches a draft: nobody presses Start.
+    for (const m of duel.members) duel = setLineup(duel, m.userId, '4-3-3', 'bal', true);
+    duel = tickRoom(duel, T0 + 2000);
+    let at = T0 + 2000;
+    for (let i = 0; i < 11 && duel.windows.u0; i++) {
+      at += 1000;
+      duel = submitPick(duel, 'u0', firstLegalPick(duel, 'u0'), at).room;
+    }
+    const me = duel.members.find((m) => m.userId === 'u0')!;
+    const f = formationOf(me);
+    const filled = duel.xi.u0 ?? {};
+    let plan: Filled | null = null;
+    for (const a of f.slots) {
+      if (!filled[a.id] || plan) continue;
+      for (const b of f.slots) {
+        if (a.id === b.id) continue;
+        const moved = planMove(f, filled, a.id, b.id);
+        if (moved) {
+          plan = moved;
+          break;
+        }
+      }
+    }
+    const before = movePlayers(duel, 'u0', plan!);
+    const sent = setDone(duel, 'u0', true, at + 1000);
+    const after = movePlayers(sent, 'u0', plan!);
+    check(
+      'versus: a duel that has been SENT cannot be rearranged, and before the send it can',
+      () =>
+        !!plan &&
+        // Vacuity: the same submission is legal a moment earlier, so it is the SEND that
+        // refuses it and not anything about the board.
+        before.outcome === 'ok' &&
+        sent.members.find((m) => m.userId === 'u0')?.done === true &&
+        after.outcome === 'closed',
+      () => `${before.outcome} then ${after.outcome}`,
+    );
+  });
 
   {
     // Nothing trusts the board any more than it trusts a pick. An XI over the budget is

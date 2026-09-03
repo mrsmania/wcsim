@@ -47,6 +47,7 @@ import {
   setBots,
   setDone,
   setLineup,
+  movePlayers,
   setXi,
   startRoom,
   submitPick,
@@ -320,6 +321,12 @@ export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiRespons
     // un-buying are all "here is my XI now", so they are one instruction rather than three.
     case 'xi':
       return setBoard(req, deps, userId, code, now);
+    // A rearrangement, which is a PER-PICK room's half of the same gesture (P42). Its own
+    // route rather than a widened `xi`, because the two are one instruction apart and a
+    // world apart in what they may contain: a board is how a budget room drafts, and here
+    // the only legal submission is the same eleven people standing somewhere else.
+    case 'move':
+      return movePlayer(req, deps, userId, code, now);
     // "I am through". A whole-draft room cannot read a full XI as a finished one, or the
     // move and the un-buy it exists to allow would be unusable by whoever fills their last
     // slot last. See `RoomMember.done`.
@@ -506,11 +513,9 @@ async function bots(
  * A whole board (P52).
  *
  * NOTHING TRUSTS THE SUBMITTED PLAYER, exactly as a pick does not: what arrives is a map
- * of slot to player ID, and every id is resolved in the referee's own dataset before the
- * rules see it - a submitted rating would otherwise decide a price and submitted positions
- * would decide eligibility, both from a browser. An id the dataset does not hold refuses
- * the whole board rather than being dropped, because dropping it would answer a player's
- * "here is my XI" with a different XI and call it success.
+ * of slot to player ID and `boardFrom` resolves every id in the referee's own dataset
+ * before the rules see it. That parsing is shared with the move below rather than written
+ * twice, because the two have to resolve identically.
  */
 async function setBoard(
   req: ApiRequest,
@@ -519,23 +524,88 @@ async function setBoard(
   code: string,
   now: number,
 ): Promise<ApiResponse> {
+  const parsed = boardFrom(req);
+  if ('refusal' in parsed) return parsed.refusal;
+
+  const out = await deps.store.mutate(code, now, (room, ctx) => {
+    const base = recoverIfNeeded(room, ctx.sweptAt, now, deps.sweepMs);
+    const r = setXi(base, userId, parsed.filled, now);
+    // Swept in the same transaction, exactly as a pick is: the submission that makes the
+    // last player's board legal must not wait a sweep to draw the round.
+    const ticked = tickRoom(r.room, now);
+    return { room: ticked, result: r.outcome, unchanged: r.outcome !== 'ok' && ticked === base };
+  });
+  if (!out) return fail(404, 'no-such-room');
+  const view = viewOf(out.room, userId, now);
+  switch (out.result) {
+    case 'ok':
+      return { status: 200, body: { outcome: 'ok', room: view }, publish: code };
+    case 'closed':
+      return { status: 409, body: { error: 'draft-closed', outcome: 'closed', room: view } };
+    default:
+      return { status: 422, body: { error: 'illegal', outcome: 'illegal', room: view } };
+  }
+}
+
+/**
+ * The slot map a board or a move arrives as, resolved in the referee's own dataset.
+ *
+ * Extracted because the two callers must resolve identically: a submitted rating would
+ * otherwise decide a price and submitted positions would decide eligibility, both from a
+ * browser, and a second copy of that rule is a second place for it to be forgotten. An id
+ * the dataset does not hold refuses the WHOLE submission rather than being dropped, because
+ * dropping it would answer a player's "here is my XI" with a different XI and call it
+ * success. The refusal is returned rather than thrown: both callers answer with it
+ * unchanged.
+ */
+function boardFrom(req: ApiRequest): { filled: Filled } | { refusal: ApiResponse } {
   const sent = req.body.xi;
-  if (!sent || typeof sent !== 'object' || Array.isArray(sent)) return fail(422, 'bad-xi');
+  if (!sent || typeof sent !== 'object' || Array.isArray(sent)) {
+    return { refusal: fail(422, 'bad-xi') };
+  }
   const entries = Object.entries(sent as Record<string, unknown>);
-  if (entries.length > XI_SLOTS) return fail(422, 'bad-xi', 'more than eleven slots');
+  if (entries.length > XI_SLOTS) {
+    return { refusal: fail(422, 'bad-xi', 'more than eleven slots') };
+  }
   const filled: Filled = {};
   for (const [slotId, id] of entries) {
     if (id === null || id === undefined) continue;
     const player = datasetPlayer(String(id));
-    if (!player) return fail(422, 'unknown-player', 'the referee does not have this player');
+    if (!player) {
+      return { refusal: fail(422, 'unknown-player', 'the referee does not have this player') };
+    }
     filled[slotId] = player;
   }
+  return { filled };
+}
+
+/**
+ * A rearrangement (P42), which is a PER-PICK room's half of what `setBoard` does for a
+ * whole-draft one.
+ *
+ * It looks like a board and is judged as a permutation: `movePlayers` refuses any
+ * submission that adds a player, drops one or swaps one for another, which is what makes it
+ * safe to take outside the pick protocol. A roll room's dealt squads accumulate, so a
+ * submission judged only by `validateXi` could rebuild an XI out of eleven men from eleven
+ * earlier squads that were never picked - the permutation rule is the whole guard against
+ * that, and it lives in the state machine rather than here.
+ */
+async function movePlayer(
+  req: ApiRequest,
+  deps: ApiDeps,
+  userId: string,
+  code: string,
+  now: number,
+): Promise<ApiResponse> {
+  const parsed = boardFrom(req);
+  if ('refusal' in parsed) return parsed.refusal;
 
   const out = await deps.store.mutate(code, now, (room, ctx) => {
     const base = recoverIfNeeded(room, ctx.sweptAt, now, deps.sweepMs);
-    const r = setXi(base, userId, filled, now);
-    // Swept in the same transaction, exactly as a pick is: the submission that makes the
-    // last player's board legal must not wait a sweep to draw the round.
+    const r = movePlayers(base, userId, parsed.filled);
+    // Swept in the same transaction, as every other command is. A move can never finish a
+    // draft - it fills no slot - but it may be the first thing to touch a room since a
+    // window expired, and that sweep is owed either way.
     const ticked = tickRoom(r.room, now);
     return { room: ticked, result: r.outcome, unchanged: r.outcome !== 'ok' && ticked === base };
   });

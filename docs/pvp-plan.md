@@ -26,11 +26,13 @@ the whole draft instead of eleven pick windows, the board submitted as a map, an
 free to move and un-buy until he says he is done. It still degrades to the old per-pick
 draft on a server that has not got it, which is how it shipped ahead of the deploy.
 
-**One locked decision is deliberately NOT built, and half of a second:** P41's per-pick
-Skip, and P42's move-a-placed-player IN A ROLL ROOM. P42 is delivered in a budget room
-(P52 submits the whole board as a map, so moving and un-buying are the same instruction as
-buying), which is why roadmap item 44 shrank rather than closing. What is left of both
-needs an instruction the per-pick referee does not have, so it is a server change plus a
+**One locked decision is deliberately NOT built:** P41's per-pick **Skip**, which is what is
+left of roadmap item 44. **P42 IS NOW LIVE IN BOTH KINDS OF ROOM** - in a budget room since
+2026-08-30, where P52 submits the whole board as a map so moving and un-buying are the same
+instruction as buying, and in a roll room since 2026-09-03 through `movePlayers`, a route
+that takes a rearranged board and takes it ONLY when it is a permutation of the board
+already there. Skip is a different shape of problem: it has to close the window that is open
+and start the next one, which no submission can express, so it stays a server change plus a
 deploy rather than a screen. Everything else the
 plan locks is live, and "every setting the referee accepts is reachable from the create form"
 is now enforced by the client's types rather than left to memory - see wave 9.
@@ -799,26 +801,59 @@ and the phone slept while he did that; ninety seconds later the liveness rule to
 **It needs the referee redeployed**, because the sweeper is what reads the number. The two
 client halves ship with the site.
 
-### Deferred with a reason, not dropped: P41's Skip and P42's move
+### P42's move, delivered twice; and P41's Skip, still deferred with a reason
 
-Both are locked decisions in section 2 and neither is built, so they are stated here rather
-than left to be discovered. **The referee's instruction set is picks and re-rolls**: a Skip
-has to end the current window and open the next one, and a move has to rewrite the slot map,
-and neither is expressible as a pick. So both are a server change plus a deploy rather than a
-screen, which is why they did not fit inside a client wave, and both are one roadmap item.
+**THE MOVE IS DONE IN BOTH KINDS OF ROOM.** A budget room got it on 2026-08-30 for nothing,
+because P52 submits the whole board as a map and a move is just another map. A roll room got
+it on 2026-09-03 through `movePlayers` and `POST /v1/rooms/:code/move`, which is the same
+shape - a board goes over the wire - with one rule on top that is the entire reason it is
+safe outside the pick protocol: **it must be a PERMUTATION of the board already there.** A
+roll room's `deals` ACCUMULATE, so `validateXi`'s `undealt` test only asks whether a squad
+was dealt at some point, and a board judged by that alone could be rebuilt out of eleven men
+from eleven earlier squads that were never picked. Nothing can be smuggled through an
+instruction that refuses every submission except a rearrangement.
 
-What their absence costs today. **Skip**: the clock is the only way a window ends early, so a
-player who has decided cannot hand the time back, and a room of eight waits out the slowest
-of eight people at every one of eleven windows (P47's accepted cost, now with no release
-valve). **Move**: in a ROLL room `ROOM_CONTROLS` turns the gesture off, so a multi-position
-player picked into the wrong slot stays there - the honest alternative was leaving it on and
-having the next answer from the referee silently undo it, which is worse than not offering
-it. A BUDGET room has had the move and the un-buy since P52 (2026-08-30), through
-`roomControls(whole)`, because there the board is submitted rather than picked.
+Three things about that route are worth knowing before touching it:
 
-Neither is load-bearing for anything shipped, and the seams they need are already in place:
-`pvp_picks` records the CURRENT state of an XI rather than an append-only log (P42's whole
-reason), and `buildControls.ts` is a list precisely so one entry can be turned back on.
+- **It takes a board, not a pair of slots**, because a move is not always two players:
+  `planMove` finds rotations of three or more where no pair can trade, and about one legal
+  rearrangement in ten is one of those. Taking the resulting board means the referee needs no
+  copy of that search, and a client whose copy ever disagreed reconciles rather than argues.
+- **It spends no window and takes no `now`.** A move opens no window, closes none and writes
+  no time anywhere, so it is allowed for as long as the room is drafting - right up to the
+  draw, which is also the only way the gesture can be honest on a board that is already full.
+  Idempotency comes free, the way it does for `setXi`: the same map twice is the same map.
+- **The pick record follows the PLAYER, not the slot.** A record says how that man came into
+  the team, `automatic` included, and `pvp_matches.loser_auto_picks` is one of the three facts
+  a ladder needs to tell a real win from a farmed one - so re-stamping on a move would launder
+  an auto-pick into a chosen one. `setXi` cannot do this and is right not to try: there a move
+  and "sell him, buy him back elsewhere" are the same submission, so there is no player to
+  follow. The permutation rule is what guarantees one here.
+
+**The un-buy stays off in a roll room**, and the same rule says why: a pick there is SPENT,
+so there is nothing to give back, and a board with a player missing is refused as firmly as
+one with a player added.
+
+**`PVP_PROTOCOL` was not bumped for it**, so a client can reach a referee that has never heard
+of the route. That answers 404, `postMove` turns it into its own outcome rather than an error,
+and `canMove` takes the gesture off the board after the first one - because a control that
+undoes itself a second later is worse than one that is not there, which is exactly why it was
+off for two waves. Deploy the referee before pushing the client anyway; the fallback is for
+the order slipping, not for planning around.
+
+**WHAT IS STILL DEFERRED IS SKIP**, and the reason it did not come along is that it is not a
+submission at all: it has to close the window that is open and start the next one, which no
+board can express. So it remains a server change plus a deploy, and it is what roadmap item 44
+is now.
+
+What its absence costs, stated correctly - **the earlier version of this note had it wrong**
+and the wrong version was copied into the roadmap. It said a room of eight waits out the
+slowest of eight people at every one of eleven windows. It does not: **windows are per player
+and independent**, and `openWindow` runs the moment a pick lands, so your next squad is dealt
+and your next clock starts whatever anybody else is doing. The wait is P47's, once, at the
+end - nothing is paired until every draft is done - so Skip is worth finishing YOUR OWN draft
+sooner, which brings that one wait forward for everybody, plus not staring at a dead clock
+once you have decided. Real, and smaller than it was written up as.
 
 ### Found while building, and worth knowing
 

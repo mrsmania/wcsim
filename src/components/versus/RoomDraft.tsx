@@ -45,6 +45,16 @@ import { DraftClock, PickClock, RoomNote } from './versusUi';
 const signature = (formation: Formation, ids: Record<string, string | undefined>): string =>
     formation.slots.map((s) => ids[s.id] ?? '').join('|');
 
+/** WHO is on a board, whatever slot each of them is standing in: the sorted player ids.
+ *  It is what tells a MOVE from a PICK without asking the reducer, and it is the same test
+ *  the referee applies before taking one - a move is a permutation, so the roster is the
+ *  half that may not change while the signature above is the half that must. */
+const roster = (ids: Record<string, string | undefined>): string =>
+    Object.values(ids)
+        .filter((id): id is string => !!id)
+        .sort()
+        .join('|');
+
 /** A roll room's re-roll is one button: the referee deals the next squad and takes no
  *  argument saying which kind, so "another team" and "another cup" have nothing to send. */
 const ROOM_REROLLS = ['any'] as const;
@@ -163,10 +173,14 @@ export default function RoomDraft({
     // every poll would rebuild the board and drop the card in your hand.
     const serverIds = you?.xi ?? {};
     const serverSig = signature(formation, serverIds);
-    const boardSig = signature(
-        formation,
-        Object.fromEntries(Object.entries(build.state.filled).map(([k, p]) => [k, p?.id])),
+    const boardIds = Object.fromEntries(
+        Object.entries(build.state.filled).map(([k, p]) => [k, p?.id]),
     );
+    const boardSig = signature(formation, boardIds);
+    // The same eleven people in a different arrangement is a MOVE; anybody added or missing
+    // is a pick in flight, a refused pick, or the clock having filled a slot - and none of
+    // those is this screen's to post. One comparison tells them apart.
+    const rearranged = boardSig !== serverSig && roster(boardIds) === roster(serverIds);
 
     // THE BOARD, POSTED WHENEVER IT CHANGES (P52). Three things about this effect are
     // load-bearing and none of them is obvious:
@@ -207,6 +221,38 @@ export default function RoomDraft({
         // dependency: it changes only when the team does.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [whole, meDone, boardSig, serverSig, postTick, room]);
+
+    // A PER-PICK ROOM POSTS A MOVE (P42), and everything that makes the effect above work
+    // makes this one work for the same three reasons: it is declared ABOVE the reconcile so
+    // it claims `submitting` first, `postedSig` stops a refused rearrangement being sent for
+    // ever, and `postTick` is what re-runs it after a post that a ref alone could not.
+    //
+    // WHAT IS DIFFERENT IS THE GUARD. A whole-draft room may send any board it likes, so
+    // "the board differs from the server" is reason enough there; here a board that differs
+    // is usually a PICK, which `onPick` has already sent and which this must not send again
+    // through a route that would refuse it. `rearranged` is the whole distinction, and it is
+    // the same question the referee asks: same people, different slots.
+    useEffect(() => {
+        if (whole || !room.canMove || meDone || submitting.current) return;
+        if (!rearranged || boardSig === postedSig.current) return;
+        submitting.current = true;
+        postedSig.current = boardSig;
+        const xi = Object.fromEntries(
+            Object.entries(build.state.filled)
+                .filter(([, p]) => !!p)
+                .map(([slot, p]) => [slot, p!.id]),
+        );
+        void room
+            .move(xi)
+            .catch(() => undefined)
+            .finally(() => {
+                submitting.current = false;
+                setPostTick((n) => n + 1);
+            });
+        // The SIGNATURE is the dependency, not `build.state.filled`, which is a fresh object
+        // every render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [whole, meDone, rearranged, boardSig, postTick, room]);
 
     useEffect(() => {
         // A pick in flight is expected to disagree: that is what optimistic means. Wait
@@ -390,7 +436,7 @@ export default function RoomDraft({
                     // and, more to the point, no owned-sticker discount.
                     ownedStickerIds={EMPTY}
                     budget={view.rules.budget}
-                    controls={roomControls(whole)}
+                    controls={roomControls(whole, room.canMove)}
                     ratings={ratings}
                     rerollKinds={rolling ? ROOM_REROLLS : undefined}
                     complete={

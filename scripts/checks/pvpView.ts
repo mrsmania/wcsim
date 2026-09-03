@@ -67,7 +67,12 @@ import type { DuelRow, InviteRoom, LobbyRoom, RoomView, TieView } from '../../sr
 import { readFileSync, readdirSync } from 'node:fs';
 import { STRENGTH_BANDS } from '../../src/domain/draft';
 import { offersRatingSwitch, ratingBand, roomDisplay } from '../../src/domain/pvpView';
-import { ROOM_CONTROLS, SOLO_CONTROLS, roomControls } from '../../src/components/buildControls';
+import {
+  ROOM_CONTROLS,
+  SOLO_CONTROLS,
+  roomControls,
+  type BuildControls,
+} from '../../src/components/buildControls';
 import { duelsChanged, onDuelsChanged } from '../../src/state/pvp/duels';
 import { botName } from '../../src/domain/pvpBot';
 import { NAME_MAX, validateName } from '../../src/domain/displayName';
@@ -1736,28 +1741,39 @@ export function pvpViewChecks(): void {
     );
   }
 
-  // --- The four controls a room hides (P41), plus the three it turns off -----
-  // A LIST rather than a flag, because the list is the decision: each entry breaks the
-  // pick clock, or the referee, in its own way. This asserts the two sets are the same
-  // shape and are opposites, so a control added to one and forgotten in the other shows
+  // --- What a room hides (P41), and the two it has since won back ------------
+  // A LIST rather than a flag, because the list is the decision: each entry is off for its
+  // own reason. This asserts the sets are the same shape and that each room turns on
+  // exactly what it has earned, so a control added to one and forgotten in another shows
   // up here rather than as a button in a room that does nothing.
   {
     const solo = Object.entries(SOLO_CONTROLS).sort();
     const roomC = Object.entries(ROOM_CONTROLS).sort();
-    // AND WHAT A WHOLE-DRAFT ROOM ADDS BACK (P52). Exactly two, and only because of how it
-    // submits: the board goes over as a map, so a move and a removal are the same
-    // instruction as a purchase. Everything else stays off for reasons that were never
-    // about the clock.
+    const on = (c: BuildControls) =>
+      Object.entries(c)
+        .filter(([, v]) => v)
+        .map(([k]) => k)
+        .sort()
+        .join();
+    // WHAT EACH KIND OF ROOM ADDS BACK, and the three answers are three different reasons.
+    // A whole-draft room submits the board as a map (P52), so a move and a removal are the
+    // same instruction as a purchase. A per-pick room gets the MOVE alone, through a route
+    // that takes a rearranged board and nothing else - the removal beside it still cannot,
+    // a spent pick having nothing to give back. And a room on a referee too old to have
+    // that route gets neither, which is `canMove` and is the whole reason the gesture can
+    // be shipped before the container is rebuilt.
     const whole = Object.entries(roomControls(true)).sort();
     check(
-      'pvpView: a whole-draft room adds back the move and the remove, and nothing else',
+      'pvpView: a whole-draft room adds back the move and the remove, a per-pick room the move alone',
       () =>
         whole.map(([k]) => k).join() === roomC.map(([k]) => k).join() &&
-        whole.filter(([, v]) => v).map(([k]) => k).sort().join() === 'movePlayer,removePlayer' &&
-        // A per-pick room is unchanged, which is the vacuity guard: a `roomControls` that
-        // ignored its argument would pass the line above and fail this one.
-        Object.values(roomControls(false)).every((v) => v === false),
-      () => whole.filter(([, v]) => v).map(([k]) => k).join(),
+        on(roomControls(true)) === 'movePlayer,removePlayer' &&
+        on(roomControls(false)) === 'movePlayer' &&
+        // The vacuity guard, and it has to be `canMove`: a `roomControls` that ignored its
+        // SECOND argument would pass both lines above and fail these two.
+        on(roomControls(false, false)) === '' &&
+        on(roomControls(true, false)) === 'removePlayer',
+      () => `whole ${on(roomControls(true))}, per-pick ${on(roomControls(false))}`,
     );
 
     check(

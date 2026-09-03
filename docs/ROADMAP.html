@@ -638,61 +638,58 @@ position. Pick from <b>Later</b>.</p>
 <details class="item">
   <summary>
     <span class="num">44</span>
-    <span class="title">Versus: hand back the time, and move a player in a roll room
-      <span class="sub"><b>Half of this shipped on 2026-08-30 and the item shrank rather than
-      closing.</b> <b>Move</b> - dragging a placed man to another of his positions - is now
-      live in <b>buy-them</b> rooms, because those submit the whole team sheet at once and
-      moving is just a different team sheet (item 47). What is left needs the match server to
-      understand an instruction it has not got: <b>Skip</b>, letting a player who has decided
-      end their own pick window instead of watching the clock run down, which matters most in
-      a room of eight where every one of eleven rounds waits for the slowest person; and
-      <b>Move in a roll-for-them room</b>, which still drafts a pick at a time. Needs the
-      versus server changed and redeployed, so it needs the NAS.</span>
+    <span class="title">Versus: hand back the time
+      <span class="sub"><b>Move shipped on 2026-09-03 and this item shrank to its other half.</b>
+      Dragging a placed man to another of his positions now works in <b>both</b> kinds of room -
+      buy-them since 2026-08-30 (item 47), roll-for-them since 2026-09-03, where the match server
+      takes the rearranged team sheet and checks that it is the same eleven people standing
+      somewhere else. What is left is <b>Skip</b>: letting a player who has decided end their own
+      pick window instead of watching the clock run down. Needs the match server changed and
+      redeployed, so it needs the NAS.</span>
     </span>
     <span class="tag">Versus</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>What already changed, and why it did not close this.</strong> A buy-them room
-    stopped drafting a pick at a time on 2026-08-30: it sends the whole team sheet, so moving a
-    player and taking one back out are the same instruction as buying one and needed no new
-    rule at all. That is Move delivered, for that half of the game. A roll-for-them room still
-    deals a squad per window and still submits one pick at a time, which is right - there the
-    eleven decisions really are separate - so both gestures below still want a server that can
-    hear them.</p>
-    <p><strong>Why the two that are left are one item.</strong> A per-pick draft&#8217;s whole
-    instruction set is "here is my pick" and "deal me another squad". Skip has to close the
-    window that is open and start the next one; Move has to rewrite which player stands in
-    which slot. Neither is expressible as a pick, so both are a change to the server and a
-    deploy, which is why neither fitted inside a wave of screen work. Doing them together is
-    one deploy rather than two.</p>
-    <p><strong>Why the move gesture is OFF rather than half-working.</strong> The board is
-    optimistic: a tap places the player at once and the server&#8217;s next answer reconciles
-    it. So a move with no instruction behind it would appear to work and then silently undo
-    itself a second later, which is worse than not offering it, and that is the only reason the
-    control is in the room&#8217;s off list. The seam is already right: the server records the
-    CURRENT state of an XI rather than a list of picks, precisely so a rearrangement is
-    expressible when there is something to express it with.</p>
-    <p><strong>What Skip is worth, and the one thing to be careful about.</strong> A room of
-    eight finishes its draft when the slowest of eight people finishes, eleven times over, and
-    that is the accepted cost of drawing the bracket only once everybody is in. Skip is the
-    release valve. The care needed: it must take the same random pick a timeout takes, at the
-    same price, or it becomes the fast way to a better XI rather than a way to give time back.
-    Note the measured oddity that makes this worth thinking about - timing out is not uniformly
-    expensive, because a random attacker is nearly the player you would have bought while a
-    random defender is sixteen rating points short, so a Skip is cheap in seven slots and dear
-    in four. That asymmetry is written up in the plan.</p>
-    <p><strong>How to know it worked.</strong> Skip: in a room of two, press it and the next
-    window opens at once for both players, with the skipped slot filled by a random eligible
-    player and the pick marked automatic, exactly as a timeout is. Pressing it twice in one
-    window does nothing the second time. Move: place a player who can fill two positions, move
-    him, and he stays moved after the next answer from the server rather than springing back.
-    Neither may touch anybody&#8217;s saved game or Cup Run, which is the standing rule for
-    every room.</p>
-    <p><strong>If it goes wrong.</strong> Both are additive: the previous server image is the
-    rollback, and the client degrades to what ships today - the clock as the only way a window
-    ends, and no move gesture in a room.</p>
-    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a> (decisions P41 and P42, and section 11&#8217;s note on why they are deferred), <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a></p>
+    <p><strong>What shipped, and why it did not close this.</strong> Moving a player is done.
+    A buy-them room got it on 2026-08-30 for free, because it sends the whole team sheet and a
+    move is just a different sheet (item 47). A roll-for-them room got it on 2026-09-03 through
+    a small instruction of its own: it also sends the sheet, and the match server takes it
+    <em>only</em> when it is a rearrangement - the same eleven people, nobody added and nobody
+    dropped. That rule is the whole of why it is safe to accept outside the pick clock, because
+    a roll room keeps every squad it has ever been dealt, so a sheet judged any less strictly
+    would let somebody quietly rebuild their team out of eleven players they never picked.
+    Skip is a different problem and still open.</p>
+
+    <p><strong>What Skip is worth, and the earlier version of this note had it wrong.</strong>
+    It used to say that a room of eight waits out the slowest of eight people at every one of
+    eleven picks. It does not: <b>everybody's clock runs on its own</b>, and the moment you
+    pick, your next squad is dealt and your next twenty seconds start, whatever anybody else
+    is doing. The real wait comes once, at the end - nothing is paired up until every single
+    person has finished all eleven picks, because the draw has to be blind - so somebody
+    decisive can sit on a finished team for a few minutes while the last person works through
+    theirs. Skip is therefore worth two things rather than one big thing: it lets you finish
+    <em>your own</em> draft sooner, which brings that one wait forward for everybody, and it
+    stops you staring at a dead clock once you have made up your mind. Worth having, smaller
+    than it was written up as.</p>
+
+    <p><strong>The one thing to be careful about.</strong> Skip must take the same random pick
+    a timeout takes, at the same price, or it becomes the fast way to a better team rather than
+    a way to give time back. Note the measured oddity that makes this worth thinking about -
+    timing out is not uniformly expensive, because a random attacker is nearly the player you
+    would have bought while a random defender is sixteen rating points short, so a Skip is
+    cheap in seven slots and dear in four. That asymmetry is written up in the plan.</p>
+
+    <p><strong>How to know it worked.</strong> In a room of two, press Skip and your next
+    window opens at once, with the skipped slot filled by a random eligible player and the pick
+    marked automatic, exactly as a timeout is. Pressing it twice in one window does nothing the
+    second time. It may not touch anybody's saved game or Cup Run, which is the standing rule
+    for every room.</p>
+
+    <p><strong>If it goes wrong.</strong> It is additive: the previous server image is the
+    rollback, and the client falls back to what ships today - the clock as the only way a
+    window ends.</p>
+    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a> (decision P41, and section 11&#8217;s note on why it is deferred), <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a></p>
   </div>
 </details>
 

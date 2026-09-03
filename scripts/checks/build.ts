@@ -147,6 +147,37 @@ export function buildChecks(): void {
       );
     }
 
+    // THE MOVE IS POSTED, AND IT IS TOLD APART FROM A PICK (P42). Nothing behavioural can
+    // see either half. A screen that never posted the rearrangement would look right for a
+    // second and then spring back, which is exactly the state the gesture was switched off
+    // in for two waves; and a screen that posted EVERY board change as a move would send a
+    // pick down a route that refuses it, which reads as a room that keeps rejecting picks
+    // it has already taken. The roster comparison is the whole distinction - the same
+    // question the referee asks - so the check reads for it rather than for the call alone.
+    {
+      const draft = src('components/versus/RoomDraft.tsx');
+      const client = src('state/pvp/referee.ts');
+      check(
+        "build: a per-pick room posts a MOVE, guarded by the same permutation test the referee applies",
+        () =>
+          /room\s*\.move\(/.test(draft) &&
+          /const rearranged =[^;]*roster\(/.test(draft) &&
+          /if \([^)]*!rearranged[^)]*\) return;/.test(draft) &&
+          // AND A REFEREE THAT HAS NEVER HEARD OF THE ROUTE IS NOT AN ERROR. The client
+          // half deploys by pushing to `main` and the referee is rebuilt by hand, so a
+          // 404 here is expected rather than exceptional: it has to become an answer the
+          // screen can act on (`canMove`), never a red line on the room strip.
+          /'no-such-route'/.test(client) &&
+          /outcome: 'no-route'/.test(client) &&
+          // Vacuity: the scan is reading the real files, which both name things it is not
+          // looking for here.
+          /room\.pick\(/.test(draft) &&
+          client.includes('postXi'),
+        () =>
+          `move ${/room\s*\.move\(/.test(draft)}, guard ${/if \([^)]*!rearranged[^)]*\) return;/.test(draft)}, no-route ${/outcome: 'no-route'/.test(client)}`,
+      );
+    }
+
     // The store is reached from ONE file on the build's behalf, and that file is the
     // seam. A second one would be a second policy nobody could switch off.
     //

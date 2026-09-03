@@ -337,6 +337,52 @@ export async function postXi(code: string, xi: Record<string, string>): Promise<
     }
 }
 
+/** What the referee said about a rearrangement.
+ *
+ *  `no-route` IS ITS OWN ANSWER and the room is null with it: a referee older than this
+ *  client has never heard of the move, and that is a different thing from refusing one.
+ *  Telling the two apart is what lets the gesture take itself off the screen after a single
+ *  attempt rather than springing back on every one - see `canMove` in `useVersusRoom`. */
+export interface MoveAnswer {
+    outcome: 'ok' | 'illegal' | 'closed' | 'no-route';
+    /** Null only for `no-route`, where the refusal carried no room to reconcile against. */
+    room: RoomView | null;
+}
+
+/**
+ * Move a placed player to another of his roles, in a PER-PICK room (P42).
+ *
+ * IT SENDS THE WHOLE BOARD AND THE REFEREE INSISTS IT IS A PERMUTATION, which is the only
+ * reason a rearrangement can travel outside the pick protocol at all: there is no way to
+ * express a pick through it, so it spends no window and needs no ordinal. A move is not
+ * always two players either - `planMove` finds rotations of three or more where no pair can
+ * trade - so sending the resulting board is also the only shape that can say what happened
+ * without this side and the referee each running the same search and hoping they agree.
+ */
+export async function postMove(code: string, xi: Record<string, string>): Promise<MoveAnswer> {
+    try {
+        return await call<MoveAnswer>('POST', `/v1/rooms/${code}/move`, { xi });
+    } catch (err) {
+        // A refused move travels WITH the room, exactly as a refused board and a refused
+        // pick do, so the board reconciles rather than the screen showing a red line about
+        // a gesture the player has already forgotten making.
+        const room = roomInside(err);
+        if (room) {
+            const failed = (err as RefereeError).code;
+            return { outcome: failed === 'draft-closed' ? 'closed' : 'illegal', room };
+        }
+        // AN OLDER REFEREE ANSWERS 404 AND THAT IS NOT AN ERROR. `PVP_PROTOCOL` was not
+        // bumped for this (bumping it takes the whole of Versus down for one gesture), so
+        // the answer is the only thing that can tell a server with the route from one
+        // without it. The client half deploys by pushing to `main` and the referee is
+        // rebuilt by hand, so the skew is expected rather than exceptional.
+        if (err instanceof RefereeError && err.code === 'no-such-route') {
+            return { outcome: 'no-route', room: null };
+        }
+        throw err;
+    }
+}
+
 /** "I am through", and taking it back (P52). */
 export const postDone = (code: string, done: boolean): Promise<RoomView> =>
     call('POST', `/v1/rooms/${code}/done`, { done });

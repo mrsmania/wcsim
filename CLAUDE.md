@@ -473,7 +473,7 @@ otherwise go on printing "not recorded" and say nothing.
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
 harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
-per concern in `scripts/checks/`, **461 checks** as of 2026-09-02. It exercises the sim, penalty
+per concern in `scripts/checks/`, **475 checks** as of 2026-09-03. It exercises the sim, penalty
 shootout, knockout bracket, standings, and chemistry thousands of times and asserts
 invariants (a shootout always has a winner, a bracket always crowns one champion,
 standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on
@@ -3279,14 +3279,58 @@ whoever goes out first stays and watches the rest, and a room nobody is in close
 plan is `docs/pvp-plan.md` and it is the thing to read before touching any of this.
 
 **WHAT IS DELIBERATELY NOT BUILT, so nobody goes looking for it:** P41's per-pick **Skip**,
-and P42's **move a placed player IN A ROLL ROOM**. Both need an instruction a per-pick draft
-does not have (it takes picks and re-rolls and nothing else), so both are a server change
-plus a deploy rather than a screen, and they share roadmap item 44. In a per-pick room the
-clock is therefore still the only way a window ends early. **P42 IS DELIVERED FOR A BUDGET
-ROOM** (P52, item 47): there the board is submitted as a map, so moving and un-buying are
-the same instruction as buying and needed no new rule - which is why item 44 shrank rather
-than closing. Everything else the plan locks is live: every setting the referee accepts is
-reachable from the create form, which is checked.
+which is all roadmap item 44 is now. It has to close the window that is open and start the
+next one, and no submission can express that, so it stays a server change plus a deploy
+rather than a screen - and in a per-pick room the clock is still the only way a window ends
+early. **P42's MOVE IS LIVE IN BOTH KINDS OF ROOM**: in a budget room since 2026-08-30 (P52,
+item 47), where the board is submitted as a map so moving and un-buying are the same
+instruction as buying, and in a roll room since **2026-09-03**, through a route of its own -
+see "A MOVE IN A ROLL ROOM" below. Everything else the plan locks is live: every setting the
+referee accepts is reachable from the create form, which is checked.
+
+**A MOVE IN A ROLL ROOM IS A BOARD THAT MUST BE A PERMUTATION** (2026-09-03, roadmap item 44,
+`movePlayers` + `POST /v1/rooms/:code/move`). The gesture on the board is the single-player
+one UNCHANGED - `useMovePlayer`, the reducer's `MOVE_PLAYER`, `planMove`'s rotation search,
+`Pitch`'s own highlighting - and turning it on was one entry in `buildControls`. What could
+not be reused was the other end: the referee took picks and re-rolls and nothing else, so a
+move looked right and was undone by the next answer, which is why the control was off for two
+waves. Six things about the instruction that closed that:
+
+- **THE RULE IS THE PERMUTATION, and it is the whole of why this can be taken outside the
+  pick protocol.** A roll room's `deals` ACCUMULATE, so `validateXi`'s `undealt` test only
+  asks whether a player's squad was dealt at some point - a board judged by that alone could
+  be rebuilt out of eleven men from eleven earlier squads that were never picked. `movePlayers`
+  refuses any submission that adds a player, drops one or swaps one for another, so there is
+  no way to express a pick through it at all.
+- **It takes a BOARD, not a pair of slots**, because a move is not always two players:
+  `planMove` finds rotations of three or more where no pair can trade, and about one legal
+  rearrangement in ten is one of those. Sending the resulting board means the referee needs no
+  copy of that search, and a client whose copy ever disagreed reconciles rather than argues.
+- **It spends no window and takes no `now`.** It opens no window, closes none and writes no
+  time anywhere, so it is allowed for as long as the room is drafting, right up to the draw -
+  which is also the only way the gesture can be honest on a board that is already full.
+  Idempotency comes free, the way it does for `setXi`: the same map twice is the same map.
+- **The pick record follows the PLAYER, not the slot** (`remapPicks`). A record says how that
+  man came into the team, `automatic` included, and `pvp_matches.loser_auto_picks` is one of
+  the three facts a ladder needs to tell a real win from a farmed one - so re-stamping on a
+  move would launder an auto-pick into a chosen one. `setXi` cannot do this and is right not
+  to try: there a move and "sell him, buy him back elsewhere" are the same submission, so
+  there is no player to follow.
+- **The un-buy stays OFF in a roll room**, by the same rule read the other way: a pick there
+  is spent, so there is nothing to give back and a board with a player missing is refused as
+  firmly as one with a player added.
+- **`PVP_PROTOCOL` was NOT bumped** (bumping it takes the whole of Versus down for one
+  gesture), so a client can reach a referee that has never heard of the route. It answers 404,
+  `postMove` turns that into its own `no-route` outcome rather than an error, and `canMove`
+  takes the gesture off the board after the first one - a control that undoes itself a second
+  later being worse than one that is not there. **Deploy the referee before pushing the client
+  anyway**; that fallback is for the order slipping, not for planning around.
+**NO MIGRATION WAS NEEDED and that was not luck**: `xi` has been a slot map since wave 1 and
+`pvp_picks` has been keyed on the SLOT since 0016, with `pgStore.save` already upserting a
+changed `player_id` and deleting a slot that left the map - all of it put there for P42.
+`npm run checks` holds seven properties of the rule and two of the wiring, and the wiring
+ones matter most: nothing behavioural can see a screen that posts every board change as a
+move rather than only a rearrangement.
 
 **PRACTICE OPPONENTS, DUELS AND THE WHOLE-DRAFT BUDGET ROOM ARE ALL LIVE ON THE SERVER**
 (roadmap items 45, 46 and 47, all closed 2026-08-30). Migrations **0019, 0020 and 0021 are
@@ -3668,12 +3712,14 @@ when a screen navigates without waiting for a write, ask what the DESTINATION re
 - **It must not offer a control that breaks the clock or that the referee cannot honour.**
   `components/buildControls.ts` is that list as data - auto-fill, Clear, Start over, the
   random-team shortcut, the badge's remove "x", moving a placed player, the chemistry card
-  and the album's marks - with `SOLO_CONTROLS` all on and `ROOM_CONTROLS` all off, and a
-  check that the two are the same shape and opposite. It is a LIST rather than a flag
-  because each entry is broken for its own reason: auto-fill would make ten picks in one
-  tap, Start over navigates out of the room, and **moving a placed player is P42's
-  intention but the referee takes picks and nothing else**, so a move would be reverted by
-  the next answer. That one needs an instruction the referee does not have.
+  and the album's marks - with `SOLO_CONTROLS` all on, `ROOM_CONTROLS` all off as the
+  baseline, and `roomControls` turning back on exactly what each kind of room has earned. It
+  is a LIST rather than a flag because each entry is off for its own reason, and that is what
+  lets one of them be won back on its own terms: auto-fill would still make ten picks in one
+  tap and Start over would still navigate out of the room, while **moving a placed player is
+  on in both kinds of room now** - a whole-draft room submits the map (P52), a per-pick room
+  posts a rearrangement (item 44, above). The badge's remove "x" is the one that stayed
+  behind in a per-pick room, because a spent pick has nothing to give back.
 - **It must not recommend a natural position, because it does not pay for one**
   (`naturalHint`, 2026-09-01). The single-player board pulses the held player's natural slot
   amber and every other slot he can fill white, which is the chemistry point and the

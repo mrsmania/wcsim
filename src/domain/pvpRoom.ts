@@ -1004,6 +1004,122 @@ function reconcilePicks(
   room.picks[userId] = after;
 }
 
+/** What happened to a submitted rearrangement. The same three words `setXi` answers with,
+ *  and deliberately so: to a player "the room is not taking that" is one sentence, and the
+ *  room comes back saying which of the reasons it was. */
+export type MoveOutcome = 'ok' | 'illegal' | 'closed';
+
+/**
+ * Move a placed player to another of his roles, in a PER-PICK room (P42).
+ *
+ * THE INSTRUCTION IS THE WHOLE BOARD, AND THE RULE IS THAT IT IS A PERMUTATION. That one
+ * sentence is the entire difference from `setXi`, and it is what makes a move safe here
+ * where a whole board would not be: a roll room's `deals` ACCUMULATE, so `validateXi`'s
+ * `undealt` test only asks whether a player's squad was dealt at some point - it would
+ * happily take an XI rebuilt out of eleven men from eleven earlier squads, none of whom
+ * was ever picked. So this refuses any submission that adds a player, drops one, or swaps
+ * one for another: the same eleven people, standing somewhere else. There is no way to
+ * express a pick through it, which is why it can be taken outside the pick protocol at all.
+ *
+ * A MOVE IS NEVER JUST TWO PLAYERS, which is why it takes a map rather than a pair of
+ * slots. `planMove` (domain/draft.ts) finds rotations of three or more where no pair can
+ * trade, and roughly one legal rearrangement in ten is one of those. Taking the resulting
+ * board means this side needs no copy of that search - and if a client's copy ever
+ * disagreed with the referee's, the answer reconciles the board rather than the two
+ * arguing.
+ *
+ * IT DOES NOT TOUCH THE WINDOW, and does not need one. A move spends no pick, so there is
+ * no ordinal to advance and nothing to be late for: it is allowed for as long as the room
+ * is drafting, right up to the draw, which is also the only way the gesture can be honest
+ * on a board that is already full. The idempotency a pick needs an ordinal for comes free,
+ * the way it does for `setXi`: the same map twice is the same map.
+ *
+ * SO IT IS THE ONE TRANSITION HERE THAT TAKES NO `now`, and that absence is worth keeping
+ * rather than papering over with an unused argument: it opens no window, closes none, and
+ * writes no time anywhere - the records it keeps are the ones that were already there. If
+ * something later needs a clock in here, that is a change worth noticing.
+ *
+ * THE PICK RECORD FOLLOWS THE PLAYER, not the slot, which is the one place this differs
+ * from `reconcilePicks`. A record says how that man came into the team - when he landed,
+ * and whether the clock put him there - so re-stamping it on a move would quietly launder
+ * an auto-pick into a chosen one, and `pvp_matches.loser_auto_picks` is one of the three
+ * facts a ladder needs to tell a real win from a farmed one. `setXi` cannot do this and is
+ * right not to try: there a move and "sell him, buy him back elsewhere" are the same
+ * submission, so there is no player to follow. Here the permutation rule guarantees one.
+ */
+export function movePlayers(
+  room: PvpRoom,
+  userId: string,
+  /** slotId -> the DATASET player, as `setXi` takes it. The caller resolves the ids;
+   *  nothing here trusts an object that arrived over the wire. */
+  filled: Filled,
+): { room: PvpRoom; outcome: MoveOutcome } {
+  // A whole-draft room already has this, through `setXi` (P52), and a second instruction
+  // for the same gesture is a second set of rules to keep in step.
+  if (room.status !== 'drafting' || wholeDraft(room)) return { room, outcome: 'closed' };
+  const m = memberOf(room, userId);
+  if (!m || m.bot) return { room, outcome: 'closed' };
+  // Sent. In a duel that is the commitment and the match plays the moment the second XI
+  // lands, so the team that was sent is the team that plays.
+  if (m.done) return { room, outcome: 'closed' };
+
+  const f = formationOf(m);
+  const was = room.xi[userId] ?? {};
+  // Rebuilt from the FORMATION'S slots, exactly as `setXi` does, so a key this shape has
+  // no slot for cannot be stored - `validateXi` walks the formation and would ignore it,
+  // and an ignored key comes back to the client as an XI it did not send.
+  const next: Filled = {};
+  for (const slot of f.slots) {
+    const p = filled[slot.id];
+    if (p) next[slot.id] = p;
+  }
+  if (!samePlayers(was, next)) return { room, outcome: 'illegal' };
+
+  const v = validateXi(f, next, room.rules, room.deals[userId]);
+  // An incomplete XI is the ordinary state of a draft in progress, so an empty slot is
+  // expected; anything else - a man standing where he cannot play - is not.
+  if (v.faults.some((x) => x !== 'empty-slot')) return { room, outcome: 'illegal' };
+
+  const out = clone(room);
+  out.xi[userId] = next;
+  out.picks[userId] = remapPicks(out.picks[userId] ?? {}, was, next);
+  return { room: out, outcome: 'ok' };
+}
+
+/** The same people, whoever is standing where. Sorted ids rather than a set, so a map that
+ *  somehow held one player twice cannot pass against one that holds him once. */
+function samePlayers(a: Filled, b: Filled): boolean {
+  const ids = (x: Filled) =>
+    Object.values(x)
+      .filter((p): p is Player => !!p)
+      .map((p) => p.id)
+      .sort();
+  const [xa, xb] = [ids(a), ids(b)];
+  return xa.length === xb.length && xa.every((id, i) => id === xb[i]);
+}
+
+/** Re-key the pick log by where each player now stands. Only ever called on a permutation,
+ *  so every record has exactly one slot to move to and every filled slot has exactly one
+ *  record - which is what lets a move keep `landedAt` and `automatic` intact where a
+ *  resubmitted board cannot. */
+function remapPicks(
+  had: Record<string, PickRecord>,
+  was: Filled,
+  next: Filled,
+): Record<string, PickRecord> {
+  const byPlayer = new Map<string, PickRecord>();
+  for (const [slotId, p] of Object.entries(was)) {
+    const rec = had[slotId];
+    if (p && rec) byPlayer.set(p.id, rec);
+  }
+  const after: Record<string, PickRecord> = {};
+  for (const [slotId, p] of Object.entries(next)) {
+    const rec = p ? byPlayer.get(p.id) : undefined;
+    if (rec) after[slotId] = rec;
+  }
+  return after;
+}
+
 /**
  * Declare yourself through, or take it back (P52).
  *

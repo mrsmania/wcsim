@@ -11,6 +11,7 @@ import {
     postXi,
     readRoom,
     removeMember,
+    postMove,
     rerollDeal,
     resizeRoom,
     seen,
@@ -18,6 +19,7 @@ import {
     setLineup as postLineup,
     startRoom,
     submitPick,
+    type MoveAnswer,
     type PickAnswer,
 } from '../state/pvp/referee';
 
@@ -103,6 +105,15 @@ export interface VersusRoom {
      *  Answers with the outcome rather than throwing on a refusal, exactly as `pick` does
      *  and for the same reason: the room travels with the refusal and the board reconciles. */
     setBoard: (xi: Record<string, string>) => Promise<'ok' | 'illegal' | 'closed'>;
+    /** A rearrangement in a PER-PICK room (P42): the same eleven people, somewhere else.
+     *  Answers with the outcome for the same reason `setBoard` does. */
+    move: (xi: Record<string, string>) => Promise<MoveAnswer['outcome']>;
+    /** Whether the referee this room is on HAS the move. False once one has come back
+     *  `no-route`, which is a server older than this client - the gesture is then taken off
+     *  the board rather than left to spring back on every attempt. True until proven
+     *  otherwise: probing for it up front would cost a round trip on every draft to find
+     *  out something almost every room already knows. */
+    canMove: boolean;
     /** "I am through", and taking it back. */
     setDone: (done: boolean) => Promise<void>;
 }
@@ -117,6 +128,12 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
     const [view, setView] = useState<RoomView | null>(null);
     const [error, setError] = useState<RefereeError | null>(null);
     const [commandError, setCommandError] = useState<RefereeError | null>(null);
+    // Set false the first time a move comes back `no-route`: a referee older than this
+    // client. It is really a fact about the SERVER, and it lives here because this hook
+    // holds the one room a player has at a time - so a second room in the same session
+    // costs one more springing gesture before it learns the same thing, which is a fair
+    // price for not probing every draft for something almost every room already has.
+    const [canMove, setCanMove] = useState(true);
     const [loading, setLoading] = useState(true);
     // The countdown's base: the window as the server described it, and the monotonic
     // reading at the moment that description arrived.
@@ -371,6 +388,25 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         },
         [code, accept, timed],
     );
+    // A rearrangement (P42), which is `setBoard`'s per-pick counterpart and is wired the
+    // same way and for the same reason: a refused move is answered with the room, so the
+    // draft screen reconciles rather than the room strip carrying a red line about it.
+    const move = useCallback(
+        async (xi: Record<string, string>): Promise<MoveAnswer['outcome']> => {
+            try {
+                const answer = await timed(() => postMove(code, xi));
+                // Null only for `no-route`, and then there is nothing to accept: the room
+                // is exactly as it was, and the board is about to be pulled back to it.
+                if (answer.room) accept(answer.room);
+                if (answer.outcome === 'no-route') setCanMove(false);
+                return answer.outcome;
+            } catch (err) {
+                if (err instanceof RefereeError) setCommandError(err);
+                throw err;
+            }
+        },
+        [code, accept, timed],
+    );
     const setDone = useCallback(
         (done: boolean) => command(() => postDone(code, done)),
         [code, command],
@@ -418,6 +454,8 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         reroll,
         pick,
         setBoard,
+        move,
+        canMove,
         setDone,
     };
 }
