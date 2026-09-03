@@ -478,6 +478,35 @@ PYEOF" | tr -d '\r' | tail -1)
    screen that cannot say what it is an invitation to." ;;
         esac
 
+        say "7. THE MOVE ROUTE - the only thing that tells a rebuilt image from an old one"
+        # `PVP_PROTOCOL` was not bumped for the move (roadmap item 44), so the handshake in
+        # step 1 is blind to it: an image from before the route answers `/version` perfectly
+        # and then 404s every rearrangement a player makes. The client survives that on
+        # purpose - `canMove` takes the gesture off the board after one refusal - which is
+        # exactly why the deploy has to check it here instead: a working fallback is silent,
+        # and "the move quietly does not exist" looks like nothing at all.
+        #
+        # The room above is a LOBBY, so the honest answer from the real handler is that the
+        # draft is not open. That is the whole test: only the handler can produce it, where
+        # a container without the route says no-such-route and one with a broken body parser
+        # says bad-xi. ONE FIELD PER PATTERN, and the faults first, for the reason step 6
+        # carries in full.
+        local moved
+        moved=$(curl -s --ssl-no-revoke --max-time 20 -X POST \
+                  -H "Authorization: Bearer $token" -H 'content-type: application/json' \
+                  -d '{"xi":{}}' "$host/referee/v1/rooms/$made_code/move" || true)
+        printf '   %s\n' "${moved:-<no answer>}"
+        case "$moved" in
+          *no-such-route*)
+            warn "THE CONTAINER PREDATES THE MOVE ROUTE, so a player in a roll room drags a
+   man to another position and watches him spring back once before the gesture disappears.
+   Rebuild the image from HEAD; nothing else is wrong." ;;
+          *'"outcome":"closed"'*)
+            ok "the move route is live and refused a rearrangement of a room that is not drafting" ;;
+          *) warn "the move route answered something else, so a rearrangement in a roll room
+   is NOT verified. Drive one by hand before calling this deploy done." ;;
+        esac
+
         on "$COMPOSE -f '$STACK/docker-compose.yml' exec -T db psql -U postgres -qc \"delete from pvp_rooms where code = '$made_code'\"" >/dev/null 2>&1 \
           && ok "test room deleted" || warn "could not delete the test room $made_code - do it in Studio" ;;
       *no-display-name*)

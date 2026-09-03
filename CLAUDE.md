@@ -3348,7 +3348,13 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** `0026_drop_name_reports.sql` (applied
+**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** **The referee was rebuilt on 2026-09-03**
+for the roll room's move (item 44, above) and that rebuild needed **no migration at all** -
+`xi` has been a slot map since wave 1 and `pvp_picks` keyed on the slot since 0016 - so the
+schema did not move with it. Verified on the running container: all seven `--verify` steps,
+the seventh being `POST /v1/rooms/CODE/move` answering from the real handler rather than
+`no-such-route`, which is the ONLY thing that can tell a rebuilt image from an old one now
+that `PVP_PROTOCOL` was deliberately not bumped. `0026_drop_name_reports.sql` (applied
 2026-09-02, roadmap item **57**) drops `pvp_name_reports`, reporting a display name having
 been removed from the game the same day - see "REPORTING A NAME IS GONE" below for why. Two
 things about it are worth carrying. It is the ONE migration here whose client half deploys
