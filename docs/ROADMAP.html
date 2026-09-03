@@ -356,8 +356,10 @@
       <code>/</code>, <code>public/CNAME</code> is published, the sign-in mail's logo URL
       moved. DNS, the Pages custom domain and the certificate all landed the same day and
       the site is live. The three NAS settings are <b>written and verified in
-      <code>.env</code></b>. <b>Two things left: force http to https, and re-create the
-      <code>auth</code> container.</b></span>
+      <code>.env</code></b> and <b>Enforce HTTPS is ON</b>. <b>All that is left is
+      re-creating the <code>auth</code> container, and it turns out NOT to be urgent:
+      sign-in was driven end to end on 2026-09-03 and works, for reasons now measured
+      rather than assumed.</b></span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -407,14 +409,17 @@
     <code>Age</code> header before concluding anything: a non-zero one means the edge is
     replaying, and the honest test is to wait it out or check a URL nobody has requested.</p>
 
-    <p><b>2b. FORCING http TO https IS ONE TOGGLE, AND THERE IS NOWHERE ELSE TO DO IT.</b>
-    <code>https_enforced</code> is <code>false</code> as this is written, so
-    <code>http://mondialino.ch/</code> serves the game <b>in the clear</b> rather than
-    redirecting - measured, 200 and not a 301. GitHub's edge is the only thing in the
-    request path, so this is the only lever:</p>
+    <p><b>2b. FORCING http TO https IS ONE TOGGLE, AND THERE IS NOWHERE ELSE TO DO IT.
+    DONE 2026-09-03.</b> <code>https_enforced</code> is <code>true</code> and verified:
+    <code>http://mondialino.ch/</code> answers <b>301</b> to the https address, where
+    before it served the game in the clear with a 200. GitHub's edge is the only thing in
+    the request path, so this was the only lever:</p>
     <pre><code>gh api -X PUT repos/mrsmania/wcsim/pages -F https_enforced=true</code></pre>
-    <p>or Settings, Pages, tick <b>Enforce HTTPS</b>. The box is available as soon as the
-    certificate is approved, which it now is.
+    <p>or Settings, Pages, tick <b>Enforce HTTPS</b>, which is how it was actually done.
+    The box is available as soon as the certificate is approved.
+    <br><b>It fixed the redirect fault below for free, which was not the reason for doing
+    it.</b> The old project address’s 301 used to target <code>http</code>; with this on it
+    targets <code>https</code>, so the sign-in mail’s template is now fetched encrypted.
     <br><b>Do not reach for a redirect in the page instead.</b> A meta refresh or a
     <code>location.protocol</code> check in <code>index.html</code> looks like the same
     thing and is strictly worse: it only runs once the plaintext response has already been
@@ -478,18 +483,46 @@ docker compose exec auth env | grep -E "SITE_URL|URI_ALLOW|MAILER" # what actual
     <code>cp .env.pre-mondialino .env</code> plus the same re-create; no database state is
     involved.</p>
 
-    <p><b>WHY NOTHING LOOKED BROKEN WHILE THOSE URLS WERE STALE, and why that is not a
-    reason to leave the re-create undone.</b> GitHub redirects the whole old address to the
-    new one, so <code>mrsmania.github.io/wcsim/email/otp.html</code> answers <b>301</b> to
-    <code>mondialino.ch</code> and still resolves to the game's own template if the client
-    follows it. GoTrue is Go, whose default HTTP client does follow redirects, so the
-    sign-in mail was very probably still correct rather than falling back to the stock
-    "Magic Link". <b>Probably is the point:</b> the mail's correctness rested on a redirect
-    nobody chose and a client behaviour nobody verified, and the redirect target is
-    <code>http</code> rather than <code>https</code>, so the template was being fetched in
-    the clear. Its failure mode is silent and lands in somebody's inbox. So a working
-    sign-in was never evidence the re-create is unnecessary, and that redirect is a second
-    reason to turn Enforce HTTPS on.</p>
+    <p><b>WHY SIGN-IN WORKS ANYWAY, and it is no longer a "probably".</b> This paragraph
+    used to argue that a working sign-in was not evidence the re-create is unnecessary,
+    resting on GoTrue being Go and Go following redirects. <b>Sign-in was then driven end
+    to end on 2026-09-03 and worked</b>, and the mechanism was measured rather than
+    inferred, so the honest reading has moved. Three findings, and together they say the
+    re-create is a <b>tidy-up</b> rather than a fix:</p>
+    <ul>
+      <li><b>The template fetch resolves cleanly in ONE hop, over https.</b>
+      <code>mrsmania.github.io/wcsim/email/otp.html</code> answers 301 straight to
+      <code>https://mondialino.ch/email/otp.html</code>, which answers 200 - measured with
+      <code>curl -L</code> at <code>num_redirects=1</code>. GitHub redirects the whole old
+      project address for as long as a custom domain is configured on the repo. <b>And the
+      arrival of the code in the inbox is itself the proof the fetch succeeded</b>, because
+      the fallback mail is the stock "Magic Link", which carries a link and <i>no code</i>
+      at all.</li>
+      <li><b><code>SITE_URL</code> and the redirect allowlist are DEAD for this app, not
+      merely stale.</b> Both are only consulted when a request supplies a
+      <code>redirect_to</code>, and nothing here ever does: <code>state/auth.ts</code> uses
+      <code>signInWithOtp</code> with no <code>emailRedirectTo</code> and
+      <code>verifyOtp</code> with the code, and a sweep of <code>src/</code> finds no
+      <code>signInWithOAuth</code>, no <code>redirectTo</code> and no other
+      redirect-bearing call anywhere. The mail carries no link either, only the token
+      placeholder. Google OAuth, the one flow that would have made the allowlist
+      load-bearing, is <code>GOOGLE_ENABLED=false</code> and commented out on the NAS - and
+      its callback is on the API host rather than on the game’s domain regardless, so the
+      move never touched it.</li>
+      <li><b>The repo half is confirmed on the surface it was riskiest.</b> The mail’s logo
+      is an absolute <code>https://mondialino.ch/email/logo.png</code> and answers 200 as
+      an <code>image/png</code>.</li>
+    </ul>
+    <p><b>So why do it at all?</b> One specific silent failure. The two template URLs are
+    the only settings of the three that are actually read, and they are read <b>through a
+    redirect nobody chose</b>. That redirect exists only while the repo keeps a custom
+    domain configured, so renaming the repo or changing the domain would 404 the template -
+    at which point GoTrue falls back to its stock "Magic Link" mail, silently, and the app
+    can only verify a code. Sign-in would break for everybody with the only evidence
+    sitting in somebody’s inbox. The settings are already written and waiting, so removing
+    that dependency costs one rebuild whenever somebody is next in Container Manager.
+    <b>What it does not need is urgency, and nobody should treat the item as blocking
+    launch.</b></p>
 
     <p><b>The test that actually proves it: sign in from a phone on mobile data with wifi
     off.</b> Nothing else exercises DNS, the certificate, the redirect allowlist and the
@@ -500,9 +533,8 @@ docker compose exec auth env | grep -E "SITE_URL|URI_ALLOW|MAILER" # what actual
     restart, or the allowlist), while a changed subject over a stock body means the template
     fetch failed and GoTrue fell back silently.</p>
 
-    <p><b>Which machine each step needs, because they are not the same.</b> The Enforce
-    HTTPS toggle is any browser, or a session with the <code>gh</code> CLI authenticated.
-    <b>The re-create needs the home network AND root on the NAS.</b> A cloud session cannot
+    <p><b>Which machine the remaining step needs.</b> <b>The re-create needs the home
+    network AND root on the NAS.</b> A cloud session cannot
     reach <code>192.168.1.115</code> at all, and neither can a laptop on the wrong tunnel. A
     failed reach proves the ROUTE you were on, not the machine: a corporate VPN was once
     misread as the NAS being down, where the same laptop on the right tunnel let straight
@@ -516,14 +548,13 @@ docker compose exec auth env | grep -E "SITE_URL|URI_ALLOW|MAILER" # what actual
     <pre><code>git pull --ff-only &amp;&amp; git log --oneline -1        # 1d3e352 or later
 ssh -o ConnectTimeout=5 -o BatchMode=yes mario@192.168.1.115 hostname   # expect DS723
 ssh mario@192.168.1.115 sudo -n true               # THE ONE THAT BLOCKED 2026-09-03
-gh auth status &amp;&amp; gh api repos/mrsmania/wcsim/pages --jq .https_enforced
+gh auth status                                     # Enforce HTTPS is already on
 git push --dry-run origin main                     # proves the credential helper
 node -v &amp;&amp; npm -v                                  # the build and checks gate
 nslookup -type=AAAA mondialino.ch ns.hostpoint.ch  # 8000 through 8003 and nothing else</code></pre>
     <p>Nothing here needs all of them. A session with no NAS reach can still do
     everything but step 3 and should say so rather than reporting the item done; a session
-    with no <code>gh</code> hands the Enforce HTTPS click back rather than pretending it is
-    blocked. <b>The <code>sudo -n</code> line is the one worth adding</b>, because plain
+    <b>The <code>sudo -n</code> line is the one worth adding</b>, because plain
     SSH reach reads as enough for step 3 and is not: it stops at the daemon socket.
     <b>The one thing that must not be guessed is whether the mail template URL serves</b>:
     <code>curl -sI https://mondialino.ch/email/otp.html</code> from the NAS itself, before
