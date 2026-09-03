@@ -354,8 +354,8 @@
     <span class="title">Finish the move to mondialino.ch
       <span class="sub">The repo half shipped 2026-09-03 (<code>597acd1</code>): the base is
       <code>/</code>, <code>public/CNAME</code> is published, the sign-in mail's logo URL
-      moved. DNS went live the same day and is correct. <b>Two things left: the Pages custom
-      domain setting, then the three NAS settings.</b></span>
+      moved. DNS, the Pages custom domain and the certificate all landed the same day and
+      the site is live. <b>Only the three NAS settings are left.</b></span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -383,16 +383,34 @@
     <br>Verify: <code>nslookup -type=AAAA mondialino.ch ns.hostpoint.ch</code> returns
     8000 through 8003 and nothing else.</p>
 
-    <p><b>2. THE ONE THING BLOCKING THE SITE: Settings, Pages, Custom domain =
-    <code>mondialino.ch</code>.</b> Still unset as this is written, and the symptom is
-    exact: <code>http://mondialino.ch/</code> answers <b>404</b> and
-    <code>https://</code> does not connect at all. That 404 is not a broken deploy, it is
-    GitHub saying no site is configured for this name. <code>public/CNAME</code> is published and
+    <p><b>2. The Pages custom domain is DONE and the site is live over HTTPS</b>
+    (2026-09-03). Verified: <code>https://mondialino.ch/</code>, the sign-in mail's
+    template and its logo all answer 200, the page requests <code>/assets/...</code>, and a
+    deep link answers GitHub's 404 carrying the app, which is the SPA fallback working as
+    designed rather than a fault.
+    <br>Worth recording, because it is what the symptom looked like while the setting was
+    missing: <code>http</code> answered <b>404</b> and <code>https</code> did not connect
+    at all. That 404 was GitHub saying no site is configured for the name, not a broken
+    deploy, because those four addresses serve every Pages site and separate them by the
+    <code>Host</code> header. <code>public/CNAME</code> is published and
     reachable in the artifact and GitHub did <b>not</b> pick the domain up from it, so that
     field is required rather than a second belt: those four IPs serve every Pages site and
     tell them apart by the <code>Host</code> header, so DNS alone gets the request to
     GitHub's door and only the setting says which repo it belongs to. Then tick
     <b>Enforce HTTPS</b> once the box is available (up to 24 hours).</p>
+
+    <p><b>A 301 IS CURRENTLY MASKING STEP 3, so read the urgency correctly.</b> GitHub
+    now redirects the whole old address to the new one, so
+    <code>mrsmania.github.io/wcsim/email/otp.html</code> answers <b>301</b> to
+    <code>mondialino.ch</code> and still resolves to the game's own template if the client
+    follows it. GoTrue is Go, whose default HTTP client does follow redirects, so the
+    sign-in mail is very probably still correct rather than falling back to the stock
+    "Magic Link". <b>Probably is the point:</b> the mail's correctness currently rests on a
+    redirect nobody chose and on a client behaviour nobody verified, and the redirect
+    target is <code>http</code> rather than <code>https</code>. It also means the failure,
+    if it comes, arrives silently and in somebody's inbox. So this is not urgent and it is
+    not optional either, and nobody should read a working sign-in as evidence that step 3
+    is unnecessary.</p>
 
     <p><b>3. Three settings on the NAS, and they must come LAST.</b> In
     <code>/volume1/docker/wcsim-supabase/.env</code>, lines 166, 167, 392 and 393:</p>
