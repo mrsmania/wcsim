@@ -355,18 +355,14 @@
       <span class="sub">The repo half shipped 2026-09-03 (<code>597acd1</code>): the base is
       <code>/</code>, <code>public/CNAME</code> is published, the sign-in mail's logo URL
       moved. DNS, the Pages custom domain and the certificate all landed the same day and
-      the site is live. <b>Only the three NAS settings are left.</b></span>
+      the site is live. The three NAS settings are <b>written and verified in
+      <code>.env</code></b>. <b>Two things left: force http to https, and re-create the
+      <code>auth</code> container.</b></span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><b>Why the site is down as this is written.</b> The build points every asset at the
-    domain root now, so the old address <code>mrsmania.github.io/wcsim/</code> serves an
-    <code>index.html</code> that asks for <code>/assets/...</code> and gets a <b>404</b>
-    (verified). That is free rather than harmless-in-principle, because there are no
-    players, but it does mean the move has to be finished rather than parked half done.</p>
-
     <p><b>1. DNS is DONE and verified live</b> (2026-09-03). The apex answers GitHub's
     four A records and its four AAAA records, <code>8000</code> through <code>8003</code>.
     <br>Two faults were caught in the zone on the way and both are worth keeping, because
@@ -383,97 +379,155 @@
     <br>Verify: <code>nslookup -type=AAAA mondialino.ch ns.hostpoint.ch</code> returns
     8000 through 8003 and nothing else.</p>
 
-    <p><b>2. The Pages custom domain is DONE and the site is live over HTTPS</b>
-    (2026-09-03). Verified: <code>https://mondialino.ch/</code>, the sign-in mail's
-    template and its logo all answer 200, the page requests <code>/assets/...</code>, and a
-    deep link answers GitHub's 404 carrying the app, which is the SPA fallback working as
-    designed rather than a fault.
+    <p><b>2. The Pages custom domain is DONE and the site is live</b> (2026-09-03).
+    <code>gh api repos/mrsmania/wcsim/pages</code> reports <code>cname:
+    mondialino.ch</code> with the certificate <b>approved</b> for both
+    <code>mondialino.ch</code> and <code>www.mondialino.ch</code>, expiring 2026-12-02.
+    Verified end to end: the root answers <b>200</b>, its <code>index.html</code> asks for
+    <code>/assets/...</code> and both the JS and the CSS answer 200, a deep link such as
+    <code>/versus</code> answers GitHub's 404 <b>carrying the app</b>, which is
+    <code>copy-404.mjs</code>'s SPA fallback working as designed rather than a fault,
+    <code>/CNAME</code> is published, and <code>www</code> 301s to the apex. The sign-in
+    mail's template and its logo answer 200 too.
     <br>Worth recording, because it is what the symptom looked like while the setting was
     missing: <code>http</code> answered <b>404</b> and <code>https</code> did not connect
     at all. That 404 was GitHub saying no site is configured for the name, not a broken
-    deploy, because those four addresses serve every Pages site and separate them by the
-    <code>Host</code> header. <code>public/CNAME</code> is published and
+    deploy: those four addresses serve every Pages site and separate them by the
+    <code>Host</code> header, so DNS alone gets the request to GitHub's door and only the
+    setting says which repo it belongs to. <code>public/CNAME</code> is published and
     reachable in the artifact and GitHub did <b>not</b> pick the domain up from it, so that
-    field is required rather than a second belt: those four IPs serve every Pages site and
-    tell them apart by the <code>Host</code> header, so DNS alone gets the request to
-    GitHub's door and only the setting says which repo it belongs to. Then tick
-    <b>Enforce HTTPS</b> once the box is available (up to 24 hours).</p>
+    field is required rather than a second belt.</p>
 
-    <p><b>A 301 IS CURRENTLY MASKING STEP 3, so read the urgency correctly.</b> GitHub
-    now redirects the whole old address to the new one, so
-    <code>mrsmania.github.io/wcsim/email/otp.html</code> answers <b>301</b> to
-    <code>mondialino.ch</code> and still resolves to the game's own template if the client
-    follows it. GoTrue is Go, whose default HTTP client does follow redirects, so the
-    sign-in mail is very probably still correct rather than falling back to the stock
-    "Magic Link". <b>Probably is the point:</b> the mail's correctness currently rests on a
-    redirect nobody chose and on a client behaviour nobody verified, and the redirect
-    target is <code>http</code> rather than <code>https</code>. It also means the failure,
-    if it comes, arrives silently and in somebody's inbox. So this is not urgent and it is
-    not optional either, and nobody should read a working sign-in as evidence that step 3
-    is unnecessary.</p>
+    <p><b>And the 404 OUTLIVES the fix by about a quarter of an hour, which is its own
+    trap.</b> Measured while checking the setting had landed: <code>http://</code> was
+    still answering 404 with an <code>Age</code> of <b>738 seconds</b> and an
+    <code>ETag</code> from the previous deploy, and the same URL answered 200 minutes later
+    with nothing whatever having been changed in between. So a Pages 404 shortly after
+    setting the domain is a <b>cached copy of the old answer</b>, not a failed fix. Read the
+    <code>Age</code> header before concluding anything: a non-zero one means the edge is
+    replaying, and the honest test is to wait it out or check a URL nobody has requested.</p>
 
-    <p><b>3. Three settings on the NAS, and they must come LAST.</b> In
-    <code>/volume1/docker/wcsim-supabase/.env</code>, lines 166, 167, 392 and 393:</p>
+    <p><b>2b. FORCING http TO https IS ONE TOGGLE, AND THERE IS NOWHERE ELSE TO DO IT.</b>
+    <code>https_enforced</code> is <code>false</code> as this is written, so
+    <code>http://mondialino.ch/</code> serves the game <b>in the clear</b> rather than
+    redirecting - measured, 200 and not a 301. GitHub's edge is the only thing in the
+    request path, so this is the only lever:</p>
+    <pre><code>gh api -X PUT repos/mrsmania/wcsim/pages -F https_enforced=true</code></pre>
+    <p>or Settings, Pages, tick <b>Enforce HTTPS</b>. The box is available as soon as the
+    certificate is approved, which it now is.
+    <br><b>Do not reach for a redirect in the page instead.</b> A meta refresh or a
+    <code>location.protocol</code> check in <code>index.html</code> looks like the same
+    thing and is strictly worse: it only runs once the plaintext response has already been
+    delivered over the wire, so the document, the asset URLs and anything sent with the
+    request have all travelled unencrypted before the redirect happens. Enforce HTTPS
+    answers with a <b>301 before any content leaves</b>. There is no nginx, no
+    <code>_headers</code> file and no <code>.htaccess</code> to put it in either: the
+    Docker image's nginx serves a different deployment entirely and never sees a
+    <code>mondialino.ch</code> request.
+    <br>It also turns on <b>HSTS</b> for the domain, which is what makes a browser that has
+    been once refuse plaintext by itself afterwards, and that is the half a page-level
+    redirect can never provide. It is the reason to do this even with no players: the
+    protection is remembered per browser, so it is worth being on before anybody's first
+    visit rather than after it.</p>
+
+    <p><b>3. The three NAS settings are WRITTEN. The container re-create is what is
+    left.</b> Applied to <code>/volume1/docker/wcsim-supabase/.env</code> on 2026-09-03,
+    lines 166, 167, 392 and 393, with the old file kept beside it as
+    <code>.env.pre-mondialino</code>:</p>
     <ul>
-      <li><code>SITE_URL</code>: <code>https://mrsmania.github.io/wcsim/</code> becomes
-      <code>https://mondialino.ch</code></li>
-      <li><code>ADDITIONAL_REDIRECT_URLS</code>: the new address plus
-      <code>http://localhost:5173</code></li>
+      <li><code>SITE_URL=https://mondialino.ch</code></li>
+      <li><code>ADDITIONAL_REDIRECT_URLS=https://mondialino.ch,http://localhost:5173</code></li>
       <li><code>GOTRUE_MAILER_TEMPLATES_MAGIC_LINK</code> and
-      <code>..._CONFIRMATION</code>: both become
+      <code>..._CONFIRMATION</code>: both
       <code>https://mondialino.ch/email/otp.html</code></li>
     </ul>
+    <p>A <code>diff</code> against the backup shows <b>exactly those four lines</b> and
+    nothing else, no occurrence of the old address remains in the file, and all four keys
+    are already in the <code>auth</code> service's <code>environment:</code> allowlist in
+    <code>docker-compose.yml</code> (lines 137, 138, 182, 183), so they will actually reach
+    the container. The precondition this item demanded was checked first and passes:
+    <code>https://mondialino.ch/email/otp.html</code> answers <b>200 from the NAS
+    itself</b>.</p>
+
     <p><b>It is three settings and not four.</b> This file and
     <code>docs/nas-setup.md</code> both used to speak of a CORS allowlist as a fourth: there
     is no such value anywhere in the stack's <code>.env</code> or its compose file, checked
-    on 2026-09-03, and the referee holds no origin allowlist either.
-    <br><b>Last, and not first, for one specific reason:</b> a mail template URL that 404s
-    does not fail loudly. GoTrue falls back to its stock "Magic Link" mail, complete with a
-    login link the app cannot use, and <code>docs/nas-setup.md</code> records that having
-    already happened once. So do this only once <code>curl -sI
-    https://mondialino.ch/email/otp.html</code> answers 200 <b>from the NAS itself</b>.
-    <br>Then the documented procedure, which exists because this stack has bitten before:
-    <code>docker compose config</code> to prove what the container would receive while the
-    old one is still serving, <code>up -d --no-deps auth</code> to touch exactly one
-    container, <code>docker compose exec auth env | grep -E 'SITE_URL|MAILER'</code> to
-    prove the values landed inside it, and watch the docker bridge firewall rules, which
-    container operations on this NAS have wiped before.</p>
+    on 2026-09-03, and the referee holds no origin allowlist either.</p>
+
+    <p><b>The edit is inert until the container is re-created, which is why stopping here is
+    safe.</b> Environment is fixed at creation, so the running <code>auth</code> is still
+    serving the old values and the stack is untouched - confirmed after the edit, the
+    referee still answering <code>protocol 1</code> and the gateway still asking for a key
+    on <code>/auth/v1/</code>. <b>It needs root, and THAT is the blocker rather than
+    network reach:</b> <code>docker</code> is at <code>/usr/local/bin/docker</code>, a
+    non-root account cannot reach the daemon socket (measured: <code>permission denied</code>
+    on <code>/var/run/docker.sock</code> as <code>mario</code>, whose groups are
+    <code>users</code> and <code>administrators</code>), and <code>sudo</code> on this box
+    wants a password.
+    <br>So finish it either in DSM's <b>Container Manager</b> (the Project's
+    <b>Action &rarr; Build</b>, which re-creates rather than restarts) or over SSH after a
+    <code>sudo -i</code>. The documented procedure, which exists because this stack has
+    bitten before:</p>
+    <pre><code>cd /volume1/docker/wcsim-supabase
+docker compose config | grep -E "SITE_URL|URI_ALLOW_LIST|MAILER"   # what the container WOULD get
+docker compose up -d --no-deps auth                                # re-create, never restart
+docker compose exec auth env | grep -E "SITE_URL|URI_ALLOW|MAILER" # what actually landed inside</code></pre>
+    <p>Then watch the docker bridge firewall rules, which container operations on this NAS
+    have wiped before: the job runs on a 5-minute schedule so the outage self-heals, but
+    pressing <b>Run</b> on it in Task Scheduler is the immediate recovery. Rolling back is
+    <code>cp .env.pre-mondialino .env</code> plus the same re-create; no database state is
+    involved.</p>
+
+    <p><b>WHY NOTHING LOOKED BROKEN WHILE THOSE URLS WERE STALE, and why that is not a
+    reason to leave the re-create undone.</b> GitHub redirects the whole old address to the
+    new one, so <code>mrsmania.github.io/wcsim/email/otp.html</code> answers <b>301</b> to
+    <code>mondialino.ch</code> and still resolves to the game's own template if the client
+    follows it. GoTrue is Go, whose default HTTP client does follow redirects, so the
+    sign-in mail was very probably still correct rather than falling back to the stock
+    "Magic Link". <b>Probably is the point:</b> the mail's correctness rested on a redirect
+    nobody chose and a client behaviour nobody verified, and the redirect target is
+    <code>http</code> rather than <code>https</code>, so the template was being fetched in
+    the clear. Its failure mode is silent and lands in somebody's inbox. So a working
+    sign-in was never evidence the re-create is unnecessary, and that redirect is a second
+    reason to turn Enforce HTTPS on.</p>
 
     <p><b>The test that actually proves it: sign in from a phone on mobile data with wifi
     off.</b> Nothing else exercises DNS, the certificate, the redirect allowlist and the
     OTP mail landing at once. Check the mail's <b>logo renders</b> too, which is the one
     thing the repo half could get wrong: it is an absolute URL, because a mail client has
-    no page to resolve a relative one against.</p>
+    no page to resolve a relative one against. And read the <b>subject line</b>, which says
+    which half failed if one did: unchanged means the variables never arrived (a plain
+    restart, or the allowlist), while a changed subject over a stock body means the template
+    fetch failed and GoTrue fell back silently.</p>
 
-    <p><b>Which machine each step needs, because they are not the same.</b> Two of the
-    three are browser tasks reachable from any device, a phone included, and only the NAS
-    step is tied to a particular machine:</p>
-    <ul>
-      <li><b>The DNS typo</b> is the registrar's control panel. Any browser, anywhere.</li>
-      <li><b>The Pages custom domain</b> is any browser, <i>or</i> a session with the
-      <code>gh</code> CLI authenticated, which can do it without one.</li>
-      <li><b>The NAS settings need the home network.</b> A cloud session cannot reach
-      <code>192.168.1.115</code> at all, and neither can a laptop on the wrong tunnel. A
-      failed reach proves the ROUTE you were on, not the machine: a corporate VPN was once
-      misread as the NAS being down, where the same laptop on the right tunnel let straight
-      in. Check the tunnel before concluding the hardware is unavailable.</li>
-    </ul>
+    <p><b>Which machine each step needs, because they are not the same.</b> The Enforce
+    HTTPS toggle is any browser, or a session with the <code>gh</code> CLI authenticated.
+    <b>The re-create needs the home network AND root on the NAS.</b> A cloud session cannot
+    reach <code>192.168.1.115</code> at all, and neither can a laptop on the wrong tunnel. A
+    failed reach proves the ROUTE you were on, not the machine: a corporate VPN was once
+    misread as the NAS being down, where the same laptop on the right tunnel let straight
+    in. Check the tunnel before concluding the hardware is unavailable. <b>And SSH reach is
+    not the same as being able to finish step 3</b>, which is what the 2026-09-03 session
+    found: it got in, wrote and verified the file, and could not re-create the
+    container.</p>
 
     <p><b>Access preflight for a session picking this up.</b> Run these first and report
     which pass, rather than discovering a missing one three steps in:</p>
-    <pre><code>git pull --ff-only &amp;&amp; git log --oneline -1        # 6168788 or later
+    <pre><code>git pull --ff-only &amp;&amp; git log --oneline -1        # 1d3e352 or later
 ssh -o ConnectTimeout=5 -o BatchMode=yes mario@192.168.1.115 hostname   # expect DS723
-gh auth status &amp;&amp; gh api repos/mrsmania/wcsim/pages --jq .cname       # or: no gh, use a browser
+ssh mario@192.168.1.115 sudo -n true               # THE ONE THAT BLOCKED 2026-09-03
+gh auth status &amp;&amp; gh api repos/mrsmania/wcsim/pages --jq .https_enforced
 git push --dry-run origin main                     # proves the credential helper
 node -v &amp;&amp; npm -v                                  # the build and checks gate
-nslookup -type=NS mondialino.ch a.nic.ch           # has .ch delegated yet
-nslookup -type=AAAA mondialino.ch ns.hostpoint.ch  # is the 8004 typo still there</code></pre>
-    <p>Nothing here needs all of them. A session with no NAS reach can still do everything
-    but step 3 and should say so rather than reporting the item done; a session with no
-    <code>gh</code> hands the Pages click back rather than pretending it is blocked.
+nslookup -type=AAAA mondialino.ch ns.hostpoint.ch  # 8000 through 8003 and nothing else</code></pre>
+    <p>Nothing here needs all of them. A session with no NAS reach can still do
+    everything but step 3 and should say so rather than reporting the item done; a session
+    with no <code>gh</code> hands the Enforce HTTPS click back rather than pretending it is
+    blocked. <b>The <code>sudo -n</code> line is the one worth adding</b>, because plain
+    SSH reach reads as enough for step 3 and is not: it stops at the daemon socket.
     <b>The one thing that must not be guessed is whether the mail template URL serves</b>:
     <code>curl -sI https://mondialino.ch/email/otp.html</code> from the NAS itself, before
-    touching the <code>.env</code>.</p>
+    touching the <code>.env</code>. It answered 200 on 2026-09-03.</p>
 
     <p><b>Not part of this item:</b> moving the sign-in mail off the personal Gmail sender
     to Amazon SES on the new domain. That was the conversation this move came out of and it
