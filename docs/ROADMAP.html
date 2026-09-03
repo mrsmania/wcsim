@@ -354,8 +354,8 @@
     <span class="title">Finish the move to mondialino.ch
       <span class="sub">The repo half shipped 2026-09-03 (<code>597acd1</code>): the base is
       <code>/</code>, <code>public/CNAME</code> is published, the sign-in mail's logo URL
-      moved. <b>Three things are left, and the site serves nothing until the first two are
-      done.</b></span>
+      moved. DNS went live the same day and is correct. <b>Two things left: the Pages custom
+      domain setting, then the three NAS settings.</b></span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -367,13 +367,13 @@
     (verified). That is free rather than harmless-in-principle, because there are no
     players, but it does mean the move has to be finished rather than parked half done.</p>
 
-    <p><b>1. One DNS record is a typo, and it is the only thing wrong with the zone.</b>
-    Hostpoint answers four AAAA records for the apex and one of them is
-    <code>2606:50c0:8004::153</code>, where GitHub's four are <code>8000</code>,
-    <code>8001</code>, <code>8002</code> and <b><code>8003</code></b>. So one IPv6 request
-    in four would go to an address that is not GitHub Pages and hang. Change the
-    <code>8004</code> to <code>8003</code>.
-    <br>The four A records are correct, and the Hostpoint defaults have already been
+    <p><b>1. DNS is DONE and verified live</b> (2026-09-03). The apex answers GitHub's
+    four A records and its four AAAA records, <code>8000</code> through <code>8003</code>.
+    <br>Two faults were caught in the zone on the way and both are worth keeping, because
+    both fail in ways that do not look like DNS. One AAAA was
+    <code>2606:50c0:8004::153</code>, off by one from GitHub's <code>8003</code>, which
+    would have hung one IPv6 request in four.
+    <br>The Hostpoint defaults had also already been
     deleted from the apex, which was the more dangerous half of this: an apex
     <code>AAAA</code> pointing at Hostpoint sends <b>every</b> IPv6 visitor to a parking
     page <b>every time</b>, because IPv6 is preferred over IPv4, and the stray apex
@@ -383,14 +383,11 @@
     <br>Verify: <code>nslookup -type=AAAA mondialino.ch ns.hostpoint.ch</code> returns
     8000 through 8003 and nothing else.</p>
 
-    <p><b>2. The domain is not delegated in <code>.ch</code> yet</b>, which is why nothing
-    resolves publicly however correct the zone is:
-    <code>nslookup -type=NS mondialino.ch a.nic.ch</code> answered <i>non-existent
-    domain</i> on 2026-09-03. Nothing to do but wait. If it is still absent after a few
-    hours, check the order actually completed at the registrar, because a <code>.ch</code>
-    registration through SWITCH is normally quick.
-    <br><b>GitHub also needs Settings, Pages, Custom domain = <code>mondialino.ch</code></b>,
-    which was still unset when this was written. <code>public/CNAME</code> is published and
+    <p><b>2. THE ONE THING BLOCKING THE SITE: Settings, Pages, Custom domain =
+    <code>mondialino.ch</code>.</b> Still unset as this is written, and the symptom is
+    exact: <code>http://mondialino.ch/</code> answers <b>404</b> and
+    <code>https://</code> does not connect at all. That 404 is not a broken deploy, it is
+    GitHub saying no site is configured for this name. <code>public/CNAME</code> is published and
     reachable in the artifact and GitHub did <b>not</b> pick the domain up from it, so that
     field is required rather than a second belt: those four IPs serve every Pages site and
     tell them apart by the <code>Host</code> header, so DNS alone gets the request to
@@ -429,6 +426,36 @@
     OTP mail landing at once. Check the mail's <b>logo renders</b> too, which is the one
     thing the repo half could get wrong: it is an absolute URL, because a mail client has
     no page to resolve a relative one against.</p>
+
+    <p><b>Which machine each step needs, because they are not the same.</b> Two of the
+    three are browser tasks reachable from any device, a phone included, and only the NAS
+    step is tied to a particular machine:</p>
+    <ul>
+      <li><b>The DNS typo</b> is the registrar's control panel. Any browser, anywhere.</li>
+      <li><b>The Pages custom domain</b> is any browser, <i>or</i> a session with the
+      <code>gh</code> CLI authenticated, which can do it without one.</li>
+      <li><b>The NAS settings need the home network.</b> A cloud session cannot reach
+      <code>192.168.1.115</code> at all, and neither can a laptop on the wrong tunnel. A
+      failed reach proves the ROUTE you were on, not the machine: a corporate VPN was once
+      misread as the NAS being down, where the same laptop on the right tunnel let straight
+      in. Check the tunnel before concluding the hardware is unavailable.</li>
+    </ul>
+
+    <p><b>Access preflight for a session picking this up.</b> Run these first and report
+    which pass, rather than discovering a missing one three steps in:</p>
+    <pre><code>git pull --ff-only &amp;&amp; git log --oneline -1        # 6168788 or later
+ssh -o ConnectTimeout=5 -o BatchMode=yes mario@192.168.1.115 hostname   # expect DS723
+gh auth status &amp;&amp; gh api repos/mrsmania/wcsim/pages --jq .cname       # or: no gh, use a browser
+git push --dry-run origin main                     # proves the credential helper
+node -v &amp;&amp; npm -v                                  # the build and checks gate
+nslookup -type=NS mondialino.ch a.nic.ch           # has .ch delegated yet
+nslookup -type=AAAA mondialino.ch ns.hostpoint.ch  # is the 8004 typo still there</code></pre>
+    <p>Nothing here needs all of them. A session with no NAS reach can still do everything
+    but step 3 and should say so rather than reporting the item done; a session with no
+    <code>gh</code> hands the Pages click back rather than pretending it is blocked.
+    <b>The one thing that must not be guessed is whether the mail template URL serves</b>:
+    <code>curl -sI https://mondialino.ch/email/otp.html</code> from the NAS itself, before
+    touching the <code>.env</code>.</p>
 
     <p><b>Not part of this item:</b> moving the sign-in mail off the personal Gmail sender
     to Amazon SES on the new domain. That was the conversation this move came out of and it
