@@ -116,11 +116,6 @@ export interface CabinetView {
   topUsed: PlayerRow[];
   topScorers: PlayerRow[];
   topTitles: PlayerRow[];
-  /** How many of the career's cups the titles board can account for. Lower than
-   *  `headline.cups` on a career that won cups before line-ups were recorded, which is
-   *  the one thing that board cannot derive and so the only way it can be honest about
-   *  what it is missing. */
-  cupsRecorded: number;
   /** How many players have a record at all, and the cap. The leaderboards show ten of
    *  these, and the gap between ten and this is the reason to print it. */
   playersTracked: number;
@@ -299,7 +294,6 @@ export function cabinetView(
     topUsed,
     topScorers,
     topTitles,
-    cupsRecorded: career.stats.cupsRecorded ?? 0,
     playersTracked: Object.keys(records).length,
     playersLimit: PLAYER_RECORD_LIMIT,
     playerTotals: { apps: appsTotal, goals: goalsTotal },

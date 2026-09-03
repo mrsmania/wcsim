@@ -430,13 +430,12 @@ export function cabinetChecks(): void {
       'titles: cups add up across runs and a lesser finish in between adds none',
       () => played.every((id) => threeRuns.stats.players?.[id]?.cups === 2) &&
         played.every((id) => threeRuns.stats.players?.[id]?.runs === 3) &&
-        threeRuns.stats.cups === 2 &&
-        threeRuns.stats.cupsRecorded === 2,
+        threeRuns.stats.cups === 2,
     );
-    // The coverage counter, which is the only thing the board cannot derive: a cup won by
-    // a run with no tally (any run persisted before the tally existed) counts as a cup and
-    // NOT as one the board holds names for, so the screen can say "0 of 1" rather than
-    // showing an empty board over a full shelf.
+    // A run with no tally at all (any run persisted before the tally existed) still banks
+    // its cup and credits nobody, so the shelf and the board disagree rather than the
+    // board inventing names. `cupOnce` is the guard: the same run WITH a tally credits its
+    // eleven, so "nobody was credited" is not trivially true of the fixture.
     const cupNoNames = applyRunResult(
       INITIAL_CAREER,
       { ...asCup(run, 'champion'), tally: undefined },
@@ -444,10 +443,10 @@ export function cabinetChecks(): void {
       1,
     ).career;
     check(
-      'titles: a cup the records hold no line-up for counts as a cup and not as covered',
+      'titles: a cup the records hold no line-up for still counts as a cup and credits nobody',
       () => cupNoNames.stats.cups === 1 &&
-        (cupNoNames.stats.cupsRecorded ?? 0) === 0 &&
-        cupOnce.stats.cupsRecorded === 1,
+        Object.keys(cupNoNames.stats.players ?? {}).length === 0 &&
+        Object.keys(cupOnce.stats.players ?? {}).length >= 11,
     );
     // Finals lost is a COUNT, and it used to be a yes/no printed against the label "Finals
     // lost". The counter is exact from the run it started at; the floor is what a career
@@ -515,8 +514,7 @@ export function cabinetChecks(): void {
         !!pruned['old-champion'] &&
         Object.keys(pruned).filter((id) => id.startsWith('filler-')).length < PLAYER_RECORD_LIMIT,
     );
-    // And the board itself: ranked by cups, holders only, capped at ten, with the
-    // coverage counter carried through to the screen.
+    // And the board itself: ranked by cups, holders only, capped at ten.
     const cupView = cabinetView(threeRuns, emptyAlbum(), ALL_PLAYERS);
     const titlesOrdered = cupView.topTitles.every(
       (r, i) =>
@@ -533,7 +531,6 @@ export function cabinetChecks(): void {
       stats: {
         ...INITIAL_CAREER.stats,
         cups: 3,
-        cupsRecorded: 3,
         players: Object.fromEntries(
           ALL_PLAYERS.slice(0, 12).map((p, i) => [
             p.id,
@@ -544,10 +541,9 @@ export function cabinetChecks(): void {
     };
     const mixedView = cabinetView(mixed, emptyAlbum(), ALL_PLAYERS);
     check(
-      'cabinet: the titles board is ranked by cups, holders only, and says what it covers',
+      'cabinet: the titles board is ranked by cups and lists holders only',
       () => cupView.topTitles.length === 10 &&
         titlesOrdered &&
-        cupView.cupsRecorded === 2 &&
         cupView.headline.cups === 2 &&
         cabinetView(cupNoNames, emptyAlbum(), ALL_PLAYERS).topTitles.length === 0 &&
         mixedView.topTitles.length === 3 &&

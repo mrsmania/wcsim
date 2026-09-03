@@ -2545,11 +2545,16 @@ A read-only **`/cabinet`** screen: what a career has to show for itself. Roadmap
     to a player who carried the run through the group and was swapped out.
   - **It only ever covers cups won from here on**, exactly as the archive only covers runs
     from 2026-08-20 on, and unlike `bestCupStreakOf` there is nothing in the honours to
-    reconstruct a line-up from. So `CareerStats.cupsRecorded` counts the cups the records
-    can account for and the board says "3 of your 4 cups have line-ups on record" while
-    the two disagree. **A cup is only covered when the merge could credit somebody**: a
-    run persisted before the tally existed banks its cup and no names, and without that
-    condition the board would claim a cup it holds no line-up for.
+    reconstruct a line-up from. A career that won cups before the tally existed therefore
+    has a shelf the board cannot account for, and it simply does not mention it: the head
+    of the board used to carry a coverage note ("3 of your 4 cups have line-ups on
+    record"), counted by `CareerStats.cupsRecorded`, and **the note, the counter and the
+    field were all DELETED on 2026-09-03** because the accounts are being wiped before the
+    game goes live, so from then on every cup a career holds is one the board holds names
+    for and the sentence could only ever have said "4 of your 4". Do not re-add it without
+    a career that can reach the state again - and note that the empty board still explains
+    itself ("your cups were won before line-ups were kept"), which is the same fact in the
+    one place it is still reachable, from a save older than the tally.
   - **A title outranks appearances in the prune.** At `PLAYER_RECORD_LIMIT` the least-used
     records are dropped, and a cup is the rarest thing on a record and the one fact no
     other column can imply, so it now sorts ahead of the two it used to sort behind.

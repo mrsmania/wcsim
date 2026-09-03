@@ -71,11 +71,6 @@ export interface CareerStats {
   /** Lifetime appearances and goals per PLAYER ID, capped at `PLAYER_RECORD_LIMIT`.
    *  Every player a career has ever fielded is kept, not just the ones on show. */
   players?: Record<string, PlayerRecord>;
-  /** How many of `cups` the player records above can account for. Lower than `cups` on a
-   *  career that won cups before titles were counted, which is what lets the titles board
-   *  say how much of the history it covers rather than leaving an unexplained hole.
-   *  Optional, so a career saved before this reads as covering none. */
-  cupsRecorded?: number;
 }
 
 /** One finished run, for the archive. Deliberately small: at `HISTORY_LIMIT` rows this
@@ -286,11 +281,9 @@ const withValue = (list: string[], value: string): string[] => {
   return next.includes(value) ? next : [...next, value];
 };
 
-/** Everyone the run's tally has anything to say about. Its own function because TWO
- *  things key off it: the merge below, and whether a cup win can be credited to anybody
- *  at all (`CareerStats.cupsRecorded`) - a run that recorded no player, which is any run
- *  persisted before the tally existed, must not have its cup counted as covered by a
- *  board that holds no line-up for it. */
+/** Everyone the run's tally has anything to say about, which is what the merge below
+ *  credits with an appearance, a run and (on a cup) a title. A run persisted before the
+ *  tally existed says nothing about anybody, so it credits nobody. */
 function touchedBy(tally: RunTally | undefined): string[] {
   if (!tally) return [];
   return [...new Set([...Object.keys(tally.apps ?? {}), ...Object.keys(tally.goals ?? {})])];
@@ -627,11 +620,6 @@ export function applyRunResult(
           ? withValue(career.stats.cupFormations, run.shape.formation)
           : career.stats.cupFormations,
       players: mergePlayerRecords(career.stats.players, run.tally, wonCup),
-      // A cup counts as covered only when the merge above could credit somebody for it,
-      // so the titles board can say "3 of your 5 cups" rather than leaving a run it holds
-      // no names for looking like a board that lost them.
-      cupsRecorded:
-        (career.stats.cupsRecorded ?? 0) + (wonCup && touchedBy(run.tally).length > 0 ? 1 : 0),
       // The archive row is appended below, once the challenge count is known.
       history: career.stats.history,
     },

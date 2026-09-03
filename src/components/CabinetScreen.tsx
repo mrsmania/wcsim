@@ -235,12 +235,10 @@ function Card({ children, className = '' }: { children: ReactNode; className?: s
 function BlockHead({
     title,
     count,
-    hint,
     link,
 }: {
     title: string;
     count?: string;
-    hint?: string;
     link?: { to: string; label: string };
 }) {
     return (
@@ -253,7 +251,6 @@ function BlockHead({
                     {count}
                 </span>
             )}
-            {hint && <span className="text-[12px] text-muted">{hint}</span>}
             {link && (
                 <Link
                     to={link.to}
@@ -353,19 +350,11 @@ export default function CabinetScreen({
                     {/* Most titles. Every player who played a match in a winning run, not just
                 the eleven that finished it, which is the same reading of "was there" the
                 two boards beside it use - three boards ranked on three different meanings
-                of the same run would invite exactly one wrong comparison.
-                The hint is the one thing this board cannot derive: line-ups are only kept
-                from the run that started keeping them, so a career with older cups is
-                missing them and says which rather than showing a hole. */}
+                of the same run would invite exactly one wrong comparison. */}
                     <Card className="min-[900px]:col-span-2 min-[1320px]:col-span-1">
                         <BlockHead
                             title="Most titles"
                             count={`(top ${Math.min(LEADERBOARD_ROWS, v.topTitles.length)})`}
-                            hint={
-                                v.cupsRecorded < v.headline.cups
-                                    ? `${v.cupsRecorded} of your ${v.headline.cups} cups have line-ups on record.`
-                                    : undefined
-                            }
                         />
                         <div className="p-3.5">
                             {v.topTitles.length > 0 ? (
