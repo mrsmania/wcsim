@@ -325,7 +325,7 @@ export default function App({
     return (
         <div className="min-h-full text-ink">
             {/* The extra bottom padding below 700px is the room the phone tab bar occupies. */}
-            <div className="mx-auto max-w-[1480px] px-[22px] pb-20 pt-5 max-[699px]:pb-28">
+            <div className="mx-auto max-w-[1180px] px-[22px] pb-20 pt-5 max-[699px]:pb-28">
                 {/* The identity block and the six destinations are ONE row now
                     (2026-09-02): the masthead renders the tab row inside its own line, so
                     the chrome is 45px rather than 89. The phone's fixed bottom bar is
