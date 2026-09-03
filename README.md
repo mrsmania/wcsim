@@ -132,8 +132,8 @@ advanced bands. Add a row to `RAW_FORMATIONS` to add a formation.
 The build output (`dist/`) is static. Routing uses the History API (clean paths),
 which needs an **absolute** base and an SPA fallback:
 
-- `vite.config.ts` sets `base: '/wcsim/'` for the production build (`'/'` in dev),
-  so deeply-nested URLs (e.g. `/squads/team/bra-2002`) still resolve `/assets`.
+- `vite.config.ts` sets an absolute `base`, `'/'` by default, so deeply-nested URLs
+  (e.g. `/squads/team/bra-2002`) still resolve `/assets`.
 - `npm run build` also writes `dist/404.html` (a copy of `index.html`), so a deep
   link or refresh is served the app instead of a 404.
 
@@ -141,8 +141,14 @@ which needs an **absolute** base and an SPA fallback:
 
 `.github/workflows/deploy.yml` builds and deploys on every push to `main`. In the
 repository settings, set **Settings -> Pages -> Build and deployment ->
-Source = GitHub Actions**. The site is served at `<user>.github.io/wcsim/`, which
-matches the configured base.
+Source = GitHub Actions**.
+
+This deployment serves the game at **https://mondialino.ch**, a custom domain, so it
+comes from the domain root and matches the default base. Two things carry the domain: the
+**Custom domain** field in those same Pages settings, and `public/CNAME`, which puts it
+in the published artifact as well. A fork wants its own value in both, or neither: a
+project site then serves at `<user>.github.io/<repo>/`, which needs
+`VITE_BASE=/<repo>/`.
 
 ### Another host or path (Synology, Docker, custom domain)
 
@@ -150,18 +156,18 @@ Because the base is absolute, serving the app at a different path means rebuildi
 with a matching base. Set `VITE_BASE`:
 
 ```bash
-VITE_BASE=/ npm run build           # served at the domain root
+npm run build                       # served at the domain root (the default)
 VITE_BASE=/my/path/ npm run build   # served under /my/path/
 ```
 
 Then either configure the server to serve `index.html` for unknown routes, or rely
 on the emitted `404.html`.
 
-> Do **not** use `npm run build -- --base=/`. npm appends forwarded arguments to the
-> last command in the `&&` chain, so the flag reaches `copy-404.mjs` rather than Vite;
+> Do **not** use `npm run build -- --base=/my/path/`. npm appends forwarded arguments to
+> the last command in the `&&` chain, so the flag reaches `copy-404.mjs` rather than Vite;
 > that script ignores unknown arguments and exits 0, so the build reports success and
-> still points every asset at `/wcsim/`. `VITE_BASE` is read in `vite.config.ts` and
-> works through the whole chain.
+> still points every asset at the default base. `VITE_BASE` is read in `vite.config.ts`
+> and works through the whole chain.
 
 1. **Web Station** (simplest): rebuild with the right base, copy `dist/` to a
    shared folder, and point a Web Station virtual host at it.

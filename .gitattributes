@@ -1,0 +1,6 @@
+# Scoped to one path on purpose: a broad rule here would renormalize the whole repo.
+#
+# GitHub Pages reads public/CNAME verbatim, so a trailing CR makes the domain invalid
+# and the custom domain then silently does not apply. This repo is worked on from
+# Windows with core.autocrlf=true, which converts it on checkout, so pin it to LF.
+public/CNAME text eol=lf

@@ -31,7 +31,7 @@ Ten minutes now, rather than after the stack is built.
 **What the hostname is, and is not.** It is the address of the **API only**: what the
 browser calls in the background, once signed in, for the login handshake and for saving.
 The **game itself does not move**: it stays on GitHub Pages at
-`https://mrsmania.github.io/wcsim/`, which is the only URL a player ever sees, and guest
+`https://mondialino.ch`, which is the only URL a player ever sees, and guest
 play never touches the NAS at all. Two different URLs, and mixing them up is the classic
 configuration failure here: `SITE_URL` is the *game*, `API_EXTERNAL_URL` and
 `VITE_SUPABASE_URL` are the *NAS*.
@@ -196,8 +196,8 @@ No quotes, no spaces around `=`:
 ```
 GOTRUE_MAILER_SUBJECTS_MAGIC_LINK=Your Mondialino code
 GOTRUE_MAILER_SUBJECTS_CONFIRMATION=Your Mondialino code
-GOTRUE_MAILER_TEMPLATES_MAGIC_LINK=https://mrsmania.github.io/wcsim/email/otp.html
-GOTRUE_MAILER_TEMPLATES_CONFIRMATION=https://mrsmania.github.io/wcsim/email/otp.html
+GOTRUE_MAILER_TEMPLATES_MAGIC_LINK=https://mondialino.ch/email/otp.html
+GOTRUE_MAILER_TEMPLATES_CONFIRMATION=https://mondialino.ch/email/otp.html
 ```
 
 Then two things that are easy to get wrong, in this order:
@@ -215,8 +215,15 @@ Then two things that are easy to get wrong, in this order:
    **Action → Build** rather than a container Restart.
 
 Verify in that order too: `docker compose exec auth env | grep GOTRUE_MAILER_` proves the
-values are *inside* the container, and `curl -sI https://mrsmania.github.io/wcsim/email/otp.html`
+values are *inside* the container, and `curl -sI https://mondialino.ch/email/otp.html`
 **from the NAS** proves it can fetch the template as it sends.
+
+**These four URLs moved on 2026-09-03**, when the game left
+`https://mrsmania.github.io/wcsim/` for the custom domain: the two template keys above,
+`SITE_URL`, and the redirect allowlist. A stale template URL is the quiet one, because a
+404 does not fail loudly, it falls back to GoTrue's stock "Magic Link" mail with a login
+link the app cannot use. The mail's own logo is an absolute URL too, and that one lives in
+the repo (`public/email/otp.html`).
 
 Worth knowing:
 

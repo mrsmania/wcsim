@@ -246,8 +246,10 @@ done and why. What that means for anyone working in this tree now:
   Node's globals. Naming the list then surfaced a real error it had been hiding -
   `domain/challenges.ts` uses ES2022 `Array.prototype.at` against a declared ES2020 `lib`,
   which only compiled because `@types/node` was supplying it.
-- **The base path is `VITE_BASE`**, read in `vite.config.ts`, defaulting to `/wcsim/` for a
-  build and `/` in dev. `npm run build -- --base=/` does NOT work and never did: the flag
+- **The base path is `VITE_BASE`**, read in `vite.config.ts`, defaulting to `/` for both
+  dev and the build, because the site serves from a custom domain's root. It was `/wcsim/`
+  for a build until 2026-09-03, see "Hosting". `npm run build -- --base=/` does NOT work
+  and never did: the flag
   lands on the last command in the `&&` chain, which ignores it and exits 0, so it produced
   a wrong artifact cheerfully. The Docker image passes `ARG VITE_BASE=/` because nginx serves
   from the root.
@@ -272,11 +274,12 @@ Pure client-side: no backend, no database. All player data is hardcoded in
 **It was called World Cup Simulator until 2026-08-26.** The rename is user-facing ONLY -
 the page title, the boot cover, the masthead wordmark, the sign-in email and the player
 index. Everything named `wcsim` internally is deliberately untouched and should stay that
-way unless there is a reason beyond tidiness: the repository and the GitHub Pages base
-path (`/wcsim/`, and changing it means rebuilding every deployed asset URL, see
-"Hosting"), the npm package name, the Docker image, and above all the **localStorage keys**
+way unless there is a reason beyond tidiness: the repository name, the npm package name,
+the Docker image, and above all the **localStorage keys**
 (`wcsim_album_v1` and its four siblings) - renaming those orphans every save on the
-machine that holds them, including the author's own. The wordmark is one word in two tones
+machine that holds them, including the author's own. **The GitHub Pages base path was on
+this list and came off it on 2026-09-03**, when the site moved to `mondialino.ch` and the
+base became `/`; see "Hosting" for the four things that had to move with it. The wordmark is one word in two tones
 (`Mondial` + a green `ino`). The tagline it sat beside, "Draft a random XI. Win the cup.",
 was **deleted from the chrome on 2026-09-02** to pay for the one-line header (see
 "Navigation" below); the front page's hero says the same thing at the size it deserves.
@@ -3847,8 +3850,9 @@ when a screen navigates without waiting for a write, ask what the DESTINATION re
   `navigator.share`) Share, which opens the system share sheet rather than a menu of ours -
   the destinations are the ones already on the person's phone and nothing here has to know
   what they are. The code stays beside it because it is what gets read out loud. `inviteUrl`
-  (domain/pvpView) builds the link from Vite's own base, so it works from `/wcsim/` and from
-  the Docker image's `/` alike, and the copy has an `execCommand` fallback because
+  (domain/pvpView) builds the link from Vite's own base, so it works from the site's root
+  and from a sub-path host alike (`npm run checks` still pins both, `/wcsim/` being the
+  fixture it uses for the sub-path), and the copy has an `execCommand` fallback because
   `navigator.clipboard` is absent over plain http - which is exactly how the NAS serves this
   on a LAN.
 
@@ -4543,10 +4547,36 @@ one file `public/img/` holds that IS referenced is `swiss.svg`, in the footer.
 ## Hosting
 
 Build output (`dist/`) is static. Because routing uses the History API (clean paths),
-`vite.config.ts` sets an **absolute** `base` for the build (`'/wcsim/'`; `'/'` in dev)
+`vite.config.ts` sets an **absolute** `base`, `'/'` by default,
 so deeply-nested URLs still resolve `/assets`, and `scripts/copy-404.mjs` (run at the
 end of `npm run build`) copies `index.html` to `dist/404.html` so GitHub Pages serves
 the SPA for any deep link / refresh. `.github/workflows/deploy.yml` builds and deploys
-to GitHub Pages on push to `main`. NOTE: the absolute base makes `dist/` GitHub-Pages-
-path-specific; a NAS/Docker host at a different path must rebuild with its own `base`
+to GitHub Pages on push to `main`. NOTE: the absolute base makes `dist/` path-specific;
+a NAS/Docker host at a different path must rebuild with its own `base`
 (see `README.md` for the Synology/Docker options).
+
+**THE SITE IS `https://mondialino.ch` SINCE 2026-09-03**, a custom domain on GitHub
+Pages. It was `https://mrsmania.github.io/wcsim/`, and that is the whole reason the base
+is `/` rather than `/wcsim/`: a custom domain serves from the root, where a project site
+serves from a subpath. The domain was bought for this, the name research having already
+established it was free. **Four things moved with it, and every one of them fails quietly
+rather than loudly**, which is why they are listed here rather than left to be
+rediscovered:
+
+- **`public/CNAME` carries the domain into the published artifact.** The custom domain is
+  also a repository setting (Settings, Pages, Custom domain), and this file is the belt to
+  that setting's braces: an artifact-based deploy that dropped it would otherwise take the
+  site back to the `github.io` address with no warning.
+- **The sign-in mail's logo is an ABSOLUTE URL** (`public/email/otp.html`), because a mail
+  client has no page to resolve a relative one against. It pointed at the old address, and
+  a mail client does not follow a redirect for an image, so it had to move in the same
+  pass. This is the one that a grep for the old address finds and a grep of `src/` does
+  not, since nothing under `src/` ever names the origin.
+- **GoTrue's own copy of the template URL lives on the NAS**, along with `SITE_URL` and
+  the redirect allowlist, so three of the four settings are not in this repo at all. A
+  template URL that 404s does not fail loudly: it falls back to the stock "Magic Link"
+  mail, complete with a login link the app cannot use. `docs/nas-setup.md` carries them.
+- **The origin change ORPHANS every browser's saved album, career and run**, localStorage
+  being per-origin. That was free on 2026-09-03 (no players, and the accounts were being
+  wiped before launch anyway) and it will never be free again. Which is the argument for
+  having moved the address once, to a domain the game owns, rather than twice.
