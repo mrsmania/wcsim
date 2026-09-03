@@ -637,73 +637,6 @@ position. Pick from <b>Later</b>.</p>
 
 <details class="item">
   <summary>
-    <span class="num">44</span>
-    <span class="title">Versus: hand back the time
-      <span class="sub"><b>Move shipped on 2026-09-03 and this item shrank to its other half.</b>
-      Dragging a placed man to another of his positions now works in <b>both</b> kinds of room -
-      buy-them since 2026-08-30 (item 47), roll-for-them since 2026-09-03, where the match server
-      takes the rearranged team sheet and checks that it is the same eleven people standing
-      somewhere else. What is left is <b>Skip</b>: a way to give up on the squad you have just
-      been dealt and take the random pick now, rather than sitting out the rest of a window you
-      have no use for. <b>Not the same thing as the two Skips that already exist</b> - see
-      below. Needs the match server changed and redeployed, so it needs the NAS.</span>
-    </span>
-    <span class="tag">Versus</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>What shipped, and why it did not close this.</strong> Moving a player is done.
-    A buy-them room got it on 2026-08-30 for free, because it sends the whole team sheet and a
-    move is just a different sheet (item 47). A roll-for-them room got it on 2026-09-03 through
-    a small instruction of its own: it also sends the sheet, and the match server takes it
-    <em>only</em> when it is a rearrangement - the same eleven people, nobody added and nobody
-    dropped. That rule is the whole of why it is safe to accept outside the pick clock, because
-    a roll room keeps every squad it has ever been dealt, so a sheet judged any less strictly
-    would let somebody quietly rebuild their team out of eleven players they never picked.
-    Skip is a different problem and still open.</p>
-
-    <p><strong>Which Skip this is, because two others already exist and neither is this
-    one.</strong> A duel's finished match has a <b>Skip to the result</b>, which jumps past
-    watching the goals go in. A buy-them room and every duel have <b>Send my XI</b>, which ends
-    your whole draft when you are happy with the team. The one that does not exist is the
-    per-pick one: you have been dealt a squad, there is nobody in it you want for the slots you
-    still need, your re-rolls are gone, and your only option is to watch twenty seconds run out.
-    Skip would take the random pick there and then - <em>the same</em> pick the clock would have
-    taken, at the same price - and deal you the next squad.</p>
-
-    <p><strong>What it is worth, and the earlier version of this note had it wrong.</strong>
-    It used to say that a room of eight waits out the slowest of eight people at every one of
-    eleven picks. It does not: <b>everybody's clock runs on its own</b>, and the moment you
-    pick, your next squad is dealt and your next twenty seconds start, whatever anybody else
-    is doing. The real wait comes once, at the end - nothing is paired up until every single
-    person has finished all eleven picks, because the draw has to be blind - so somebody
-    decisive can sit on a finished team for a few minutes while the last person works through
-    theirs. So Skip is worth this much: it stops the game making you sit through time you have
-    no use for, and it gets your own draft finished sooner, which brings that one wait forward
-    for everybody. Real, and smaller than it was written up as.</p>
-
-    <p><strong>The one thing to be careful about.</strong> Skip must take the same random pick
-    a timeout takes, at the same price, or it becomes the fast way to a better team rather than
-    a way to give time back. Note the measured oddity that makes this worth thinking about -
-    timing out is not uniformly expensive, because a random attacker is nearly the player you
-    would have bought while a random defender is sixteen rating points short, so a Skip is
-    cheap in seven slots and dear in four. That asymmetry is written up in the plan.</p>
-
-    <p><strong>How to know it worked.</strong> In a room of two, press Skip and your next
-    window opens at once, with the skipped slot filled by a random eligible player and the pick
-    marked automatic, exactly as a timeout is. Pressing it twice in one window does nothing the
-    second time. It may not touch anybody's saved game or Cup Run, which is the standing rule
-    for every room.</p>
-
-    <p><strong>If it goes wrong.</strong> It is additive: the previous server image is the
-    rollback, and the client falls back to what ships today - the clock as the only way a
-    window ends.</p>
-    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a> (decision P41, and section 11&#8217;s note on why it is deferred), <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a></p>
-  </div>
-</details>
-
-<details class="item">
-  <summary>
     <span class="num">34</span>
     <span class="title">Album shop: a second way to earn stickers
       <span class="sub">Buy stickers with Prestige or a currency of its own, so the album has an income that does not depend on a 10% event. What unblocks win-only earning.</span>
@@ -974,6 +907,68 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
     <h3>Closed 2026-09-03</h3>
+<details class="item">
+  <summary>
+    <span class="num">44</span>
+    <span class="title">Versus: move a player in a roll room, and a per-pick Skip
+      <span class="sub"><b>CLOSED 2026-09-03. Half built, half deleted.</b> <b>Move</b> shipped:
+      dragging a placed man to another of his positions now works in both kinds of room, the
+      match server taking the rearranged team sheet and checking it is the same eleven people
+      standing somewhere else. <b>Skip is deleted by decision</b>, not deferred: the case it was
+      for cannot arise, because <b>the game already deals you another nation when the one you
+      have got is no use to you</b>, and "I can use somebody here but I would rather not" is
+      what the re-rolls are for. Measured before closing: over 1,760 dealt squads, not one had
+      nobody for a position still open, and 279 of them would have if the squad had been drawn
+      without care.</span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>Move, and why it needed anything at all.</strong> The gesture on the pitch was
+    already written for the single-player game, rotations of three players included, and turning
+    it on in a room was one line. What was missing was a way to <em>tell</em> the match server:
+    it only ever accepted "here is my next pick", so a move looked right for a second and then
+    snapped back, which is why the control was switched off rather than left half-working. A
+    room now sends its whole rearranged team sheet and the server takes it only when it is a
+    rearrangement. That rule is the whole of why it is safe to accept outside the pick clock:
+    a roll room remembers every squad it has ever dealt you, so a sheet checked any less
+    carefully would let somebody quietly rebuild their team out of players they never picked.
+    The match server was rebuilt and the route driven against it the same day.</p>
+
+    <p><strong>Skip, and why there is nothing left for it to do.</strong> It was going to let a
+    player end their own pick window early. The case it was written for is a squad with nobody
+    in it for the positions you still need - and <b>the deal already avoids that</b>. A squad is
+    not drawn at random: one that can fill something you still need is preferred, and only if no
+    squad in the whole pool can is anything else handed over. So a window you can do nothing
+    with does not happen, and the remaining case - a squad you <em>can</em> use but do not fancy
+    - is exactly what the re-rolls are for. A second escape hatch beside them would be a way to
+    take the random pick early at no cost, which is a worse deal than the re-roll it sits next
+    to.</p>
+
+    <p><strong>What the closing measurement was, because the property now carries weight it did
+    not before.</strong> Across four pools, including single-tournament ones of sixteen squads,
+    and filling the common positions first so the rare ones stayed open longest: <b>1,760 deals,
+    160 of them with a single slot left, and none dead</b>. The same walk with the preference
+    taken away hands out Morocco 2026 with both wide midfield slots open, Uruguay 1974 with a
+    right midfielder wanted, and 277 more. That is asserted now rather than left as a habit -
+    with Skip gone there is no escape hatch if it ever stops being true.</p>
+
+    <p><strong>The wrong claim this item carried for weeks, recorded so it is not written a
+    third time.</strong> It said a room of eight waits out the slowest of eight people at every
+    one of eleven picks. It does not: everybody's clock runs on its own, and the moment you
+    pick, your next squad is dealt and your next twenty seconds start. The only wait is at the
+    end, once, because nothing is paired up until every draft is finished. A second, subtler
+    version of the same error described Skip as being for "a player who has decided" - a player
+    who has decided simply picks, and their window ends there.</p>
+
+    <p><strong>Not to be confused with the two Skips that do exist:</strong> <b>Skip to the
+    result</b> on a duel's finished match, which jumps past watching the goals go in, and
+    <b>Send my XI</b>, which ends a whole draft in a buy-them room or any duel.</p>
+    <p class="files"><a class="dl" href="pvp-plan.md" target="_blank" rel="noopener">docs/pvp-plan.md</a> (decisions P41 and P42), <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a></p>
+  </div>
+</details>
+
 <details class="item">
   <summary>
     <span class="num">58</span>

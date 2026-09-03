@@ -10,7 +10,7 @@
 // clock lengths; and a request bearing the anon key is refused.
 
 import { check, withSeed } from './harness';
-import type { Player } from '../../src/data/types';
+import type { Player, Position } from '../../src/data/types';
 import {
   autoCompleteXi,
   pvpTeam,
@@ -649,6 +649,111 @@ export function pvpRoomChecks(): void {
       `room: every one of the ${years.length} cups can fill all ${positions.size} positions, so a single-cup roll room always converges`,
       () => years.length > 5 && positions.size === 12 && gaps.length === 0,
       () => gaps.join('; '),
+    );
+  }
+
+  {
+    // AND THE SAME PROPERTY ONE LEVEL DOWN: every squad a room actually DEALS has somebody
+    // in it for a slot that is still open.
+    //
+    // This is what the room offers INSTEAD of a per-pick Skip (roadmap item 44, closed by
+    // decision 2026-09-03): a player never has to sit out a window they can do nothing with,
+    // because the deal will not hand them a dead squad, and "I can do something here but I
+    // do not fancy it" is what the re-rolls are for. That makes it load-bearing rather than
+    // incidental - if a future change to `pickFrom` let a dead squad through, the escape
+    // hatch it used to have has been deliberately taken away.
+    //
+    // The narrow pools are the point: with 416 squads the preference never has to work
+    // hard, and a host may pick a single cup of sixteen.
+    const pools: [string, number[]][] = [
+      ['every cup', []],
+      ['1970 only', [1970]],
+      ['1974 only', [1974]],
+      ['2026 only', [2026]],
+    ];
+    let dealsSeen = 0;
+    let lastSlotDeals = 0;
+    let dead = 0;
+    /** How often a squad drawn with NO preference would have been dead. The discrimination
+     *  guard: without it this check passes on a dataset where every squad fills every
+     *  position, and would say nothing about `pickFrom` doing any work at all. */
+    let deadIfBlind = 0;
+    const examples: string[] = [];
+    withSeed(4477, () => {
+      for (const [label, years] of pools) {
+        const rules: RoomRules = { method: 'roll', budget: 0, years };
+        const squads = roomSquads(rules);
+        /** How many squads in this pool hold anybody for a position. Used to fill the
+         *  COMMON slots first, which deliberately leaves the rare ones open longest - the
+         *  hard case, and the only one where the deal's preference has anything to do. A
+         *  draft that fills slots in formation order never reaches it. */
+        const supply = (pos: Position) =>
+          squads.filter((sq) => sq.players.some((p) => p.positions.includes(pos))).length;
+        for (let n = 0; n < 40; n++) {
+          const name = FORMATIONS_DATA.names[n % FORMATIONS_DATA.names.length]!;
+          const styles = FORMATIONS_DATA.stylesByName[name]!;
+          let room = roomOf(2, rules);
+          for (const m of room.members) {
+            room = setLineup(room, m.userId, name, styles[n % styles.length]!, true);
+          }
+          room = startRoom(room, 'u0', T0);
+          for (let i = 0; i < 11 && room.windows.u0; i++) {
+            const me = room.members.find((m) => m.userId === 'u0')!;
+            const f = formationOf(me);
+            const filled = room.xi.u0 ?? {};
+            const open = f.slots.filter((s) => !filled[s.id]);
+            const used = new Set(Object.values(filled).map((p) => p!.personId));
+            const fits = (sq: (typeof squads)[number]) =>
+              sq.players.some(
+                (p) =>
+                  !used.has(p.personId) && open.some((s) => p.positions.includes(s.position)),
+              );
+            const dealtId = room.deals.u0?.[room.deals.u0.length - 1] ?? '';
+            const dealtSquad = squads.find((sq) => sq.id === dealtId);
+            dealsSeen++;
+            if (open.length === 1) lastSlotDeals++;
+            if (!dealtSquad || !fits(dealtSquad)) {
+              dead++;
+              if (examples.length < 4) {
+                examples.push(`${label}: ${dealtId} with ${open.map((s) => s.position).join('/')} open`);
+              }
+              break;
+            }
+            if (!squads.every(fits)) deadIfBlind++;
+            // The most COMMON open slot this squad can fill, so the rare ones are still
+            // open at the end.
+            const pool = roomPlayers(rules).filter((p) => p.squadId === dealtId);
+            const target = open
+              .filter((s) => pool.some((p) => p.positions.includes(s.position) && !used.has(p.personId)))
+              .sort((a, b) => supply(b.position) - supply(a.position))[0]!;
+            const player = pool.find(
+              (p) => p.positions.includes(target.position) && !used.has(p.personId),
+            )!;
+            room = submitPick(
+              room,
+              'u0',
+              { ordinal: room.windows.u0!.ordinal, slotId: target.id, player },
+              T0 + i * 1000,
+            ).room;
+          }
+        }
+      }
+    });
+    check(
+      `room: all ${dealsSeen} dealt squads had somebody for a slot still open, so no window is ever a dead one`,
+      () =>
+        dead === 0 &&
+        // Vacuity: the sample is real, and it reaches the hardest case - one slot left,
+        // where the squad has to hold that single position.
+        dealsSeen > 1000 &&
+        lastSlotDeals > 100 &&
+        // Discrimination: an unfussy draw really would have handed out dead squads, so the
+        // deal's preference is doing the work rather than the dataset making it free.
+        deadIfBlind > 0,
+      () =>
+        dead
+          ? examples.join('; ')
+          : `${dealsSeen} deals, ${lastSlotDeals} at the last slot, ${deadIfBlind} would have been dead unpicked`,
     );
   }
 

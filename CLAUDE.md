@@ -473,7 +473,7 @@ otherwise go on printing "not recorded" and say nothing.
 There is **no unit-test runner**. Verify changes with `npm run build` (type-check +
 bundle). For the deterministic domain core there is a committed characterization
 harness, run via `npm run checks`: a small index at `scripts/checks.ts` over one module
-per concern in `scripts/checks/`, **475 checks** as of 2026-09-03. It exercises the sim, penalty
+per concern in `scripts/checks/`, **476 checks** as of 2026-09-03. It exercises the sim, penalty
 shootout, knockout bracket, standings, and chemistry thousands of times and asserts
 invariants (a shootout always has a winner, a bracket always crowns one champion,
 standings totals reconcile, chemistry sums to its capped bonus, etc.), exiting non-zero on
@@ -3278,15 +3278,38 @@ with a six-character code: lobby, draft, the draw, the matches, the bracket, the
 whoever goes out first stays and watches the rest, and a room nobody is in closes itself. The
 plan is `docs/pvp-plan.md` and it is the thing to read before touching any of this.
 
-**WHAT IS DELIBERATELY NOT BUILT, so nobody goes looking for it:** P41's per-pick **Skip**,
-which is all roadmap item 44 is now. It has to close the window that is open and start the
-next one, and no submission can express that, so it stays a server change plus a deploy
-rather than a screen - and in a per-pick room the clock is still the only way a window ends
-early. **P42's MOVE IS LIVE IN BOTH KINDS OF ROOM**: in a budget room since 2026-08-30 (P52,
-item 47), where the board is submitted as a map so moving and un-buying are the same
-instruction as buying, and in a roll room since **2026-09-03**, through a route of its own -
-see "A MOVE IN A ROLL ROOM" below. Everything else the plan locks is live: every setting the
-referee accepts is reachable from the create form, which is checked.
+**EVERY LOCKED DECISION IS NOW BUILT OR DELETED** (2026-09-03, roadmap item 44 closed, which
+was the last open one). **P42's MOVE IS LIVE IN BOTH KINDS OF ROOM**: in a budget room since
+2026-08-30 (P52, item 47), where the board is submitted as a map so moving and un-buying are
+the same instruction as buying, and in a roll room since **2026-09-03**, through a route of
+its own - see "A MOVE IN A ROLL ROOM" below.
+
+**P41's PER-PICK SKIP IS DELETED, AND THE DEAL IS WHY** (2026-09-03, decided by the owner:
+*"I would expect that the system would automatically skip to the next nation if there is no
+player available for the positions left to be filled. there shall be no other skip option,
+that's covered with the re-rolls a player gets."*). Skip was the escape hatch for a window
+you can do nothing with, and **that window does not occur**: `pickFrom` (domain/draft) does
+not draw a squad at random, it PREFERS one with a selectable player for the open slots and
+falls back to the whole pool only when none has. Measured over **1,760 deals** across four
+pools, single-tournament ones of sixteen squads included, filling the common positions first
+so the rare ones stayed open longest: **none dead**, where the same walk with the preference
+removed hands out **279**. What is left - a squad you CAN use and do not fancy - is what the
+re-rolls are for, and a second escape beside them would be the same thing at no cost, which
+makes the re-roll dominated. `npm run checks` asserts the per-deal property now, with that
+279 as its discrimination guard, because **there is no escape hatch any more**: a change to
+`pickFrom` that let a dead squad through would strand a player in a window with nothing in it.
+Two other things are called Skip and neither ever was this one: **Skip to the result** on a
+duel's finished match, and **Send my XI**. Everything else the plan locks is live: every
+setting the referee accepts is reachable from the create form, which is checked.
+
+**AND THE CLAIM THAT KEPT SKIP ALIVE FOR WEEKS WAS FALSE, twice over.** The roadmap and the
+plan both said a room of eight waits out the slowest of eight people at every one of eleven
+windows. It does not: **windows are per player and independent**, `openWindow` runs the moment
+a pick lands, so your next squad is dealt and your next clock starts whatever anybody else is
+doing, and the only wait is P47's, once, at the end. The correction of that then said Skip was
+for "a player who has decided", which is wrong the same way - a player who has decided PICKS,
+and their window ends there. Both are recorded in the plan. **The lesson is the one this file
+keeps re-learning: a cost written down once gets copied rather than re-measured.**
 
 **A MOVE IN A ROLL ROOM IS A BOARD THAT MUST BE A PERMUTATION** (2026-09-03, roadmap item 44,
 `movePlayers` + `POST /v1/rooms/:code/move`). The gesture on the board is the single-player

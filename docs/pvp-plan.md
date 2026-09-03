@@ -26,14 +26,14 @@ the whole draft instead of eleven pick windows, the board submitted as a map, an
 free to move and un-buy until he says he is done. It still degrades to the old per-pick
 draft on a server that has not got it, which is how it shipped ahead of the deploy.
 
-**One locked decision is deliberately NOT built:** P41's per-pick **Skip**, which is what is
-left of roadmap item 44. **P42 IS NOW LIVE IN BOTH KINDS OF ROOM** - in a budget room since
-2026-08-30, where P52 submits the whole board as a map so moving and un-buying are the same
-instruction as buying, and in a roll room since 2026-09-03 through `movePlayers`, a route
-that takes a rearranged board and takes it ONLY when it is a permutation of the board
-already there. Skip is a different shape of problem: it has to close the window that is open
-and start the next one, which no submission can express, so it stays a server change plus a
-deploy rather than a screen. Everything else the
+**EVERY LOCKED DECISION IS NOW EITHER BUILT OR DELETED** (2026-09-03, roadmap item 44 closed).
+**P42 IS LIVE IN BOTH KINDS OF ROOM** - in a budget room since 2026-08-30, where P52 submits
+the whole board as a map so moving and un-buying are the same instruction as buying, and in a
+roll room since 2026-09-03 through `movePlayers`, a route that takes a rearranged board and
+takes it ONLY when it is a permutation of the board already there. **P41's per-pick Skip is
+DELETED by decision**, not deferred: the deal already refuses to hand out a squad you can do
+nothing with, so the window Skip existed to escape does not occur, and the case that remains
+is what the re-rolls are for. See "P41's Skip, deleted" below. Everything else the
 plan locks is live, and "every setting the referee accepts is reachable from the create form"
 is now enforced by the client's types rather than left to memory - see wave 9.
 
@@ -119,7 +119,7 @@ in rather than a missing feature.
 | P13 | Roll rooms | **Each player rolls their own squads.** The deals come from the server, **one at a time**: pre-generating the sequence would let a player read every future squad, including re-roll outcomes, off their own row |
 | P20 | How long a pick gets | **The host chooses twenty or thirty seconds.** Two values, not a slider, so a listing can say fast or considered and a ladder can compare like with like. Independent of the draft method |
 | P21 | Is the timeout pick random or good? | **Random.** A "best affordable" fallback would make timing out nearly free, and in a budget room often the smarter play. See section 11: a review measured that timing out is *already* cheap in attacking slots and expensive in defensive ones, which is accepted alongside P26 |
-| P41 | What a room hides from the build page | **Auto-fill and spend, Clear, Start over, and the random-team shortcut are all absent in a room.** Auto-fill completes ten picks in one tap, which would skip the clock entirely and produce a better XI than timing out does. Start over runs the app's reset and would navigate out of the room. **A per-pick Skip replaces Auto-fill**: it takes the random pick immediately and starts the next window, which is the honest version of the same escape hatch at P21's price |
+| P41 | What a room hides from the build page | **Auto-fill and spend, Clear, Start over, and the random-team shortcut are all absent in a room.** Auto-fill completes ten picks in one tap, which would skip the clock entirely and produce a better XI than timing out does. Start over runs the app's reset and would navigate out of the room. ~~A per-pick Skip replaces Auto-fill~~ - **DELETED 2026-09-03** (roadmap item 44). It was to take the random pick immediately and open the next window, as the honest version of the same escape hatch at P21's price. The window it escaped does not occur: `pickFrom` prefers a squad that can fill something still open, and over 1,760 measured deals not one was dead, where an unfussy draw would have handed out 279. What is left - a squad you CAN use and do not fancy - is what the re-rolls are for, and a second escape hatch beside them would be the same thing at no cost |
 | P42 | Moving a placed player | **Allowed, and the XI is submitted as a slot map, not only as a list of picks.** Placing promotes the slot's role onto a player, so re-arranging multi-position players changes both averages. The referee validates the final map, and `pvp_picks` records the current state of the XI rather than an append-only log |
 | P43 | A pick that fails validation | **Treated as no pick.** The window keeps running and the timeout fills the slot. Validation is per-pick, so an XI is legal by construction; a final XI that somehow fails is auto-completed rather than forfeited, because P12 promises no forfeits and that promise extends here |
 
@@ -801,7 +801,7 @@ and the phone slept while he did that; ninety seconds later the liveness rule to
 **It needs the referee redeployed**, because the sweeper is what reads the number. The two
 client halves ship with the site.
 
-### P42's move, delivered twice; and P41's Skip, still deferred with a reason
+### P42's move, delivered twice; and P41's Skip, deleted
 
 **THE MOVE IS DONE IN BOTH KINDS OF ROOM.** A budget room got it on 2026-08-30 for nothing,
 because P52 submits the whole board as a map and a move is just another map. A roll room got
@@ -841,29 +841,40 @@ undoes itself a second later is worse than one that is not there, which is exact
 off for two waves. Deploy the referee before pushing the client anyway; the fallback is for
 the order slipping, not for planning around.
 
-**WHAT IS STILL DEFERRED IS SKIP**, and the reason it did not come along is that it is not a
-submission at all: it has to close the window that is open and start the next one, which no
-board can express. So it remains a server change plus a deploy, and it is what roadmap item 44
-is now.
+**P41's SKIP IS DELETED, and it is worth reading how it died** (2026-09-03, closing roadmap
+item 44), because the reasoning went wrong twice on the way and the third answer removed the
+feature rather than describing it better.
 
-What its absence costs, stated correctly - **the earlier version of this note had it wrong**
-and the wrong version was copied into the roadmap. It said a room of eight waits out the
-slowest of eight people at every one of eleven windows. It does not: **windows are per player
-and independent**, and `openWindow` runs the moment a pick lands, so your next squad is dealt
-and your next clock starts whatever anybody else is doing. The wait is P47's, once, at the
-end - nothing is paired until every draft is done - so Skip is worth finishing YOUR OWN draft
-sooner, which brings that one wait forward for everybody. Real, and smaller than it was
-written up as.
+Skip was to close the window that is open and start the next one, which is not a submission
+and so could never be expressed the way P42's move eventually was - a server change plus a
+deploy. It was written up as the escape hatch for **a squad with nobody in it for the slots
+you still need**. That window does not occur. `pickFrom` (domain/draft) does not draw a squad
+at random: it prefers one that has a selectable player for the open slots and falls back to
+the whole pool only when no squad in it does. **Measured over 1,760 deals across four pools,
+including single-tournament ones of sixteen squads and filling the common positions first so
+the rare ones stayed open longest: none dead. The same walk with the preference removed hands
+out 279 dead squads** - Morocco 2026 with both wide midfield slots open, Uruguay 1974 wanting
+a right midfielder. So the deal was already doing Skip's job, silently and better, since it
+gives you a squad you can use rather than a random player.
 
-**AND SKIP IS NOT FOR SOMEBODY WHO HAS DECIDED**, which is how both the roadmap and the first
-correction of it phrased the value, and it is wrong for the same reason the sentence above is:
-a player who has decided PICKS, and `openWindow` ends their window on the spot. P41 states it
-correctly and is the version to keep - it **replaces Auto-fill**, at P21's price. So the case
-is the opposite one: you have been dealt a squad with nobody in it for the slots you still
-need, your re-rolls are gone, and the only thing left is to watch the window run out. Skip
-takes the random pick the clock would have taken anyway, now, and deals the next squad.
+What remains is "I can use somebody here but I would rather not", and **that is what the
+re-rolls are for**. A Skip beside them would be the same escape at no cost, which makes the
+re-roll the dominated choice - the same reading that deleted three boons in the single-player
+game.
 
-**TWO OTHER THINGS ARE ALREADY CALLED SKIP OR READ LIKE IT**, and neither is this: `Skip to
+`npm run checks` asserts the property now, with the discrimination guard above, because Skip
+was the escape hatch and there is no longer one: a future change to `pickFrom` that let a dead
+squad through would leave a player with a window they can genuinely do nothing with.
+
+**The two wrong claims this decision replaced, recorded so neither is written a third time.**
+The first: that a room of eight waits out the slowest of eight people at every one of eleven
+windows. It does not - **windows are per player and independent**, `openWindow` runs the moment
+a pick lands, so your next squad is dealt and your next clock starts whatever anybody else is
+doing, and the only wait is P47's, once, at the end. The second, subtler: that Skip was for
+somebody who **had decided**. A player who has decided PICKS, and their window ends there, so
+there was never anything for that version of it to do.
+
+**TWO OTHER THINGS ARE CALLED SKIP OR READ LIKE IT**, and neither ever was this one: `Skip to
 the result` on a duel's finished match (`RoomScreen`, which jumps the reveal), and `Send my XI`
 (`setDone`, which ends a whole draft in a budget room or any duel). Say which one is meant.
 
