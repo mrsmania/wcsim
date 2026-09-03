@@ -852,8 +852,20 @@ slowest of eight people at every one of eleven windows. It does not: **windows a
 and independent**, and `openWindow` runs the moment a pick lands, so your next squad is dealt
 and your next clock starts whatever anybody else is doing. The wait is P47's, once, at the
 end - nothing is paired until every draft is done - so Skip is worth finishing YOUR OWN draft
-sooner, which brings that one wait forward for everybody, plus not staring at a dead clock
-once you have decided. Real, and smaller than it was written up as.
+sooner, which brings that one wait forward for everybody. Real, and smaller than it was
+written up as.
+
+**AND SKIP IS NOT FOR SOMEBODY WHO HAS DECIDED**, which is how both the roadmap and the first
+correction of it phrased the value, and it is wrong for the same reason the sentence above is:
+a player who has decided PICKS, and `openWindow` ends their window on the spot. P41 states it
+correctly and is the version to keep - it **replaces Auto-fill**, at P21's price. So the case
+is the opposite one: you have been dealt a squad with nobody in it for the slots you still
+need, your re-rolls are gone, and the only thing left is to watch the window run out. Skip
+takes the random pick the clock would have taken anyway, now, and deals the next squad.
+
+**TWO OTHER THINGS ARE ALREADY CALLED SKIP OR READ LIKE IT**, and neither is this: `Skip to
+the result` on a duel's finished match (`RoomScreen`, which jumps the reveal), and `Send my XI`
+(`setDone`, which ends a whole draft in a budget room or any duel). Say which one is meant.
 
 ### Found while building, and worth knowing
 
