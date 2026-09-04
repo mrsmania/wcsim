@@ -178,7 +178,7 @@ export default function CareerHub({
                     chip={<PrestigeChip prestige={career.prestige} />}
                     hint="Every tier you buy applies to all your future runs."
                 />
-                <div className="grid gap-2.5 p-3.5 sm:grid-cols-2">
+                <div className="grid gap-2.5 p-3.5 sm:grid-cols-2 lg:grid-cols-3">
                     {PERKS.map((perk) => {
                         // The rule and the label's precedence both come from the
                         // domain now: the component picks only the words.
@@ -257,7 +257,7 @@ export default function CareerHub({
                     chip={<PrestigeChip prestige={career.prestige} />}
                     hint="Unlocked boosts join the three a run offers between rounds."
                 />
-                <div className="grid gap-2.5 p-3.5 sm:grid-cols-2">
+                <div className="grid gap-2.5 p-3.5 sm:grid-cols-2 lg:grid-cols-3">
                     {boosts.map(({ boon: b, cost, inPool: held, starter, affordable }) => (
                         <div key={b.id} className={`${CARD_FLAT} p-3`}>
                             <div className="flex items-center justify-between gap-2">
