@@ -362,6 +362,112 @@ position. Pick from <b>Later</b>.</p>
 
 <details class="item">
   <summary>
+    <span class="num">59</span>
+    <span class="title">Mondialino on a phone, installed
+      <span class="sub">Make the site work with no network and let Android install it: an icon on the home screen, its own card in the app switcher, no browser bar, and a full run played on a plane. <b>Two to three days, and no calendar at all.</b> The plan is <code>docs/android-plan.md</code>, written 2026-09-05 and rewritten the same day after two independent reviews. <b>It is deliberately NOT the Play Store</b>: section 0 states what a listing would cost for ever and recommends against it, and every item below is a prerequisite if that answer ever changes, so nothing is wasted either way. <b>Waiting on one decision (D1) and carrying a second (D2).</b></span>
+    </span>
+    <span class="tag">Build</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The question that started it was "how big is the effort turning this into a
+    native Android app", and the answer is that the expensive version is the wrong
+    version.</strong> A rebuild in Kotlin is two to four months and leaves the game
+    maintained twice, and a player could not tell the result from the installable website:
+    the pure game logic would survive the move and it is the smaller half, while the pitch,
+    the bracket connectors, the market's rating band, the confetti and the whole look are
+    interface and would all be rewritten. <b>Route C is dismissed on what a player can see,
+    not on effort.</b></p>
+
+    <p><strong>D1, the decision this item waits on: a Play Store listing, or just
+    installable?</strong> Everything an Android player notices comes from being installable.
+    The store adds exactly one thing, being findable by search, and nobody searches for
+    Mondialino. Against that it commits the owner permanently to a paid account with an
+    identity check, <b>twelve real testers who stay opted in for fourteen unbroken days</b>
+    before you may even apply to publish, a signing key that can never be lost, a hosted
+    privacy policy and a separate deletion page, <b>re-adding the name-reporting path that
+    was deleted on 2026-09-02</b> (item 57) because Google requires one for user-visible
+    names, a release a year purely to keep up with rising requirements, and a trademark and
+    likeness exposure that lands on the developer account rather than on the app.
+    <b>Recommendation: no listing.</b> It is a legitimate thing to want and only the owner
+    can weigh it.</p>
+
+    <p><strong>D2, which is carried whatever D1 says: does offline play include a player who
+    is signed in?</strong> It does not today. A signed-in launch waits on the account server
+    and gets the blocking screen (cloud-sync D9), and its escape signs them out into an empty
+    album, which on a plane is a one-way door. So the offline promise fails for exactly the
+    people most likely to install the game. That rule is correct and should not be softened
+    casually; the recommended scope is the smallest of the three options, <b>a session that
+    has already loaded keeps playing read-only when the network drops</b>, blocking only a
+    cold start.</p>
+
+    <p><strong>Three of the six items fix things that are wrong on the live website
+    today</strong>, which is the argument for doing the work whatever is decided:</p>
+    <ul>
+      <li><b>The fonts are a single point of failure right now.</b> The three typefaces are
+      fetched from Google by a stylesheet that sits above the game's own script, and a
+      pending stylesheet blocks the script behind it, so a connection that accepts and then
+      does not answer leaves the page on its loading cover indefinitely with nothing to say
+      why. <b>Be precise, because the first draft was not:</b> with the radio off the request
+      fails at once and the page boots in fallback fonts, so aeroplane mode survives it and
+      hotel wifi does not. <b>And the requested set is wrong:</b> Spline Sans Mono is used at
+      400 and 800 and neither is asked for, so the browser is faking both on every mono
+      numeral in the game, while Archivo 500 is asked for and never used. Worth shipping this
+      week on its own.</li>
+      <li><b>The safe-area padding is inert.</b> The phone tab bar pads for the bottom inset
+      and that padding does nothing today, because the viewport tag never opts in to drawing
+      under the system bars. The first draft credited it as done, which is why this is one
+      item and not one line: opt in, then handle the top where the masthead would sit under
+      the clock, then re-check the bar and every overlay.</li>
+      <li><b>Offline for a signed-in player</b>, per D2.</li>
+    </ul>
+
+    <p>The other three are the packaging itself: a manifest and icons (with one real
+    decision in it, since a manifest carries a single splash colour and this app has two
+    themes, so half the players get the wrong one), <b>a service worker</b>, and proving it
+    on a real phone in aeroplane mode rather than validating a file.</p>
+
+    <p><strong>The service worker is the one irreversible thing in the whole plan, and it is
+    risk one.</strong> Every other item fails safely and is fixed by the next push. A
+    returning player holds the cache, so if what they hold is wrong the fix has to arrive
+    through the very thing that is wrong. Decide the way out before the first one ships: a
+    version stamp on the shell, and a tested way to unregister and start clean. Two rules
+    that go with it: the shell is <b>network first</b>, because this site deploys on every
+    push, and <b>every navigation is answered with the cached shell whatever the path</b>,
+    since the copied <code>404.html</code> that makes a deep path work is a server
+    arrangement and there is no server offline.</p>
+
+    <p><strong>If D1 ever becomes yes, point the listing at the real site</strong> rather
+    than bundling a copy inside a shell, and the first reason is the only permanent one:
+    <b>one release train</b>. The second is that a duel invitation is built from the address
+    the page is served from, so inside a bundled shell it reads
+    <code>https://localhost/versus/ABC123</code> and works for nobody. Two reasons often
+    given are not good ones and are recorded so nobody re-opens the decision on them: the
+    share sheet is already feature-detected with a copy-link fallback, so it degrades rather
+    than breaks, and the back gesture is handled by every wrapper. <b>And if Google refuses
+    the listing, the fallback is to stay installable</b>, not to try different packaging: a
+    thin-wrapper refusal is about content.</p>
+
+    <p><strong>Two things were found while writing the plan and are not its work.</strong>
+    The masthead crest leaves a live match without asking, where the tab bar goes inert on
+    the same signal, so the hole the first draft blamed on the Android back gesture already
+    exists in the website; it is small, since a guest's playback pointer is saved and the
+    match replays, and only a signed-in player drops back to the button. And CLAUDE.md calls
+    the unreferenced shirt pictures 27 MB against a measured 70.</p>
+
+    <p><strong>The reviews are the reason to trust the numbers</strong>, and the method is
+    the repo's own: two independent passes, one on the judgement and one checking every claim
+    against the code and against current Google policy. The first overturned the
+    recommendation by pointing out the plan had never asked whether the store should happen
+    at all; the second found four things that would have failed a submission after the
+    fourteen-day wait, including <b>the link-verification file needing the fingerprint of the
+    key Google signs with rather than the one you upload with</b>, which works perfectly on
+    your own phone and shows a browser address bar during review.</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
     <span class="num">03</span>
     <span class="title">More World Cups and collectibles
       <span class="sub">Extend the dataset: <b>1986</b> shipped 2026-08-23 and was re-sourced, then <b>1982</b>, <b>1978</b>, <b>1974</b> and <b>1970</b> all shipped 2026-08-25, and <b>2026</b> on 2026-08-26 as the first drop made forwards. Fifteen tournaments, 9,625 rows, 416 squads, 115 collectibles. Next: 1966, then 1962 and earlier. <b>Moved to Later on 2026-09-03</b>: fifteen tournaments is a complete game and nothing in it is waiting on a sixteenth, so the next drop is an addition to make when there is appetite for it rather than the thing to do next.</span>
