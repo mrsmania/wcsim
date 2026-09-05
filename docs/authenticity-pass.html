@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The authenticity pass - making the game stop reading as generated</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:        #1c1c1a;
+    --ink-mid:    #5a5a52;
+    --ink-faint:  #9a9a8e;
+    --ground:     #f6f2eb;
+    --card:       #fffcf7;
+    --rule:       #ddd8ce;
+    --pitch:      #1e3d2f;
+    --amber:      #b8841e;
+    --amber-tint: #f5e9d0;
+    --loss:       #a8322a;
+    --sans: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  html { background: var(--ground); }
+
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink);
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+  }
+
+  .doc-header {
+    border-top: 3px solid var(--pitch);
+    padding-top: 26px;
+    margin-bottom: 18px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 16px;
+  }
+  .eyebrow {
+    font-family: var(--sans);
+    font-size: 11px; font-weight: 600; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--pitch); margin-bottom: 9px;
+  }
+  .doc-header h1 { font-size: 32px; font-weight: normal; line-height: 1.15; letter-spacing: -.01em; }
+  .doc-header h1 em { font-style: normal; color: var(--pitch); }
+  .meta {
+    font-family: var(--sans);
+    font-size: 11.5px; color: var(--ink-mid); text-align: right; line-height: 1.8;
+  }
+  .meta strong { color: var(--ink); font-weight: 600; }
+
+  .lede {
+    background: var(--card); border: 1px solid var(--rule); border-left: 3px solid var(--pitch);
+    padding: 14px 18px; margin-bottom: 30px;
+    font-family: var(--sans);
+    font-size: 13.5px; line-height: 1.6; color: var(--ink-mid);
+  }
+  .lede strong { color: var(--ink); }
+
+  h2 {
+    font-size: 21px; font-weight: normal; letter-spacing: -.01em;
+    margin: 40px 0 6px; padding-top: 16px; border-top: 1px solid var(--rule);
+  }
+  h2 .num {
+    font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: .1em;
+    color: var(--pitch); display: block; margin-bottom: 5px;
+  }
+  h3 {
+    font-family: var(--sans); font-size: 13.5px; font-weight: 700;
+    margin: 26px 0 6px; color: var(--ink);
+  }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 22px; }
+  li { margin: 5px 0; }
+  a { color: var(--pitch); }
+  code, .mono {
+    font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px;
+    background: #efe9df; padding: 1px 5px; border-radius: 3px;
+  }
+  em.q { font-style: italic; color: var(--ink-mid); }
+
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-family: var(--sans); font-size: 12.5px; }
+  th {
+    text-align: left; font-weight: 700; font-size: 10.5px; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--pitch);
+    border-bottom: 2px solid var(--pitch); padding: 6px 10px 6px 0;
+  }
+  td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--rule); vertical-align: top; line-height: 1.5; }
+  td.id { font-family: 'SF Mono', Menlo, monospace; font-weight: 700; color: var(--pitch); white-space: nowrap; }
+
+  .sev { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+  .sev-hi { color: var(--loss); }
+  .sev-mid { color: var(--amber); }
+  .sev-lo { color: var(--ink-faint); }
+
+  .action {
+    background: var(--card); border: 1px solid var(--rule);
+    padding: 16px 20px; margin: 16px 0;
+  }
+  .action > h3 { margin-top: 0; display: flex; gap: 10px; align-items: baseline; }
+  .action > h3 .tag {
+    font-family: 'SF Mono', Menlo, monospace; font-size: 12px; color: var(--pitch);
+    background: var(--amber-tint); padding: 1px 7px; border-radius: 3px;
+  }
+  .action p { font-family: var(--sans); font-size: 13px; margin: 8px 0; }
+  .action ul { font-family: var(--sans); font-size: 13px; }
+
+  .ba { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: 12px 0; border: 1px solid var(--rule); }
+  .ba > div { padding: 12px 14px; }
+  .ba > div:first-child { border-right: 1px solid var(--rule); background: #f3ece2; }
+  .ba .lbl {
+    font-family: var(--sans); font-size: 10px; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px;
+  }
+  .ba .txt { font-size: 14.5px; line-height: 1.45; }
+  .ba .txt .strike { color: var(--ink-faint); }
+  @media (max-width: 720px) {
+    .ba { grid-template-columns: 1fr; }
+    .ba > div:first-child { border-right: 0; border-bottom: 1px solid var(--rule); }
+  }
+
+  .note {
+    border-left: 3px solid var(--amber); background: var(--amber-tint);
+    padding: 11px 16px; margin: 16px 0;
+    font-family: var(--sans); font-size: 12.5px; line-height: 1.55;
+  }
+  .stop {
+    border-left: 3px solid var(--loss); background: #f8ebe9;
+    padding: 11px 16px; margin: 16px 0;
+    font-family: var(--sans); font-size: 12.5px; line-height: 1.55;
+  }
+
+  .wave {
+    font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  .facts { font-family: var(--sans); font-size: 12.5px; }
+  .facts td { padding: 5px 14px 5px 0; border: 0; }
+  .facts td:first-child { color: var(--ink-mid); }
+  .facts td:last-child { font-weight: 700; }
+
+  footer {
+    margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--rule);
+    font-family: var(--sans); font-size: 11.5px; color: var(--ink-faint);
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div>
+    <div class="eyebrow">Mondialino</div>
+    <h1>The authenticity pass<br><em>making the game stop reading as generated</em></h1>
+  </div>
+  <div class="meta">
+    Written <strong>2026-09-05</strong><br>
+    Branch <strong>claude/page-authenticity-polish</strong><br>
+    Status <strong>for review</strong>
+  </div>
+</div>
+
+<div class="lede">
+  The report was <em>"the page currently screams made by AI"</em>. It does, and the cause is
+  almost entirely <strong>copy structure</strong> rather than visual design: the turf-flat look is
+  distinctive and holds up, while the words on top of it are written in the exact shape a
+  language model produces when nobody tells it what to say. This is the audit, the evidence
+  behind it, and <strong>22 numbered changes</strong> in four waves, with the copy written out so
+  it can be judged rather than imagined.
+</div>
+
+<h2><span class="num">Section 0</span>The one thing to settle first</h2>
+
+<p>
+  There are two different goals hiding in the phrase "stop looking AI generated", and they
+  need separating before any of the work below is worth doing.
+</p>
+
+<ol>
+  <li><strong>Stop reading as generic.</strong> The page currently looks like every other page
+  produced by a model with no brief. This is a real product problem, it costs trust, and every
+  action in this document addresses it.</li>
+  <li><strong>Pretend no AI was involved.</strong> This one is not available and should not be
+  attempted. The project is roughly 99% agent-written by its own account, and the indie
+  audience treats undisclosed AI as a trust breach when it surfaces later, which it does.</li>
+</ol>
+
+<div class="note">
+  <strong>The recommendation is to go the other way and make the process an asset.</strong> The
+  thing that is genuinely rare here is not a human hand on the CSS, it is the research: 416
+  squads sourced three ways, positions read off actual match line-ups, 66 shirt numbers found
+  wrong and corrected, a South African keeper removed from the 1998 squad because he never
+  travelled. No generated page has that behind it, and no competitor can produce it in an
+  afternoon. <strong>Specificity is the anti-slop signal.</strong> Everything below is a variation
+  on replacing a summary with a fact.
+</div>
+
+<h2><span class="num">Section 1</span>What readers actually flag, as of 2026</h2>
+
+<p>
+  Checked against current sources rather than from memory, because the tells move: em dashes,
+  for instance, were the canonical giveaway two years ago and are now considered unreliable
+  by the people who study this.
+</p>
+
+<h3>Design signals</h3>
+<ul>
+  <li><strong>Distributional convergence.</strong> Models emit the most probable pattern, so
+  independent projects land on the same page: Inter, a blue-to-purple gradient, an oversized
+  hero with a vague headline, and a row of cards at a uniform 16px radius.</li>
+  <li><strong>Uniformity as the fingerprint.</strong> Identical padding, identical radius,
+  identical card heights throughout. Real design systems create hierarchy through
+  <em>deliberate variation</em>; machine output makes everything the same size because
+  sameness is the safe prediction.</li>
+  <li><strong>Default polish motion.</strong> The same generic fade or lift on every element,
+  applied because it is available rather than because anything needed emphasis.</li>
+  <li><strong>The countersignal is visible authorship.</strong> Nielsen Norman Group's finding
+  is that in an AI-saturated market users now read imperfection, texture, asymmetry and a
+  credited maker as evidence of care. Handmade is becoming a trust signal, not a style.</li>
+</ul>
+
+<h3>Copy signals</h3>
+<ul>
+  <li><strong>Tidy triplets.</strong> Everything in threes. The threshold offered by one
+  detection guide is more than one polished triplet per 200 words.</li>
+  <li><strong>Low burstiness.</strong> Sentences cluster around one length. Human writing runs
+  long, then very short.</li>
+  <li><strong>Puffery.</strong> Ordinary facts described as significant. Wikipedia's own guide
+  calls this out as the most reliable tell in prose.</li>
+  <li><strong>The reversal template.</strong> "It's not just X, it's Y."</li>
+  <li><strong>The blacklist vocabulary.</strong> Unlock, seamless, elevate, dive into, delve,
+  game-changer, testament to. Individually harmless; in a cluster they read as machine.</li>
+  <li><strong>Everything explained.</strong> A heading, then a sentence restating the heading,
+  on every section, because the model fills every slot it is given.</li>
+</ul>
+
+<h2><span class="num">Section 2</span>Where this app trips the wire</h2>
+
+<p>
+  Audited against the live front page and the six tab destinations. Severity is how loudly the
+  item says "generated" to a first-time visitor, not how hard it is to fix.
+</p>
+
+<table>
+  <tr><th style="width:56px">ID</th><th>What is there now</th><th style="width:78px">Severity</th></tr>
+
+  <tr><td class="id">T1</td><td><strong>The hero headline is the single most recognisable generated-page shape.</strong>
+  Two imperative sentences, the second one the payoff, in a contrasting colour:
+  <em class="q">"Draft your dream XI. / Win the World Cup."</em> This construction appears on
+  a large share of model-authored landing pages.</td><td class="sev sev-hi">Critical</td></tr>
+
+  <tr><td class="id">T2</td><td><strong>Three icon beats in a row.</strong> Rounded tile, lucide
+  icon, two-word imperative title, one sentence beneath, repeated three times at identical
+  size: Draft your XI / Play the tournament / Lift the cup. This is the canonical generated
+  section and it restates what the hero already said.</td><td class="sev sev-hi">Critical</td></tr>
+
+  <tr><td class="id">T3</td><td><strong>Triplet cadence in three separate places on one screen.</strong>
+  <em class="q">"group stage to final, live and minute by minute"</em>,
+  <em class="q">"15 World Cups, every squad, one trophy"</em>, plus the three beats
+  themselves. Roughly 120 words of front-page copy carrying three triplets, against a stated
+  threshold of one per 200.</td><td class="sev sev-hi">Critical</td></tr>
+
+  <tr><td class="id">T4</td><td><strong>Brochure vocabulary.</strong> <em class="q">run the
+  gauntlet</em>, <em class="q">just like the real thing</em>, <em class="q">the rarest of
+  all</em>, <em class="q">dream XI</em>, <em class="q">Chase the legends</em>, and a call to
+  action ending in <em class="q">now</em> with an arrow glyph on it. None of it is a claim; all
+  of it is atmosphere.</td><td class="sev sev-hi">Critical</td></tr>
+
+  <tr><td class="id">T5</td><td><strong>Every section explains itself.</strong> Heading, then a
+  muted sentence restating the heading, on the hero, the beats and the legends showcase alike.
+  The sticker section explains what a sticker is.</td><td class="sev sev-mid">High</td></tr>
+
+  <tr><td class="id">T6</td><td><strong>The page template is applied uniformly to all six
+  destinations.</strong> Small uppercase kicker, big display title, on every screen, three of
+  them possessive in the same way: Your career, Your collection, Your honours. A human ships
+  some screens with just a title.</td><td class="sev sev-mid">High</td></tr>
+
+  <tr><td class="id">T7</td><td><strong>The one genuinely handmade asset is buried and drained
+  of colour.</strong> 115 hand-drawn sticker cards exist. The front page shows five of them
+  small, in grayscale until hover, which on a phone means permanently grey until touched. The
+  most human thing in the project is the thing the page hides.</td><td class="sev sev-mid">High</td></tr>
+
+  <tr><td class="id">T8</td><td><strong>Default polish motion.</strong> A 300ms lift plus a
+  grayscale-to-colour reveal on the legend cards, which is exactly the ornamental hover the
+  research names.</td><td class="sev sev-lo">Medium</td></tr>
+
+  <tr><td class="id">T9</td><td><strong>Machine-even measurement.</strong> Fluid clamps on every
+  hero dimension and balanced text wrapping on the headline. Individually correct, collectively
+  the reason nothing on the page looks placed by eye.</td><td class="sev sev-lo">Medium</td></tr>
+
+  <tr><td class="id">T10</td><td><strong>No author anywhere.</strong> No colophon, no changelog,
+  no credit, no date, nothing that says a person decided anything. The footer holds a Swiss flag
+  and no sentence.</td><td class="sev sev-mid">High</td></tr>
+</table>
+
+<div class="note">
+  <strong>What is NOT wrong, and should be defended in review:</strong> the visual system itself.
+  There is no Inter, no blue-to-purple gradient, no shadcn card. The type stack is Archivo,
+  Schibsted Grotesk and Spline Sans Mono; the palette is a single green identity; the signature
+  is a hard offset shadow borrowed from a brutalist tifo study; the board is a real SVG tactics
+  diagram. Every one of those is a decision a generator does not make. <strong>The design brief
+  here is corrective, not a redesign.</strong>
+</div>
+
+<h2><span class="num">Section 3</span>The voice already exists in the product</h2>
+
+<p>
+  This is the most useful finding of the audit and it makes the copy work cheap. The room
+  creation form and the settings sheet are already written in a dry, specific, unpuffed voice
+  that no model produces unprompted:
+</p>
+
+<ul>
+  <li><em class="q">"Considered. Time to read the market, or the squad you were dealt."</em></li>
+  <li><em class="q">"About 88. Three genuine greats, or spread it and take nine good ones."</em></li>
+  <li><em class="q">"Code only. Nobody can find it, or even confirm it exists."</em></li>
+  <li><em class="q">"Enough to refuse a squad with nobody you need."</em></li>
+  <li><em class="q">"Your cups were won before line-ups were kept, so there is nobody to list yet."</em></li>
+</ul>
+
+<p>
+  Short. Concrete. Occasionally funny. Never explains itself twice. <strong>The marketing
+  surfaces are the only ones written in brochure voice</strong>, which means the job is not
+  inventing a voice, it is propagating the one that is already there onto the four screens that
+  lost it. That is also the single strongest argument that this pass will land: the target is a
+  sample of the product's own writing, not a style imported from outside.
+</p>
+
+<h2><span class="num">Section 4</span>The actions</h2>
+
+<p class="wave">Wave 1 &middot; The front page &middot; roughly a day &middot; carries most of the effect</p>
+
+<div class="action">
+  <h3><span class="tag">A1</span> Replace the hero headline with one flat sentence and one fact</h3>
+  <p>The coloured-payoff couplet goes. What replaces it is a plain statement of what the game
+  is, followed by a specific true thing that no generator could have produced. Three directions,
+  the owner picks one; all three are written against real dataset figures.</p>
+
+  <div class="ba">
+    <div>
+      <div class="lbl">Now</div>
+      <div class="txt strike">Draft your dream XI.<br><strong>Win the World Cup.</strong></div>
+      <div class="txt" style="font-size:13px;margin-top:10px;color:#5a5a52">Spin real squads from every World Cup since 1970, pick your eleven one slot at a time, then run the gauntlet - group stage to final, live and minute by minute.</div>
+    </div>
+    <div>
+      <div class="lbl">Direction A &middot; the ledger (recommended)</div>
+      <div class="txt"><strong>Eleven players.<br>Fifteen World Cups to find them in.</strong></div>
+      <div class="txt" style="font-size:13px;margin-top:10px;color:#5a5a52">A national squad comes up at random, you take one man from it, and it does not come back. Repeat ten times, then play the tournament with what you ended up with.</div>
+    </div>
+  </div>
+
+  <div class="ba">
+    <div>
+      <div class="lbl">Direction B &middot; the boast</div>
+      <div class="txt"><strong>Morocco brought 19 men to Mexico in 1970.<br>So this game has 19 of them.</strong></div>
+      <div class="txt" style="font-size:13px;margin-top:10px;color:#5a5a52">416 squads, 9,625 players, every one rated by hand. Draft eleven of them and try to win the thing.</div>
+    </div>
+    <div>
+      <div class="lbl">Direction C &middot; flat</div>
+      <div class="txt"><strong>Draft an XI out of 56 years of World Cups.<br>Then win one.</strong></div>
+      <div class="txt" style="font-size:13px;margin-top:10px;color:#5a5a52">The squads are real, the ratings are ours, and the tournament is played out minute by minute whether it goes your way or not.</div>
+    </div>
+  </div>
+
+  <p><strong>Why A is the recommendation:</strong> it says what actually happens in the game,
+  which the current headline does not, and the second line carries a real number without
+  reading as a statistic. B is the most distinctive and the most likely to be loved or hated,
+  so it belongs to the owner rather than to me. C is the safe one and is still a large
+  improvement.</p>
+  <p><strong>The subhead loses the triplet either way.</strong> One long sentence, one short,
+  uneven on purpose.</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A2</span> Delete the three icon beats outright</h3>
+  <p>Not rewrite. Delete. They restate the hero, they are the most recognisable generated
+  section on the page, and the space is worth more to the sticker art. This is the single
+  highest-value change in the document and it removes code rather than adding any.</p>
+  <p>If something has to sit there, the replacement is <strong>not</strong> three of anything:
+  one wide band showing the actual board mid-draft, with two or three short annotations
+  pointing at real things on it. Showing the product beats describing it, which is also the
+  standing advice for game landing pages.</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A3</span> Promote the sticker art and let it be in colour</h3>
+  <p>115 drawn cards is the project's only genuinely handmade asset and the research says
+  visible craft is now the trust signal. Show fewer, larger, in colour, and say what they cost
+  to get.</p>
+  <div class="ba">
+    <div>
+      <div class="lbl">Now</div>
+      <div class="txt strike">Chase the legends</div>
+      <div class="txt" style="font-size:13px;margin-top:8px;color:#5a5a52">Draft an all-time great and the sticker is yours to keep. These five are the rarest of all.</div>
+      <div class="txt" style="font-size:12px;margin-top:8px;color:#9a9a8e">Five small cards, grey until hovered.</div>
+    </div>
+    <div>
+      <div class="lbl">Then</div>
+      <div class="txt"><strong>115 of them are worth a sticker</strong></div>
+      <div class="txt" style="font-size:13px;margin-top:8px;color:#5a5a52">Three players in the game are rated 99. Draft one and the card is yours, drawn by hand, for good.</div>
+      <div class="txt" style="font-size:12px;margin-top:8px;color:#9a9a8e">Three or four cards at full size, in colour, slightly unevenly placed.</div>
+    </div>
+  </div>
+  <p>Both figures are derived at render time, never typed in. The dataset has moved nine times
+  and every hardcoded count in this project's history has gone stale quietly.</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A4</span> Say what the button does</h3>
+  <p><em class="q">Build your XI now</em> plus an arrow glyph becomes <strong>Roll a squad</strong>,
+  which is literally the next thing that happens when it is pressed. Drop the arrow: it is the
+  most common ornamental icon in generated interfaces and it carries no information the button
+  does not already have. The Continue action keeps its arrow if the owner prefers, since that
+  one genuinely means "resume, forward".</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A5</span> Turn the closing strip into a dated changelog line</h3>
+  <p>The current line is a triplet and a boast. Replace it with the most human artefact
+  available: evidence that somebody was working on this recently.</p>
+  <div class="ba">
+    <div>
+      <div class="lbl">Now</div>
+      <div class="txt strike">From 1970 to 2026. 15 World Cups, every squad, one trophy.</div>
+    </div>
+    <div>
+      <div class="lbl">Then</div>
+      <div class="txt">Last change: the 2026 field went in, all 48 squads. <span style="color:#5a5a52">Before that, 66 shirt numbers were wrong and are not any more.</span></div>
+    </div>
+  </div>
+  <p>Sourced from a small hand-maintained list of dated entries rather than generated, and
+  linked to the colophon in A11.</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A6</span> Break the vertical rhythm on purpose</h3>
+  <p>Hero, gap, section, gap, section, gap, closing strip, all at the same spacing, is what
+  makes the page read as poured out of a template. Vary it: let the sticker band run wider than
+  the text column, let one section sit tight under the one above it, and give the hero an
+  uneven internal balance rather than a centred clamp. The research names uniform spacing
+  directly as the fingerprint; this is the cheapest correction to it.</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A7</span> Drop the ornamental hover</h3>
+  <p>The 300ms lift and the grayscale-to-colour reveal go with A3. If the cards want motion, it
+  should be one thing that means something, for instance the card sitting up very slightly when
+  it is the one already in your album, which is information rather than decoration.</p>
+</div>
+
+<p class="wave">Wave 2 &middot; The voice sweep &middot; half a day &middot; the rest of the app</p>
+
+<div class="action">
+  <h3><span class="tag">A8</span> Kill every subtitle that restates its heading</h3>
+  <p>One pass over the six destinations. The test is blunt: cover the subtitle, and if the
+  heading plus the content below still answers the question, the subtitle goes. Expect to
+  delete more than is comfortable. Explaining a screen that explains itself is a generated
+  habit, and this app already has screens that do it well with nothing.</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A9</span> Break the kicker template on at least two screens</h3>
+  <p>Six destinations, six identical kicker-over-title headers, three of them possessive in the
+  same shape. Give the album and the squad browser their own treatment, or none at all. The
+  point is not that the pattern is bad, it is that applying it exhaustively is what machines
+  do.</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A10</span> Rewrite the empty states as facts, in the room voice</h3>
+  <p>The versus and cabinet empty states are already right. The others should match: state what
+  is not there and why, in one sentence, without instructing the player to go and do something
+  about it.</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A11</span> Cut the blacklist vocabulary, once, everywhere</h3>
+  <p>Sweep for the cluster the detection guides name: unlock, seamless, elevate, dive into,
+  delve, testament, game-changer, plus this project's own local offenders (run the gauntlet,
+  just like the real thing, chase, dream XI). Replace each with the concrete thing it was
+  standing in for, or delete the sentence.</p>
+</div>
+
+<p class="wave">Wave 3 &middot; The colophon &middot; half a day &middot; the largest single credibility gain</p>
+
+<div class="action">
+  <h3><span class="tag">A12</span> Write the colophon page: how the ratings were made</h3>
+  <p>One page, reachable from the footer, written in the first person. It is the strongest
+  anti-slop asset the project has and it costs nothing but writing, because the material is
+  already in the repository.</p>
+  <ul>
+    <li>The three sources, in order, and what each one is for: the squad lists, each player's
+    own article for the position, and the printed match line-ups for who actually played
+    where.</li>
+    <li>That ratings were authored in pairs and reconciled, and that the pairs agreed to within
+    five points on every player in a tournament.</li>
+    <li>The corrections, which are the part nobody can fake: 66 shirt numbers wrong and fixed,
+    a keeper in the 1998 South Africa squad who never travelled, three squads that are short
+    because the country really did bring fewer men.</li>
+    <li>The known gaps, stated plainly. Positions have not been swept the way names and numbers
+    have. A dataset that admits what it has not checked reads as written by somebody who
+    checked things.</li>
+  </ul>
+  <p><strong>This page is also where AI involvement is disclosed</strong>, in one calm
+  paragraph, on the project's own terms rather than as a discovery somebody else makes. See
+  the decision in Section 6.</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A13</span> Put a person in the footer</h3>
+  <p>One line, a name or a handle, a year, and a link to the colophon. Credited authorship is
+  named by the research as a trust signal, and the footer currently carries a flag and nothing
+  else.</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A14</span> Give the dataset a visible changelog</h3>
+  <p>A short dated list on the colophon page: what was added or corrected and when. It feeds
+  A5, it is honest, and a page with a maintenance history is structurally hard to mistake for
+  a generated artefact.</p>
+</div>
+
+<p class="wave">Wave 4 &middot; Keeping it &middot; two hours &middot; so this does not grow back</p>
+
+<div class="action">
+  <h3><span class="tag">A15</span> Add a slop sweep to the checks suite</h3>
+  <p>This repository already fails its build on em dashes across 194 files. The identical
+  mechanism should fail on the blacklist vocabulary and on the reversal template
+  ("not just ... but") in any user-facing string. It is the project's own idiom applied to a
+  house rule that currently exists only as taste.</p>
+  <p><strong>With a vacuity guard</strong>, per the standing convention: the check must fail if
+  it finds nothing to scan, or a refactor that moves copy out of reach turns it into a check
+  that passes by reading zero strings.</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A16</span> Write the voice rule into the project instructions</h3>
+  <p>Four lines, next to the no-em-dashes rule, quoting the versus form as the reference:
+  concrete over atmospheric, no triplets, no subtitle that restates its heading, no sentence
+  that could appear on any other game's page. Agents write almost all the copy in this project,
+  so the rule is the durable fix and the sweep in A15 is only the enforcement.</p>
+</div>
+
+<div class="action">
+  <h3><span class="tag">A17</span> Read the page out loud before shipping it</h3>
+  <p>Not a joke and not a metaphor: burstiness is the tell that survives every rewrite, and the
+  only reliable detector for it is a human ear. If three sentences in a row come out the same
+  length, one of them is wrong.</p>
+</div>
+
+<h3>Considered and not recommended</h3>
+<table>
+  <tr><th style="width:56px">ID</th><th>Idea</th><th>Why not</th></tr>
+  <tr><td class="id">A18</td><td>Change the typefaces</td><td>Archivo plus Schibsted Grotesk is
+  already a deliberate, non-default pairing. The generated look comes from Inter, and there is
+  no Inter here. High cost, high risk, no gain.</td></tr>
+  <tr><td class="id">A19</td><td>Add texture, paper grain, hand-drawn arrows</td><td>The current
+  trend answer, and wrong for this product. Turf-flat is a matchday programme, not a sketchbook,
+  and bolting craft signifiers onto a flat system reads as a costume. The craft here is the
+  sticker art and the dataset; promote those instead.</td></tr>
+  <tr><td class="id">A20</td><td>Deliberate visual imperfection (rotations, wonky rules)</td><td>Same
+  reasoning. Faked imperfection is its own tell, and it fights a design system whose contrast
+  figures were measured.</td></tr>
+  <tr><td class="id">A21</td><td>An "AI-free" badge</td><td>Untrue here, and the itch.io
+  discussions show that a badge that turns out to be untrue is worse than no badge.</td></tr>
+  <tr><td class="id">A22</td><td>A trailer or gameplay video</td><td>Right advice for a game
+  landing page in general, real production cost, and out of scope for this pass. Worth a
+  roadmap item on its own.</td></tr>
+</table>
+
+<h2><span class="num">Section 5</span>Guardrails</h2>
+
+<div class="stop">
+  <strong>Do not break these while rewriting.</strong>
+  <ul style="margin-top:6px">
+    <li><strong>Three button designs, and that is a ceiling.</strong> New copy does not get a
+    new button. The hero CTAs are the app's own two tones rendered for a dark ground.</li>
+    <li><strong>Contrast is measured, not judged.</strong> The hero scrim, the amber headline and
+    the dark-surface button rendering all exist because numbers said so, and the checks suite
+    recomputes them from the tokens. A colour change to the hero is a change to those figures.</li>
+    <li><strong>No em dashes.</strong> Existing house rule, enforced by the build.</li>
+    <li><strong>Every figure is derived.</strong> No typed-in counts of squads, players,
+    tournaments or cards. This has gone wrong repeatedly.</li>
+    <li><strong>Copy is content, not layout.</strong> Shorter headlines must not be compensated
+    for by growing the hero. The one-line header cost the tagline six pixels of width and that
+    arithmetic still holds.</li>
+  </ul>
+</div>
+
+<h2><span class="num">Section 6</span>Decisions needed from the owner</h2>
+
+<table>
+  <tr><th style="width:56px">ID</th><th>Decision</th><th style="width:200px">Default if you say nothing</th></tr>
+  <tr><td class="id">D1</td><td><strong>Which hero direction.</strong> A the ledger, B the boast,
+  or C flat. This sets the voice for everything else in wave 1.</td><td>A, the ledger.</td></tr>
+  <tr><td class="id">D2</td><td><strong>Do the three beats die or get replaced?</strong> Deleting
+  is better and leaves the page shorter, which some owners dislike.</td><td>Delete, with the
+  sticker band moving up into the space.</td></tr>
+  <tr><td class="id">D3</td><td><strong>AI disclosure on the colophon: in or out?</strong> In is
+  the recommendation, on the grounds that it is discoverable anyway and reads far better
+  volunteered than found.</td><td>In, one paragraph, no apology.</td></tr>
+  <tr><td class="id">D4</td><td><strong>Whose name goes in the footer?</strong> Real name, a
+  handle, or nothing.</td><td>Ask before writing anything.</td></tr>
+  <tr><td class="id">D5</td><td><strong>Is the colophon in scope now or a roadmap item?</strong>
+  It is the biggest single gain and also the only wave that is mostly writing rather than
+  code.</td><td>In scope, after waves 1 and 2 land.</td></tr>
+</table>
+
+<h2><span class="num">Section 7</span>How to tell whether it worked</h2>
+
+<ol>
+  <li><strong>The cover test.</strong> Hide the wordmark and the green. If the remaining words
+  could sit on any other game's page, they are still generated copy. Every sentence should be
+  impossible to move to another product.</li>
+  <li><strong>The triplet count.</strong> Under one per 200 words on the front page. Currently
+  three in about 120.</li>
+  <li><strong>Sentence lengths.</strong> Read aloud; no three consecutive sentences of the same
+  length.</li>
+  <li><strong>The specificity count.</strong> At least three checkable facts above the fold that
+  are true of this dataset and no other.</li>
+  <li><strong>The build.</strong> The checks suite passes, including the new sweep, and the
+  contrast figures are unchanged.</li>
+</ol>
+
+<h2><span class="num">Section 8</span>Figures used in this document</h2>
+
+<table class="facts">
+  <tr><td>Derived from the dataset on 2026-09-05</td><td></td></tr>
+  <tr><td>Tournaments</td><td>15 (1970 to 2026)</td></tr>
+  <tr><td>Squads</td><td>416</td></tr>
+  <tr><td>Player rows</td><td>9,625</td></tr>
+  <tr><td>Distinct people</td><td>7,258</td></tr>
+  <tr><td>Nations</td><td>87</td></tr>
+  <tr><td>Rated 99</td><td>Pele 1970, Maradona 1986, Messi 2022</td></tr>
+  <tr><td>Lowest rating</td><td>61</td></tr>
+  <tr><td>Squads under 22 men</td><td>Morocco 1970 (19), El Salvador 1982 (20)</td></tr>
+  <tr><td>Six tournaments each</td><td>Messi, Ochoa, Cristiano Ronaldo</td></tr>
+</table>
+
+<p style="font-family:var(--sans);font-size:12.5px;color:#5a5a52">
+  Every one of these is re-derivable and none of them should be typed into the app. Note that
+  the top ratings have moved since the project notes last recorded them, which is exactly the
+  failure mode a hardcoded figure produces.
+</p>
+
+<h2><span class="num">Sources</span>Consulted 2026-09-05</h2>
+<ul style="font-family:var(--sans);font-size:12.5px">
+  <li><a href="https://www.nngroup.com/articles/handmade-designs/">Handmade Designs: The New Trust Signal</a>, Nielsen Norman Group</li>
+  <li><a href="https://www.sailop.com/blog/ai-slop-2026-state-of-the-ai-generated-web">AI Slop in 2026: The State of the AI-Generated Web</a>, Sailop</li>
+  <li><a href="https://www.925studios.co/blog/ai-slop-web-design-guide">AI Slop Web Design: Spotting and Fixing Generic Websites</a>, 925 Studios</li>
+  <li><a href="https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing">Signs of AI writing</a>, Wikipedia</li>
+  <li><a href="https://slopdetector.org/blog/signs-of-ai-writing">Signs of AI Writing: 12 Patterns With Reproducible Thresholds</a>, SlopDetector</li>
+  <li><a href="https://www.monet.design/blog/posts/escape-ai-slop-landing-page-design">5 Strategies to Escape AI Slop Landing Page Design</a>, Monet</li>
+  <li><a href="https://medium.com/@chiragthummar16/your-ai-built-websites-look-identical-to-everyone-elses-these-10-skills-fix-that-046ddf58e4d5">Your AI-Built Websites Look Identical to Everyone Else's</a></li>
+  <li><a href="https://kingy.ai/news/indie-developers-against-ai/">Indie Game Studios Draw the Line Against AI</a></li>
+  <li><a href="https://presskit.gg/field-guides/game-marketing-gifs-guide">GIFs for Game Marketing</a>, presskit.gg</li>
+  <li><a href="https://www.gamedeveloper.com/game-platforms/best-practices-game-websites-and-landing-pages">Best Practices: Game Websites and Landing Pages</a>, Game Developer</li>
+</ul>
+
+<footer>
+  Mondialino &middot; authenticity pass &middot; drafted 2026-09-05 &middot; reviewed by two
+  independent readers before it was handed over.
+</footer>
+
+</body>
+</html>
