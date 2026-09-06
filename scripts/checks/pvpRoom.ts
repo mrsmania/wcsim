@@ -46,6 +46,8 @@ import {
   leaveRoom,
   PICK_GRACE_MS,
   PICK_SECONDS,
+  SWEEP_LAG_MS,
+  sweepDue,
   ROOM_IDLE_MS,
   SEEN_GONE_MS,
   roomClosed,
@@ -237,6 +239,72 @@ export function pvpRoomChecks(): void {
       `room: at ${seconds}s a late pick changes nothing`,
       () => Object.keys(late.room.xi['u0'] ?? {}).length === 0,
       () => JSON.stringify(Object.keys(late.room.xi['u0'] ?? {})),
+    );
+  }
+
+  {
+    // A PICK THE REFEREE WOULD TAKE IS NEVER OVERWRITTEN BY THE CLOCK, whichever of the two
+    // transactions reaches the room's row lock first.
+    //
+    // Reported 2026-09-06: "I added a player the second the 20s ran out. I saw my player
+    // being placed on the pitch, yet it was replaced after the second it takes to auto-set
+    // a player." A pick and a sweep are two transactions over one row, and each captures
+    // its own `now` well before it queues for that lock - the pick before its token check
+    // and its pool connection, the sweep at the start of a pass that then walks every live
+    // room. So the two `now`s do NOT arrive in the order the lock hands itself out, and
+    // while both used one threshold that was enough: a sweep whose `now` had crossed the
+    // grace could take the lock ahead of a pick whose `now` had not, fill a slot, open the
+    // next window, and turn the player's own pick into a REPLAY that was silently dropped.
+    //
+    // THE SKEW IS WHAT `SWEEP_LAG_MS` HAS TO COVER, and a sweep pass is the size of it: the
+    // sweeper reads its clock once and then works through the rooms one at a time, so a
+    // second is the honest bound on how far apart the two readings can be for transactions
+    // arriving together. The check therefore walks the whole of that second rather than
+    // testing one instant - one instant is what made the first version of it vacuous.
+    const SKEW_MS = 1000;
+    const room = startRoom(roomOf(2, ROLL), 'u0', T0);
+    const w = room.windows['u0']!;
+    const deadline = deadlineOf(room, w);
+    const req = firstLegalPick(room, 'u0');
+    // Legal by the referee's own rule, and as late as that rule allows.
+    const at = deadline + PICK_GRACE_MS - 1;
+    const skews = [0, 1, 250, 500, 999, SKEW_MS];
+    const beaten = skews.filter((skew) => {
+      // The sweep gets the lock first, reading a clock up to a pass later than the pick's.
+      const swept = tickRoom(room, at + skew);
+      return submitPick(swept, 'u0', req, at).outcome !== 'ok';
+    });
+    check(
+      'room: a pick inside the grace is taken even when a sweep up to one pass later reaches the lock first',
+      () =>
+        // The ordinary order first, so the fixture is known to produce a pick that lands
+        // at all - without it every outcome below could be failing for its own reasons.
+        submitPick(room, 'u0', req, at).outcome === 'ok' &&
+        beaten.length === 0 &&
+        // And the player's own man is in the slot he chose, not whoever the clock would
+        // have put there.
+        tickRoom(room, at + SKEW_MS) === room,
+      () =>
+        beaten.length
+          ? `beaten by a sweep ${beaten.join('ms, ')}ms later`
+          : 'the sweep moved the room at the last legal instant',
+    );
+    check(
+      // THE OTHER HALF, and it is not optional: a sweep held off for ever is a stalled
+      // draft, which is the one thing this phase may not be.
+      'room: the sweep still fills the window once no pick could legally arrive',
+      () => {
+        const fired = tickRoom(room, deadline + PICK_GRACE_MS + SWEEP_LAG_MS + 1);
+        return (
+          sweepDue(deadline, deadline + PICK_GRACE_MS + SWEEP_LAG_MS + 1) &&
+          fired !== room &&
+          Object.keys(fired.xi['u0'] ?? {}).length === 1 &&
+          // Past that instant a pick really is late, so nothing is being taken from
+          // anybody: the two rules meet rather than leaving a gap.
+          submitPick(room, 'u0', req, deadline + PICK_GRACE_MS + 1).outcome === 'late'
+        );
+      },
+      () => 'the sweep never fills the window',
     );
   }
 
@@ -2359,7 +2427,10 @@ function botChecks(): void {
       const room = startRoom(roomOf(2, BUDGET), 'u0', T0);
       const deadline = draftDeadlineOf(room)!;
       const before = tickRoom(room, deadline - 1000);
-      const after = tickRoom(room, deadline + PICK_GRACE_MS + 1000);
+      // The SWEEP's threshold, not the submission's: `setXi` takes a board up to the grace
+      // and the sweeper waits `SWEEP_LAG_MS` longer, so that a board sent in the last
+      // moment cannot lose a lock race to this. See `sweepDue`.
+      const after = tickRoom(room, deadline + PICK_GRACE_MS + SWEEP_LAG_MS + 1000);
       const legal = after.members.every(
         (m) => validateXi(formationOf(m), after.xi[m.userId] ?? {}, after.rules).ok,
       );

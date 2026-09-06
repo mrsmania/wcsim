@@ -147,6 +147,35 @@ export function buildChecks(): void {
       );
     }
 
+    // A REFUSED PICK IS SAID OUT LOUD, and nothing behavioural can see that it is not.
+    //
+    // Reported 2026-09-06, and the client half of it: the screen dropped `room.pick`'s
+    // outcome on the floor, so a pick the referee would not take was answered by the
+    // player's man appearing on the board, vanishing a moment later when the reconcile ran,
+    // and being replaced by whoever the clock put there. Every one of those steps is a
+    // correct render of the room, which is exactly why a fixture cannot tell the silent
+    // version from the one that explains itself. So the scan reads for the outcome being
+    // KEPT and for a sentence per refusal.
+    //
+    // `Record<Refusal, string>` is what makes the copy exhaustive, and it is read for by
+    // name: a refusal the referee learns to send would otherwise reach this screen with
+    // nothing to say, and the compiler is the only thing that can notice.
+    {
+      const draft = src('components/versus/RoomDraft.tsx');
+      check(
+        'build: a room tells the player why a pick did not stick',
+        () =>
+          /setRefused\(outcome\)/.test(draft) &&
+          /const REFUSAL_COPY: Record<Refusal, string>/.test(draft) &&
+          /REFUSAL_COPY\[refused\]/.test(draft) &&
+          // Vacuity: the file really is the draft screen, and the note really is bounded to
+          // a window rather than left on screen for the rest of the room.
+          /room\.pick\(/.test(draft) &&
+          /refused && window/.test(draft),
+        () => 'src/components/versus/RoomDraft.tsx drops the outcome of a refused pick',
+      );
+    }
+
     // THE MOVE IS POSTED, AND IT IS TOLD APART FROM A PICK (P42). Nothing behavioural can
     // see either half. A screen that never posted the rearrangement would look right for a
     // second and then spring back, which is exactly the state the gesture was switched off

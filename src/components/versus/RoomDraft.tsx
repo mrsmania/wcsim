@@ -59,6 +59,31 @@ const roster = (ids: Record<string, string | undefined>): string =>
  *  argument saying which kind, so "another team" and "another cup" have nothing to send. */
 const ROOM_REROLLS = ['any'] as const;
 
+/** Every answer to a pick except the one that worked. Read off the hook rather than
+ *  imported from the domain, so a refusal the referee learns to send cannot reach this
+ *  screen without a sentence: the `Record` below is exhaustive and the compiler says so. */
+type Refusal = Exclude<Awaited<ReturnType<VersusRoom['pick']>>, 'ok'>;
+
+/**
+ * What a refused pick says.
+ *
+ * THREE OF THE FOUR MEAN "THE CLOCK GOT THERE FIRST" and they are one sentence on purpose:
+ * `late` is the referee judging the pick past its window, `replay` and `no-window` are the
+ * same pick arriving after the sweeper had already filled a slot and moved the draft on.
+ * The player does not need those told apart - what they need is to know that the man who
+ * appeared and vanished was not a glitch, and that the one standing there instead was put
+ * there by the clock. Only `illegal` is a different thing, and it is the one the player can
+ * do something about.
+ */
+const REFUSAL_COPY: Record<Refusal, string> = {
+    late: 'That one was a fraction late - the clock closed the pick and filled the slot for you.',
+    replay:
+        'That one was a fraction late - the clock closed the pick and filled the slot for you.',
+    'no-window':
+        'That one was a fraction late - the clock closed the pick and filled the slot for you.',
+    illegal: 'That pick was not allowed here. Try another player or another position.',
+};
+
 export default function RoomDraft({
     view,
     room,
@@ -99,16 +124,38 @@ export default function RoomDraft({
         [formation, rolling],
     );
 
+    // Why the last pick did not stick, or null. Cleared when the player tries again, which
+    // is the moment the sentence has stopped being about anything.
+    const [refused, setRefused] = useState<Refusal | null>(null);
+
     // A pick, posted the moment the board takes it. The ordinal is the room's, read off
     // the open window rather than counted here: the referee treats a repeated ordinal as
     // the same pick (P36), so a retry on a flaky link is a no-op rather than two spent
     // windows, and a number this side invented would not line up.
+    //
+    // A REFUSED PICK IS SAID OUT LOUD, and until 2026-09-06 it was not: the outcome was
+    // dropped on the floor here, the reconcile below pulled the player back off the board a
+    // moment later, and the clock then filled the slot with somebody else. The board doing
+    // that on its own is indistinguishable from the game eating your tap, which is how it
+    // was reported. It is a note rather than the room's `commandError` because it belongs
+    // where the player is looking - beside the clock, on the board they just used - and
+    // because it is not a failure of the request: the referee answered, it simply answered
+    // no.
     const submitting = useRef(false);
     const onPick = (slotId: string, player: Player): void => {
         submitting.current = true;
-        void room.pick(slotId, player.id).finally(() => {
-            submitting.current = false;
-        });
+        setRefused(null);
+        const answer = room.pick(slotId, player.id);
+        void answer
+            .then((outcome) => {
+                if (outcome !== 'ok') setRefused(outcome);
+            })
+            // A pick that could not be SENT at all is the room strip's, not this note's:
+            // `room.pick` has already put it in `commandError`.
+            .catch(() => undefined)
+            .finally(() => {
+                submitting.current = false;
+            });
     };
 
     // A WHOLE-DRAFT ROOM (P52) POSTS THE BOARD, NOT THE PICK. Buying, moving and taking a
@@ -276,6 +323,27 @@ export default function RoomDraft({
     );
 
     const window = you?.window ?? null;
+
+    // THE NOTE LIVES FOR ONE WINDOW. It appears against whichever window is open once the
+    // refusal has landed - usually the next one, since a late pick is late because the
+    // clock had already moved the draft on - and goes when that window closes. A sentence
+    // about a tap made four picks ago is noise, and clearing it on the player's next
+    // successful pick is not the same rule: the clock filling a slot counts as a pick too,
+    // so that would wipe the explanation of the very thing it is explaining.
+    const refusedAt = useRef<number | null>(null);
+    const windowOrdinal = window?.ordinal ?? null;
+    useEffect(() => {
+        if (!refused) {
+            refusedAt.current = null;
+            return;
+        }
+        if (refusedAt.current === null) {
+            refusedAt.current = windowOrdinal;
+            return;
+        }
+        if (refusedAt.current !== windowOrdinal) setRefused(null);
+    }, [refused, windowOrdinal]);
+
     const filledCount = Object.values(build.state.filled).filter(Boolean).length;
     const complete = filledCount >= formation.slots.length;
     // "Nothing left for me to do", which is what puts the draw on screen and takes the
@@ -354,6 +422,25 @@ export default function RoomDraft({
                 <div className={`${CARD_FLAT} px-4 py-3`}>
                     <div className={MONO_CAP}>Your XI is in</div>
                     <RoomNote>{waitingLine(others)}</RoomNote>
+                </div>
+            )}
+
+            {/* WHY THE LAST PICK DID NOT STICK. Its own strip under the clock rather than
+                a line inside it: the clock is a bar plus one line of urgency and this is
+                about a tap that is already over, and putting them together would have the
+                sentence redraw ten times a second with the count. Only while a window is
+                open, so it cannot outlive the draft it is explaining.
+
+                NOT `CARD_FLAT` PLUS A BORDER COLOUR, which is the trap: `border-line` is
+                inside that constant and Tailwind emits a utility once, in its own order,
+                not in the order of the `className` - so which of the two colours wins is
+                not something the call site decides. Written out with the one border it
+                wants, which is also why it needs no `!` override. */}
+            {refused && window && (
+                <div className="rounded-md border border-loss/40 bg-panel px-4 py-2.5">
+                    <div className="text-[12px] font-semibold text-loss">
+                        {REFUSAL_COPY[refused]}
+                    </div>
                 </div>
             )}
 

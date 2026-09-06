@@ -3371,7 +3371,13 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** **The referee was rebuilt on 2026-09-03**
+**ONE REBUILD IS QUEUED AND NO MIGRATION IS, AND THE SCHEMA IS AT 0026.** The queued one
+is **roadmap item 60** (2026-09-06): `SWEEP_LAG_MS`, which stops the clock's auto-fill
+overwriting a pick that was made in time - see "A PICK THE REFEREE WOULD TAKE IS NEVER
+OVERWRITTEN BY THE CLOCK" below. It is shared game code the referee bundles, so it is live
+only once the container is rebuilt; **no migration, and the order does not matter** in
+either direction, an old container simply going on doing what it does today.
+**The referee was last rebuilt on 2026-09-03**
 for the roll room's move (item 44, above) and that rebuild needed **no migration at all** -
 `xi` has been a slot map since wave 1 and `pvp_picks` keyed on the slot since 0016 - so the
 schema did not move with it. Verified on the running container: all seven `--verify` steps,
@@ -3782,6 +3788,18 @@ when a screen navigates without waiting for a write, ask what the DESTINATION re
   reload starting from an empty board with eleven picks already made. **A pick in flight is
   expected to disagree** - the reconcile waits for its answer rather than yanking the
   player back out for one render.
+- **AND A REFUSED PICK IS SAID OUT LOUD, WHICH IT WAS NOT** (2026-09-06, reported from a
+  room: *"i just added a player the second the 20s ran out. i saw my player being placed on
+  the pitch, yet it was replaced after the second it takes to auto-set a player"*).
+  `RoomDraft.onPick` dropped `room.pick`'s outcome on the floor, so a refusal was answered
+  by the board doing three correct things in a row that add up to a lie: the player lands
+  optimistically, the reconcile takes him off again, and the clock's auto-pick appears in
+  his place. **Nothing behavioural can tell that version from the honest one** - every
+  render is a correct drawing of the room - so `npm run checks` reads the screen for the
+  outcome being KEPT and for `REFUSAL_COPY`, which is a `Record<Refusal, string>` so a
+  refusal the referee learns to send cannot arrive here with nothing to say. Three of the
+  four refusals share one sentence on purpose: `late`, `replay` and `no-window` all mean
+  the clock got there first, and the player needs to know that rather than which.
 - **THE ORDINAL IS THE ROOM'S, read off the open window**, never counted on this side. The
   referee treats a repeated ordinal as the same pick (P36), so a retry on a flaky link is a
   no-op rather than two spent windows - and a number invented here would not line up.
@@ -4558,8 +4576,26 @@ reducer's initial state, so a room that only hid the marks would still let a pla
 and `chemistry` covers the drawn-squad list's underline as well as the card, since the
 underline promises a bonus a room's match never receives.
 
-**Three rules in the referee are load-bearing and each was a bug first:**
+**Four rules in the referee are load-bearing and each was a bug first:**
 
+- **A PICK THE REFEREE WOULD TAKE IS NEVER OVERWRITTEN BY THE CLOCK** (`SWEEP_LAG_MS`,
+  2026-09-06, the server half of the same report and the actual bug). A pick and the
+  sweeper's auto-fill are two transactions over one room row, and **each captures its own
+  `now` well before it queues for that lock** - the pick before its token check and its
+  pool connection, the sweep at the start of a pass that then walks every live room. They
+  used to share one threshold (`deadline + PICK_GRACE_MS`), so a sweep whose reading had
+  crossed it could take the lock ahead of a pick whose reading had not: the sweep filled a
+  slot and opened the next window, and the player's own pick - still legal by its own
+  clock - came back a **`replay`** and was silently dropped. The sweeper now waits
+  `SWEEP_LAG_MS` (1000) longer than any command will accept, which is the size of one
+  sweep pass and therefore the honest bound on how far apart the two readings can be. It
+  costs a player nothing, the auto-fill already being up to a pass late. `sweepDue` is the
+  one reading of it, shared by both auto-fill branches of `tickRoom`, and `npm run checks`
+  drives the losing order across a whole pass of skew - mutation-tested at 0 and 750, both
+  red. **Any new deadline in that module belongs on one side or the other of this line:**
+  a command judges against the grace, the sweeper against `sweepDue`, and the two must
+  never be the same number again. **It needs the referee rebuilt to be live** (roadmap 60);
+  no migration, and the order does not matter.
 - **P45's recovery is CONDITIONAL, and applying it on every sweep stops the pick clock
   dead.** It sets `openedAt = now - (lastSeen - openedAt)`, so the elapsed time freezes at
   its previous value and freezes there again next sweep: no window ever expires and a room

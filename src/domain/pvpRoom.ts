@@ -117,6 +117,33 @@ export const DEFAULT_DRAFT_SECONDS: DraftSeconds = 300;
  *  no chance of being in time. */
 export const PICK_GRACE_MS = 750;
 
+/**
+ * How much longer than that grace the SWEEPER waits before it fills a window for somebody.
+ *
+ * IT EXISTS BECAUSE THE TWO USED TO BE THE SAME NUMBER, AND THAT WAS A RACE THE PLAYER LOST
+ * (reported 2026-09-06: "I added a player the second the 20s ran out. I saw my player being
+ * placed on the pitch, yet it was replaced after the second it takes to auto-set a player").
+ * A pick and a sweep are two transactions over one row lock, and each captures its own `now`
+ * before it queues for that lock. With one threshold for both, a pick arriving inside the
+ * grace was legal and the sweep was entitled to fill in the same millisecond band: whichever
+ * transaction reached the lock first won. When the sweep won it filled a slot and opened the
+ * next window, so the pick that followed it - the same pick, still inside its own grace -
+ * came back as a REPLAY and was dropped on the floor. The player watched their man appear on
+ * the board and be swapped for a random one, which is the worst possible reading of a draft.
+ *
+ * So the sweep's threshold is strictly the later of the two, and that closes it: a pick is
+ * accepted only when its own `now` is inside the grace, a sweep fills only when its `now` is
+ * past the grace PLUS this, and Postgres hands the row lock out in the order the two
+ * transactions asked for it. A pick the referee would take therefore always reaches the lock
+ * before any sweep that would have overwritten it.
+ *
+ * A second of nobody's time: the auto-fill is already up to `SWEEP_MS` late, being whenever
+ * the next pass comes round, so this is inside the delay that was always there. `draftBoundMs`
+ * still bounds a whole stalled draft well clear of it (eleven windows of this is 19s against
+ * `DRAFT_SLACK_MS`'s minute).
+ */
+export const SWEEP_LAG_MS = 1000;
+
 /** Playback speed inside a room is FIXED (plan P30). In the single-player game speed is a
  *  personal setting spanning five to one, which is one of the two reasons "everybody
  *  watches the same match" was not true: the other is that added time is rolled in each
@@ -445,6 +472,18 @@ export function xiComplete(room: PvpRoom, m: RoomMember): boolean {
 export function deadlineOf(room: PvpRoom, w: PickWindow): number {
   return w.openedAt + room.pickSeconds * 1000;
 }
+
+/**
+ * Is this deadline far enough past for the SWEEPER to act on it?
+ *
+ * The one reading of `SWEEP_LAG_MS`, shared by both auto-fill branches of `tickRoom`, so
+ * the window's clock and the whole draft's clock cannot end up a second apart about when a
+ * player has run out of time. It is deliberately NOT what a command asks: `submitPick` and
+ * `setXi` judge against `deadline + PICK_GRACE_MS`, and this being the strictly later of
+ * the two is the whole of why a legal pick can no longer be overwritten by an auto-pick.
+ */
+export const sweepDue = (deadline: number, now: number): boolean =>
+  now > deadline + PICK_GRACE_MS + SWEEP_LAG_MS;
 
 /**
  * Does this room run ONE clock over the whole draft rather than eleven windows? (P52)
@@ -1756,9 +1795,11 @@ export function tickRoom(room: PvpRoom, now: number): PvpRoom {
     // its player - which is what the user asked for and what every other deadline in this
     // module does - and the room draws. There is nothing to do between now and then: a
     // budget draft has no windows to expire, so this branch is the whole of its timing.
+    // `sweepDue` and not the bare grace, because a board submitted in the last moment must
+    // not lose a lock race to this - see `SWEEP_LAG_MS`.
     if (wholeDraft(room)) {
       const deadline = draftDeadlineOf(room);
-      if (deadline !== null && now > deadline + PICK_GRACE_MS) {
+      if (deadline !== null && sweepDue(deadline, now)) {
         const w = edit();
         for (const m of w.members) forceCompleteOne(w, m, now);
         drawRound(w, now);
@@ -1768,9 +1809,14 @@ export function tickRoom(room: PvpRoom, now: number): PvpRoom {
       // Expired windows: fill one slot each, then open the next window. One slot per sweep
       // rather than the whole XI, so a player who comes back finds the draft where they
       // left it rather than finished.
+      //
+      // EXPIRED HERE IS LATER THAN LATE (`SWEEP_LAG_MS`). A pick inside the grace is one
+      // this must not overwrite, and overwrite is exactly what it did while the two shared
+      // a threshold: the sweep took the row lock first, filled a slot and opened the next
+      // window, and the player's own pick came back a REPLAY and was thrown away.
       for (const m of room.members) {
         const w = room.windows[m.userId];
-        if (!w || now <= deadlineOf(room, w) + PICK_GRACE_MS) continue;
+        if (!w || !sweepDue(deadlineOf(room, w), now)) continue;
         const r = edit();
         const mm = memberOf(r, m.userId)!;
         forceFillOne(r, mm, w, now);

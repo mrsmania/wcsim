@@ -351,12 +351,47 @@
   <button id="toggle-all" type="button">Expand all</button>
 </div>
 
-<div class="band"><h2>Next up</h2><span>nothing scheduled</span></div>
+<div class="band"><h2>Next up</h2><span>one thing, and it needs the home machine</span></div>
 
-<p class="empty-band">Nothing is scheduled. The move to <code>mondialino.ch</code> closed on
-2026-09-03 and was the last item anything was waiting on; everything below is spec'd as an
-idea rather than queued, so the next thing to build is a decision rather than a queue
-position. Pick from <b>Later</b>.</p>
+<details class="item">
+  <summary>
+    <span class="num">60</span>
+    <span class="title">Rebuild the referee, so a last-second pick stops being overwritten
+      <span class="sub">Reported from a room on 2026-09-06: a player added somebody as the twenty seconds ran out, watched him land on the pitch, and watched the clock replace him a second later with somebody else. The fix is committed and the client half is already live; the half that actually stops it is in the referee, which is rebuilt by hand. <b>One command on the home machine, no migration.</b></span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What was happening.</strong> A pick and the clock's auto-fill are two separate
+    transactions over the same room row, and each reads the time <em>before</em> it queues for
+    that row's lock - the pick before its token check and its database connection, the sweep at
+    the start of a pass that then walks every live room in turn. Both were then judged against
+    the same instant, twenty seconds plus three quarters of a second of slack. So a pick that
+    was in time and a sweep that was entitled to fill could be holding readings a few hundred
+    milliseconds apart and arrive in the wrong order: the sweep went first, put a random player
+    in a slot and moved the draft on, and the player's own pick - still in time by its own
+    reading - came back as a duplicate of a pick that no longer existed and was thrown away.
+    The board then corrected itself to what the server held, which is why the man appeared and
+    was swapped out.</p>
+
+    <p><strong>What changed.</strong> The clock now waits a further second before it fills a
+    slot for anybody, so the two can never be deciding the same moment. A player loses nothing:
+    the auto-fill was already up to a second late, being whenever the next pass comes round. And
+    the draft screen now <em>says</em> when a pick did not stick, which it never did - the board
+    silently springing back was indistinguishable from the game eating the tap, and it is how
+    this was reported. Both halves are pinned by <code>npm run checks</code>, and the first one
+    was checked by putting the old timing back and watching it go red.</p>
+
+    <p><strong>What is left to do, and it is small.</strong> The client half deploys itself by
+    pushing to <code>main</code>. The timing lives in shared game code that the referee bundles,
+    so it is only live once the referee container is rebuilt:
+    <code>scripts/deploy-referee.sh</code> from the home machine, on the right VPN, then
+    <code>--verify</code>. <b>No migration, and no schema change</b> - nothing about what the
+    referee stores moved. The order does not matter either: an old container simply goes on
+    doing what it does today, and the client half is correct against both.</p>
+  </div>
+</details>
 
 <div class="band"><h2>Later</h2><span>spec'd as ideas, not scheduled</span></div>
 
