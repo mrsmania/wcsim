@@ -3371,19 +3371,29 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**ONE REBUILD IS QUEUED AND NO MIGRATION IS, AND THE SCHEMA IS AT 0026.** The queued one
-is **roadmap item 60** (2026-09-06): `SWEEP_LAG_MS`, which stops the clock's auto-fill
-overwriting a pick that was made in time - see "A PICK THE REFEREE WOULD TAKE IS NEVER
-OVERWRITTEN BY THE CLOCK" below. It is shared game code the referee bundles, so it is live
-only once the container is rebuilt; **no migration, and the order does not matter** in
-either direction, an old container simply going on doing what it does today.
-**The referee was last rebuilt on 2026-09-03**
+**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** **The referee was rebuilt on 2026-09-06**
+from `96afa16` for `SWEEP_LAG_MS` (roadmap item **60**, closed), which stops the clock's
+auto-fill overwriting a pick that was made in time - see "A PICK THE REFEREE WOULD TAKE IS
+NEVER OVERWRITTEN BY THE CLOCK" below. It is shared game code the referee bundles, so it
+was live only once the container was rebuilt; **no migration and no schema change**, and
+the order did not matter in either direction, an old container simply going on doing what
+it did before. All seven `--verify` steps green.
+**AND A TIMING CHANGE IS INVISIBLE TO EVERY ONE OF THEM**, which is the lesson to carry
+from that deploy rather than the deploy itself: nothing about what the referee stores
+moved and `PVP_PROTOCOL` was deliberately not bumped, so a container from BEFORE the fix
+passes the whole suite - step 7's move route, the one thing that used to tell a rebuilt
+image from an old one, has been live since 2026-09-03. The proof is therefore to read the
+constant out of the bundle the container is executing
+(`docker exec wcsim-referee grep -n SWEEP_LAG_MS /app/referee.mjs`, which reads
+`var SWEEP_LAG_MS = 1e3;`). **When a rebuild changes only a number, verify it by reading
+the running code, and say in the item that the checks cannot see it.**
+**The referee was rebuilt before that on 2026-09-03**
 for the roll room's move (item 44, above) and that rebuild needed **no migration at all** -
 `xi` has been a slot map since wave 1 and `pvp_picks` keyed on the slot since 0016 - so the
 schema did not move with it. Verified on the running container: all seven `--verify` steps,
 the seventh being `POST /v1/rooms/CODE/move` answering from the real handler rather than
-`no-such-route`, which is the ONLY thing that can tell a rebuilt image from an old one now
-that `PVP_PROTOCOL` was deliberately not bumped. `0026_drop_name_reports.sql` (applied
+`no-such-route`, which was then the only thing that could tell a rebuilt image from an old
+one, `PVP_PROTOCOL` having deliberately not been bumped. `0026_drop_name_reports.sql` (applied
 2026-09-02, roadmap item **57**) drops `pvp_name_reports`, reporting a display name having
 been removed from the game the same day - see "REPORTING A NAME IS GONE" below for why. Two
 things about it are worth carrying. It is the ONE migration here whose client half deploys

@@ -340,7 +340,7 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-09-03<br>
+    <strong>Updated:</strong> 2026-09-06<br>
     <strong>Open:</strong> 5 items, none scheduled<br>
     <strong>Shipped:</strong> at the bottom
   </div>
@@ -351,47 +351,7 @@
   <button id="toggle-all" type="button">Expand all</button>
 </div>
 
-<div class="band"><h2>Next up</h2><span>one thing, and it needs the home machine</span></div>
-
-<details class="item">
-  <summary>
-    <span class="num">60</span>
-    <span class="title">Rebuild the referee, so a last-second pick stops being overwritten
-      <span class="sub">Reported from a room on 2026-09-06: a player added somebody as the twenty seconds ran out, watched him land on the pitch, and watched the clock replace him a second later with somebody else. The fix is committed and the client half is already live; the half that actually stops it is in the referee, which is rebuilt by hand. <b>One command on the home machine, no migration.</b></span>
-    </span>
-    <span class="tag">Versus</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>What was happening.</strong> A pick and the clock's auto-fill are two separate
-    transactions over the same room row, and each reads the time <em>before</em> it queues for
-    that row's lock - the pick before its token check and its database connection, the sweep at
-    the start of a pass that then walks every live room in turn. Both were then judged against
-    the same instant, twenty seconds plus three quarters of a second of slack. So a pick that
-    was in time and a sweep that was entitled to fill could be holding readings a few hundred
-    milliseconds apart and arrive in the wrong order: the sweep went first, put a random player
-    in a slot and moved the draft on, and the player's own pick - still in time by its own
-    reading - came back as a duplicate of a pick that no longer existed and was thrown away.
-    The board then corrected itself to what the server held, which is why the man appeared and
-    was swapped out.</p>
-
-    <p><strong>What changed.</strong> The clock now waits a further second before it fills a
-    slot for anybody, so the two can never be deciding the same moment. A player loses nothing:
-    the auto-fill was already up to a second late, being whenever the next pass comes round. And
-    the draft screen now <em>says</em> when a pick did not stick, which it never did - the board
-    silently springing back was indistinguishable from the game eating the tap, and it is how
-    this was reported. Both halves are pinned by <code>npm run checks</code>, and the first one
-    was checked by putting the old timing back and watching it go red.</p>
-
-    <p><strong>What is left to do, and it is small.</strong> The client half deploys itself by
-    pushing to <code>main</code>. The timing lives in shared game code that the referee bundles,
-    so it is only live once the referee container is rebuilt:
-    <code>scripts/deploy-referee.sh</code> from the home machine, on the right VPN, then
-    <code>--verify</code>. <b>No migration, and no schema change</b> - nothing about what the
-    referee stores moved. The order does not matter either: an old container simply goes on
-    doing what it does today, and the client half is correct against both.</p>
-  </div>
-</details>
+<div class="band"><h2>Next up</h2><span>nothing scheduled</span></div>
 
 <div class="band"><h2>Later</h2><span>spec'd as ideas, not scheduled</span></div>
 
@@ -1047,6 +1007,72 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
+    <h3>Closed 2026-09-06</h3>
+<details class="item">
+  <summary>
+    <span class="num">60</span>
+    <span class="title">Rebuild the referee, so a last-second pick stops being overwritten
+      <span class="sub"><b>CLOSED 2026-09-06.</b> Reported from a room that morning: a player
+      added somebody as the twenty seconds ran out, watched him land on the pitch, and watched
+      the clock replace him a second later with somebody else. The fix was committed the same
+      day and the client half went live by itself; the half that actually stops it lives in the
+      match server, which is rebuilt by hand. It has been rebuilt, from
+      <code>96afa16</code>, and all seven deploy checks pass. <b>No migration and no schema
+      change.</b></span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What was happening.</strong> A pick and the clock's auto-fill are two separate
+    transactions over the same room row, and each reads the time <em>before</em> it queues for
+    that row's lock - the pick before its token check and its database connection, the sweep at
+    the start of a pass that then walks every live room in turn. Both were then judged against
+    the same instant, twenty seconds plus three quarters of a second of slack. So a pick that
+    was in time and a sweep that was entitled to fill could be holding readings a few hundred
+    milliseconds apart and arrive in the wrong order: the sweep went first, put a random player
+    in a slot and moved the draft on, and the player's own pick - still in time by its own
+    reading - came back as a duplicate of a pick that no longer existed and was thrown away.
+    The board then corrected itself to what the server held, which is why the man appeared and
+    was swapped out.</p>
+
+    <p><strong>What changed.</strong> The clock now waits a further second before it fills a
+    slot for anybody, so the two can never be deciding the same moment. A player loses nothing:
+    the auto-fill was already up to a second late, being whenever the next pass comes round. And
+    the draft screen now <em>says</em> when a pick did not stick, which it never did - the board
+    silently springing back was indistinguishable from the game eating the tap, and it is how
+    this was reported. Both halves are pinned by <code>npm run checks</code>, and the first one
+    was checked by putting the old timing back and watching it go red.</p>
+
+    <p><strong>What closing it took.</strong> A snapshot of <code>96afa16</code> streamed to the
+    NAS, built there (the image compiles and typechecks the whole repository on the way), and
+    the container re-created. All seven <code>--verify</code> steps came back green: the squad
+    data matches the client, a room with no session and a room with the browser's own public key
+    are both refused, a real room was created, read back, changed, saved and deleted, the
+    invitation read answers without a session, and the move route answers from its own handler.
+    The gateway did not even drop this time, which it usually does for a few minutes after any
+    container work.</p>
+
+    <p><strong>And the one thing none of those seven can see, which is this whole item.</strong>
+    Nothing about what the server stores moved and the handshake number was deliberately not
+    bumped, so a container from before the fix passes every check above. The proof had to be
+    read straight out of the running container instead: the one-second wait is in the bundle it
+    is executing. Worth remembering for any future change of this shape - <b>a deploy that
+    changes only a timing is invisible to a deploy check, so prove it by reading the code the
+    container is actually running.</b></p>
+
+    <p><strong>A smaller correction, in the same family as the sudo one from item 58.</strong>
+    This item said in bold that it needed the home machine "on the right VPN". It needed neither:
+    the laptop was already on the home network, so the NAS answered directly. A route that was
+    hard to reach once is not a property of the machine.</p>
+
+    <p><strong>How to try it.</strong> Open a versus room that rolls squads, and add your last
+    player with two or three seconds left on the bar. He stays. If a pick ever does not stick,
+    the draft now says so above the board instead of quietly putting the team back.</p>
+    <p class="files"><a class="dl" href="../src/domain/pvpRoom.ts" target="_blank" rel="noopener">src/domain/pvpRoom.ts</a> (SWEEP_LAG_MS, sweepDue), <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a>, <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a></p>
+  </div>
+</details>
+
     <h3>Closed 2026-09-03</h3>
 <details class="item">
   <summary>
