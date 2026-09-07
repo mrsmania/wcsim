@@ -17,10 +17,16 @@ const DIFFICULTIES: { value: Difficulty; label: string }[] = [
     { value: 'normal', label: 'Normal' },
     { value: 'hard', label: 'Hard' },
 ];
+// What the setting actually does, in the same terms a boost card uses (`domain/boons.ts`
+// says "+2 rating to your entire XI"), because it is the same lever: `userRatingDelta`
+// adds it to the user's attack and defence in the user's own matches and touches nothing
+// else - not the opponents, not the draw, not the team rating on screen. The old wording
+// ("a scoring edge in every match you play", "Every round is a fight") was atmosphere in
+// place of the figure, and the first half was wrong as well: the edge is defensive too.
 const DIFF_DESC: Record<Difficulty, string> = {
-    casual: 'Your ties tilt your way - a scoring edge in every match you play.',
-    normal: 'Balanced. Your matches play to the ratings.',
-    hard: 'Opponents get the edge in your ties. Every round is a fight.',
+    casual: '+3 rating to your attack and defence, in your own matches.',
+    normal: 'No handicap either way. Your matches play to the ratings.',
+    hard: '-3 rating to your attack and defence, in your own matches.',
 };
 
 /** A small on/off switch (dark mode, and future boolean settings). */
@@ -103,10 +109,13 @@ export default function SettingsModal({
                 <div className={GROUP}>
                     <div className={GH}>Appearance</div>
                     <div className="mt-2 flex items-center justify-between gap-4">
-                        <div>
-                            <div className="text-[13.5px] font-semibold">Dark mode</div>
-                            <p className={HINT}>Night-match theme for low-light play.</p>
-                        </div>
+                        {/* No line under this label. It said "Night-match theme for
+                            low-light play", which is atmosphere doing the job of
+                            information (authenticity pass, A14): the label and the
+                            switch beside it already say the whole of what it does, and
+                            the theme is not a night MATCH setting - it repaints the
+                            entire app. */}
+                        <div className="text-[13.5px] font-semibold">Dark mode</div>
                         <Switch
                             on={s.theme === 'dark'}
                             onToggle={() => setTheme(s.theme === 'dark' ? 'light' : 'dark')}
@@ -153,7 +162,11 @@ export default function SettingsModal({
                 {/* Difficulty */}
                 <div className={GROUP}>
                     <div className={GH}>Difficulty</div>
-                    <p className={HINT}>How hard it is to win a tie, and so to lift the cup.</p>
+                    {/* No line here either: it read "How hard it is to win a tie, and so
+                        to lift the cup", which is the heading again with a flourish on
+                        the end. The sentence under the control states the actual figure
+                        and follows the selection, which is the shape AscensionPicker
+                        already settled on. */}
                     <div className="mt-3 flex">
                         <SegControl
                             ariaLabel="Difficulty"
