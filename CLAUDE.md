@@ -4722,3 +4722,57 @@ rediscovered:
   being per-origin. That was free on 2026-09-03 (no players, and the accounts were being
   wiped before launch anyway) and it will never be free again. Which is the argument for
   having moved the address once, to a domain the game owns, rather than twice.
+
+**THE DNS MOVED TO NEXANET ON 2026-09-07, AND THE WEBSITE'S OWN RECORDS HAD TO BE RETYPED
+BY HAND.** The domain's nameservers went from hostpoint's (`ns`, `ns2`, `ns3.hostpoint.ch`)
+to nexanet's (`ns1`, `ns2.nhost.ch`), and the reason is MAIL rather than hosting: nexanet
+includes `@mondialino.ch` mailboxes where hostpoint's plan did not. The site is still
+GitHub Pages, the domain did not change, and nothing in this repo moved with it. **The trap
+is that a nameserver change carries no records with it**: the new keeper starts a fresh zone
+and fills it with its own defaults, which point the apex at its own web server, so the
+switch as delivered would have replaced the game with a nexanet placeholder page the moment
+the registry flipped. The zone at nexanet was corrected BEFORE the delegation moved, and
+that order is the whole of why there was no outage.
+
+What the zone has to carry for the site, so it can be rebuilt from here if it is ever lost:
+
+- **Four apex `A` records** (`185.199.108.153`, `.109.153`, `.110.153`, `.111.153`) and
+  **four apex `AAAA`** (`2606:50c0:8000::153` through `:8003::153`), which are GitHub
+  Pages' own addresses. Both families: no IPv6 at all is the shape the default zone
+  arrived in, and it is the half nobody notices is missing.
+- **`www` as a `CNAME`**, either to the apex or to `mrsmania.github.io`. Both resolve; the
+  second is GitHub's documented form and does not depend on the apex records.
+- **No wildcard.** hostpoint's zone had `*.mondialino.ch` pointing at its own web address.
+  Nothing in the game uses a subdomain (the only one named anywhere in the repo is `www`,
+  and the accounts server and the referee are on a different domain), so it was
+  deliberately not carried over.
+- The mail half is nexanet's own and was correct as delivered: `MX mx.cloudfor.ch`, an SPF
+  record, a DKIM key on `default._domainkey`, DMARC at `p=quarantine` with strict alignment,
+  and the four `SRV` records mail clients read. **hostpoint's SPF must NOT be carried
+  over**, since it authorises the wrong servers.
+
+**Two whole-domain failures were checked for and are absent, and both are worth re-checking
+before any future nameserver move**, because each takes the entire domain down rather than
+one record: there is **no DNSSEC `DS` record at the .ch registry** (a signed zone whose
+nameservers change while a stale `DS` remains stops resolving at all, everywhere), and
+there are **no `CAA` records** in either zone, so nothing blocks Let's Encrypt from
+re-issuing the Pages certificate.
+
+Three things about the transition itself:
+
+- **The old zone is not deleted, it is abandoned.** Once the registry delegates elsewhere
+  nothing ever asks hostpoint's copy anything again, so its records are inert rather than
+  wrong and there is no cleanup owed. Emptying it BEFORE the delegation moves takes the site
+  down; and deleting the domain at the registrar in order to tidy up is a different and much
+  worse operation than leaving an unused zone file alone.
+- **Mail arrives at both providers for a day or two.** Removing an `MX` does nothing to a
+  mailbox, and resolvers keep delivering to the old one until the cached nameservers expire,
+  so the old mailbox stays alive and gets read until it goes quiet.
+- **The game's own sign-in mail did not move, and none of this makes it move.** It still
+  leaves as `worldcupsim@gmail.com` through Gmail's SMTP, configured in the NAS `.env` (see
+  `docs/nas-setup.md`). Sending it from `@mondialino.ch` means pointing that block at
+  nexanet's outgoing server and **re-creating the `auth` container** (environment is fixed
+  at creation, so an edit alone is inert), and it cannot be done by changing the sender
+  address alone: nexanet's DMARC is strict, so mail claiming `@mondialino.ch` while relayed
+  through Gmail is quarantined. The gain if it is ever done is real, since
+  `docs/nas-setup.md` already records the plain gmail.com sender as a spam-folder risk.
