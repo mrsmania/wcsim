@@ -436,14 +436,61 @@ export function leaveKind(view: RoomView): LeaveKind {
  * pasted into a message. Arriving on it takes the seat with no further step (`RoomScreen`),
  * so the whole invitation is one tap at both ends.
  *
- * `base` is Vite's, which is `/wcsim/` on GitHub Pages and `/` in dev, so the link works
- * from wherever the build is actually served rather than from wherever it was written. The
- * two arguments are passed in rather than read off `window` here, because this file is
- * `domain/`: it is checked, and a check has no window.
+ * IT PUTS THE CODE IN A QUERY ON THE HOME PAGE RATHER THAN IN THE PATH, and that is the
+ * whole reason this function is more than string concatenation. It used to build
+ * `<origin><base>versus/<code>`, which is the app's real route and reads far better, and it
+ * previewed as NOTHING in every chat client. GitHub Pages only knows about the files it was
+ * given, so it answers any deeper address with its 404 file: `scripts/copy-404.mjs` makes
+ * that file a copy of the app, so a person sees the game and never notices, but the "no
+ * such page" STATUS rides along with it, and a link preview crawler stops reading the
+ * moment it sees one. Measured against the live site on 2026-09-07: `/` answered 200 while
+ * `/versus/ABCDEF`, `/career` and `/album` all answered 404 with the Open Graph tags
+ * sitting in the body, unread. So the share card that A9 built was invisible on the one
+ * kind of link this game sends by design.
+ *
+ * `<base>?join=<code>` is the same page the host is happy to serve, verified 200 with the
+ * tags intact, and `joinTarget` below turns it back into the route at boot. Two things this
+ * deliberately does not attempt: the preview is still the generic game card, since a static
+ * host cannot make a different picture per room; and every OTHER deep link in the game
+ * still previews as nothing, which is a hosting problem rather than a code one and was
+ * ruled out as a fix by the owner.
+ *
+ * `base` is Vite's, which is `/` since the site moved to its own domain and serves from
+ * the root, and can be a subpath for a differently hosted build. It and `origin` are
+ * passed in rather than read off `window`, because this file is `domain/`: it is checked,
+ * and a check has no window.
  */
 export function inviteUrl(origin: string, base: string, code: string): string {
     const path = base.endsWith('/') ? base : `${base}/`;
-    return `${origin.replace(/\/+$/, '')}${path}versus/${code}`;
+    return `${origin.replace(/\/+$/, '')}${path}?join=${code}`;
+}
+
+/**
+ * The route an arriving invitation means, or null when there is no invitation in the URL.
+ *
+ * The other half of `inviteUrl`: the link lands on the home page carrying the code, and
+ * this is what makes it a room again. `main.tsx` calls it before the first render and
+ * rewrites history, so nothing downstream ever sees the query form: the router, the tab
+ * bar, `screenOf`, `VersusScreen`'s `useMatch('/versus/:code')` and the seat-taking on
+ * arrival all work exactly as they did when the link itself was a path.
+ *
+ * IT VALIDATES RATHER THAN TRUSTING, because the value is a query parameter and anybody can
+ * type one. The shape is the one `screenOf` accepts, four to twelve letters and digits, so
+ * a target this returns is always a real route; junk returns null and the visitor simply
+ * gets the front page. Uppercasing first means a code that lost its case somewhere in a
+ * chat client still works, which is also why `VersusScreen` uppercases its own parameter.
+ *
+ * `history.replaceState` rather than a push, at the call site: the home page carrying a
+ * `?join=` is a doormat rather than a place, and leaving it in the back stack would send
+ * anybody pressing Back to an address that immediately forwards them into the room again.
+ */
+export function joinTarget(search: string, base: string): string | null {
+    const raw = new URLSearchParams(search).get('join');
+    if (!raw) return null;
+    const code = raw.trim().toUpperCase();
+    if (!/^[A-Z0-9]{4,12}$/.test(code)) return null;
+    const path = base.endsWith('/') ? base : `${base}/`;
+    return `${path}versus/${code}`;
 }
 
 /**

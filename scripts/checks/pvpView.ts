@@ -9,6 +9,8 @@
 // side is a parameter.
 
 import { check } from './harness';
+import { FEATURES } from '../../src/config';
+import { screenOf } from '../../src/state/routes';
 import { ALL_PLAYERS, SQUAD_BY_ID, datasetPlayer } from '../../src/data/squads';
 import { categoryOf } from '../../src/data/types';
 import { placedPlayers } from '../../src/domain/draft';
@@ -40,6 +42,7 @@ import {
   gamesIn,
   inviteText,
   inviteUrl,
+  joinTarget,
   isDuel,
   leaveKind,
   seatsOf,
@@ -1140,20 +1143,33 @@ export function pvpViewChecks(): void {
   // --- The invitation ------------------------------------------------------
   // A room is opened and then PASTED INTO A MESSAGE, so the link is the invitation and the
   // code is what you say out loud. The base path is the thing to get wrong: this build is
-  // served from `/wcsim/` on GitHub Pages and from `/` in the Docker image, and a link that
+  // served from `/` on its own domain and can be a subpath elsewhere, and a link that
   // hardcoded either would be dead from the other.
+  //
+  // THE CODE TRAVELS AS A QUERY ON THE HOME PAGE, not as a path, and that is what these
+  // assertions are really guarding. The path form is the app's own route and reads better,
+  // and it previewed as nothing in every chat client, because GitHub Pages answers a deeper
+  // address with a 404 status even while serving the app from its 404 file. The reasoning
+  // is in `inviteUrl`'s header. A "tidy-up" back to the route form would look like an
+  // improvement, break no test that existed before this, and silently un-fix it.
   {
     check(
-      'pvpView: an invite link lands on the room, under whichever base path this build is served from',
+      'pvpView: an invite link lands on the home page with the code in a query, under whichever base path this build is served from',
       () =>
         inviteUrl('https://x.github.io', '/wcsim/', 'AB12CD') ===
-          'https://x.github.io/wcsim/versus/AB12CD' &&
+          'https://x.github.io/wcsim/?join=AB12CD' &&
         inviteUrl('https://play.example', '/', 'AB12CD') ===
-          'https://play.example/versus/AB12CD' &&
+          'https://play.example/?join=AB12CD' &&
         // A base without its trailing slash, and an origin with one, are both survivable:
         // the two come from different places (Vite, and the browser) and only one of them
         // promises a shape.
-        inviteUrl('https://x.dev/', '/wcsim', 'AB12CD') === 'https://x.dev/wcsim/versus/AB12CD' &&
+        inviteUrl('https://x.dev/', '/wcsim', 'AB12CD') === 'https://x.dev/wcsim/?join=AB12CD' &&
+        // THE POINT: nothing beyond the base sits in the path. This is the assertion that
+        // fails if anybody puts the route back into the link, and it reads the parsed URL
+        // rather than the string, so it cannot be satisfied by a query that merely happens
+        // to contain the word.
+        new URL(inviteUrl('https://x.dev', '/', 'AB12CD')).pathname === '/' &&
+        new URL(inviteUrl('https://x.dev', '/wcsim/', 'AB12CD')).pathname === '/wcsim/' &&
         // The text carries the code, because a message gets read aloud and a link does not.
         inviteText('AB12CD').includes('AB12CD') &&
         // AND IT CARRIES NO LINK AT ALL. `navigator.share` takes the sentence and the link
@@ -1165,6 +1181,70 @@ export function pvpViewChecks(): void {
         !inviteText('AB12CD').includes(inviteUrl('https://x.dev', '/', 'AB12CD')) &&
         !/https?:/.test(inviteText('AB12CD')),
       () => `${inviteUrl('https://x.github.io', '/wcsim/', 'AB12CD')} | ${inviteText('AB12CD')}`,
+    );
+  }
+
+  // --- The invitation, read back at the other end --------------------------
+  // `inviteUrl` and `joinTarget` are two halves of one thing and neither is worth checking
+  // alone: the link is only right if the boot can turn it back into a route, and that route
+  // is only right if `screenOf` agrees it is a room. So this walks the whole way round,
+  // from the link a lobby hands you to the screen the app decides to show.
+  {
+    const roundTrip = (origin: string, base: string, code: string) =>
+      joinTarget(new URL(inviteUrl(origin, base, code)).search, base);
+
+    check(
+      'pvpView: the link a lobby hands out is read back as the room route, under either base path',
+      () =>
+        roundTrip('https://play.example', '/', 'AB12CD') === '/versus/AB12CD' &&
+        roundTrip('https://x.github.io', '/wcsim/', 'AB12CD') === '/wcsim/versus/AB12CD' &&
+        roundTrip('https://x.dev/', '/wcsim', 'AB12CD') === '/wcsim/versus/AB12CD',
+      () => String(roundTrip('https://play.example', '/', 'AB12CD')),
+    );
+
+    // The end of the round trip has to be a real route, which is the property that actually
+    // matters and the one nothing else asserts: a target `screenOf` does not call a room
+    // would land the arriving guest on the front page with their invitation spent. The flag
+    // is read the way the route table reads it, since with no referee configured
+    // `/versus/...` is legitimately not a route at all.
+    check(
+      'pvpView: the route an invitation resolves to is one the app calls a versus room',
+      () => screenOf('/versus/AB12CD') === (FEATURES.pvp ? 'versus' : 'unknown'),
+      () => screenOf('/versus/AB12CD'),
+    );
+
+    // A query parameter is typed by anybody, so the reader validates rather than trusting.
+    // Junk has to come back as no route at all, or a value like `../../x` would be handed
+    // straight to `history.replaceState`.
+    const junk = [
+      '',
+      '?join=',
+      '?join=AB',
+      '?join=THISCODEISWAYTOOLONG',
+      '?join=../../x',
+      '?join=AB 12',
+      '?other=AB12CD',
+    ];
+    check(
+      `pvpView: ${junk.length} malformed or absent join parameters resolve to no route at all`,
+      () => junk.every((q) => joinTarget(q, '/') === null),
+      () => junk.map((q) => `${q || '(empty)'} -> ${joinTarget(q, '/')}`).join(' | '),
+    );
+
+    // THE VACUITY GUARD for the block above, and it is not decoration: every assertion
+    // there would pass a `joinTarget` that returned null for absolutely everything, which
+    // would leave every invitation in the game landing on the front page. So a real code
+    // has to survive, and case has to be forgiving, because a code can lose its case
+    // passing through a chat client - which is why `VersusScreen` uppercases its own
+    // parameter too. A trailing tracking parameter has to survive as well, since a chat
+    // client is entitled to add one.
+    check(
+      'pvpView: a real code survives the reader, in either case and beside another parameter',
+      () =>
+        joinTarget('?join=AB12CD', '/') === '/versus/AB12CD' &&
+        joinTarget('?join=ab12cd', '/') === '/versus/AB12CD' &&
+        joinTarget('?join=AB12CD&utm=x', '/') === '/versus/AB12CD',
+      () => String(joinTarget('?join=ab12cd', '/')),
     );
   }
 
