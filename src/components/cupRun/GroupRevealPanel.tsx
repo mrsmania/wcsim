@@ -98,6 +98,11 @@ export default function GroupRevealPanel({
       {reveal.done && (
         <>
           <div className="mt-6">
+            {/* The eyebrow stays: the finishing position is a fact the heading does not
+                carry, which is what an eyebrow is for. The body went (authenticity pass
+                A11) - it read "Pick your first boost, then into the Round of 16.", and
+                both halves are directly underneath it: the picker's own "Pick a boost"
+                caption over three cards, and its "Next: <opponent> in Round of 16" line. */}
             <Banner
               champion={advanced}
               eyebrow={
@@ -106,7 +111,6 @@ export default function GroupRevealPanel({
                   : 'Group stage'
               }
               heading={advanced ? 'Through to the knockouts' : 'Knocked out'}
-              body={advanced ? 'Pick your first boost, then into the Round of 16.' : undefined}
             />
           </div>
           {/* No final table here: the live one above IS the final table once the third

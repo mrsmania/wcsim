@@ -75,11 +75,15 @@ export default function RunPhasePanel({
             pens={kept.match.pens}
             userWon={kept.match.userWon}
           />
+          {/* The body used to end "Pick a boost below.", which pointed at the three
+              cards directly underneath it and their own "Pick a boost" caption
+              (authenticity pass A11). Which round the win reached is NOT said by the
+              heading ("Won 2-1"), so that half stays. */}
           <Banner
             champion
             eyebrow={kept.roundName}
             heading={koWinHeading(kept.match)}
-            body={`Through to the ${KO_ROUNDS[run.koRound]}. Pick a boost below.`}
+            body={`Through to the ${KO_ROUNDS[run.koRound]}.`}
           />
         </>
       )}
@@ -99,27 +103,32 @@ export default function RunPhasePanel({
           userWon={endedKoRecord.won}
         />
       )}
+      {/* Two things went from this banner in the authenticity pass (A10, A11).
+          The losing eyebrow read "Knocked out · the Round of 16" over the heading
+          "Knocked out", so half of it was the heading again; it is "Full time · <the
+          stage it ended at>" now, which is the shape the winning branch already had
+          and is a PARENT rather than a synonym. And the winning body read "Your XI ran
+          the tournament and lifted the cup", which is "World Cup Champions" a second
+          time in longer words - the heading and the confetti carry that moment. */}
       {run.phase === 'ended' && run.outcome && (
         <Banner
           champion={run.outcome === 'champion'}
           eyebrow={
             run.outcome === 'champion'
               ? 'Full time · the Final'
-              : `Knocked out · ${OUTCOME_LABEL[run.outcome]}`
+              : `Full time · ${OUTCOME_LABEL[run.outcome]}`
           }
           heading={run.outcome === 'champion' ? 'World Cup Champions' : 'Knocked out'}
-          body={
-            run.outcome === 'champion'
-              ? 'Your XI ran the tournament and lifted the cup.'
-              : undefined
-          }
         />
       )}
       <div ref={run.phase === 'boon' ? boostRef : undefined} className={`${CARD} p-5`}>
         {run.phase === 'group' && (
           <div className="text-center">
+            {/* "Play the group stage." led this line and is the button's own label a
+                centimetre below it (authenticity pass A11). The qualification rule is
+                the half that is stated nowhere else, so it is the whole line now. */}
             <p className="mb-4 text-[13.5px] text-muted">
-              Play the group stage. Finish in the top two to reach the knockouts.
+              Finish in the top two to reach the knockouts.
             </p>
             <button onClick={onPlayGroup} className={PRIMARY_BTN}>
               Play group stage

@@ -139,9 +139,13 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
                     <h3 className="mt-1.5 font-display text-3xl font-black tracking-[-0.02em]">
                         All {stats.total} collected
                     </h3>
-                    <p className="mt-1 text-[13.5px]">
-                        Every Legendary, Iconic and Monumental sticker. A full house.
-                    </p>
+                    {/* A third line read "Every Legendary, Iconic and Monumental sticker. A
+                        full house." and went with authenticity pass A11: the caption above
+                        already says the album is complete, the heading says how many that
+                        is, and the per-tier counts with their dots are in the counter card
+                        directly above - so it was the same fact a third time plus a
+                        flourish. Nothing here teaches anybody anything they have not just
+                        finished proving. */}
                 </div>
             )}
 

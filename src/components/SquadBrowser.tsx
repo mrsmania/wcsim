@@ -441,9 +441,12 @@ function SearchResults({
                 );
             })}
             {results.length > MAX_RESULTS && (
+                // "Refine your search to narrow it down." followed this and went with
+                // authenticity pass A11/A13: the count already says the list is capped, and
+                // a line telling somebody to fix what they can see is a slot being filled
+                // because it was there.
                 <div className="border-t border-line px-4 py-2.5 text-center font-mono text-[11px] text-muted">
-                    Showing top {MAX_RESULTS} of {results.length}. Refine your search to narrow it
-                    down.
+                    Showing top {MAX_RESULTS} of {results.length}.
                 </div>
             )}
         </div>

@@ -33,15 +33,14 @@ export default function RunEndStickerSummary({ newPlayerIds, allPlayers, onClose
       <div className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-pitch-ink">
         Run complete
       </div>
-      <h3 className="mt-1 font-display text-2xl font-black leading-tight tracking-[-0.02em]">
-        New stickers added
+      {/* The count is IN the heading, and the line under it is gone (authenticity pass
+          A11). The heading read "New stickers added" and the line under it read "3 new
+          stickers added to your album this run", which is the heading again with a figure
+          in it - so the figure moved up and the restatement went. Where they went is
+          answered by the "View album" button rather than by a sentence. */}
+      <h3 className="mb-4 mt-1 font-display text-2xl font-black leading-tight tracking-[-0.02em]">
+        {cards.length} new sticker{cards.length === 1 ? '' : 's'}
       </h3>
-      <p className="mb-4 mt-1.5 text-[13.5px] text-muted">
-        <b className="text-ink">
-          {cards.length} new sticker{cards.length === 1 ? '' : 's'}
-        </b>{' '}
-        added to your album this run.
-      </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
         {cards.map((c) => (
           <StickerCard key={c.player.id} player={c.player} tier={c.tier} collected isNew />

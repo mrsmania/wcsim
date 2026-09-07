@@ -76,9 +76,13 @@ export default function CompletePanel({
             </div>
 
             <div className="p-[18px]">
+                {/* It opened with "Your XI is set.", which is the page title above it word
+                    for word, and the card's own "11 of 11 drafted" a few lines up said it a
+                    third time (authenticity pass A11). What is left is the part that appears
+                    nowhere else on the screen: what a run actually gives you. */}
                 <p className="mb-4 text-[13px] text-muted">
-                    Your XI is set. Take it on a Cup Run: pick a team boost between rounds
-                    and climb the Ascension tiers, earning XP and Prestige for your career.
+                    Take it on a Cup Run: pick a team boost between rounds and climb the
+                    Ascension tiers, earning XP and Prestige for your career.
                 </p>
                 <div className="flex flex-col gap-2.5">
                     <button onClick={onStartRun} className={CTA}>
