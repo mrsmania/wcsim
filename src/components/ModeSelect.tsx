@@ -7,7 +7,7 @@ import { WORLD_CUP_YEARS } from '../data/squads';
 import { FEATURES } from '../config';
 import { collectibleCards } from '../domain/album';
 import StickerCard from './StickerCard';
-import { btn } from './matchUi';
+import { btn, PAGE_TOP } from './matchUi';
 
 /** The front page (route `/`): a marketing hero that sells the fantasy, then a 3-beat
  *  "how it works" and a "chase the legends" showcase.
@@ -111,7 +111,7 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
     }, [allPlayers]);
 
     return (
-        <div className="mt-[30px]">
+        <div className={PAGE_TOP}>
             {/* HERO - the pitch as a tactics board, text laid over the grass.
 
                 THE RADIUS AND THE SHADOW ARE THE HOUSE ONES, and both used to be this

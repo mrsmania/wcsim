@@ -35,7 +35,7 @@ import { useToast } from '../hooks/useToast';
 import { useRoundReview } from '../hooks/useRoundReview';
 import { useCupRun } from '../hooks/useCupRun';
 import { scrollIntoViewRespectingMotion } from '../hooks/motion';
-import { CARD, SpeedControl, StageCrumb, StageHeader } from './matchUi';
+import { CARD, PAGE_TOP, SpeedControl, StageCrumb, StageHeader } from './matchUi';
 import RunBracket from './cupRun/RunBracket';
 import Confetti from './Confetti';
 import LiveCupMatch from './cupRun/LiveCupMatch';
@@ -460,12 +460,15 @@ export default function CupRunScreen({
         </div>
       )}
       {view === 'hub' ? (
-        // The Career tab is a destination, so it gets the same eyebrow + title header
-        // every other one has. The run view keeps the back crumb instead: it is a step
-        // of play reached from the build, not a place you navigate to.
-        <StageHeader eyebrow="Your career" title="Cup Run Career" />
+        // The Career tab is a destination, so it gets the same header every other one
+        // has. The run view keeps the back crumb instead: it is a step of play reached
+        // from the build, not a place you navigate to.
+        //
+        // It read "Your career" over "Cup Run Career", the same words twice. No page
+        // header takes an eyebrow now; the rule is in `StageHeader`.
+        <StageHeader title="Cup Run Career" />
       ) : (
-        <StageCrumb dir="back" label="Back to the build" to={buildTo} className="mt-[30px] mb-3" />
+        <StageCrumb dir="back" label="Back to the build" to={buildTo} className={`${PAGE_TOP} mb-3`} />
       )}
 
       {/* The career hub: the standing, the perk shop and the boost library, one card

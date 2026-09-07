@@ -96,7 +96,7 @@ export default function SquadBrowser() {
 
     return (
         <>
-            <StageHeader eyebrow="Squads database" title={title} />
+            <StageHeader title={title} />
 
             {/* Display toggle + search */}
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

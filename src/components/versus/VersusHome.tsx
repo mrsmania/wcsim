@@ -427,7 +427,7 @@ export default function VersusHome({
 
     return (
         <>
-            <StageHeader eyebrow="Versus" title="Play somebody" />
+            <StageHeader title="Play somebody" />
 
             {held && (
                 <div className={`${CARD} mb-[18px] flex flex-wrap items-center gap-3 p-4`}>

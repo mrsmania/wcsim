@@ -316,7 +316,6 @@ export default function RoomScreen({ code }: { code: string }) {
         return (
             <>
                 <StageHeader
-                    eyebrow="Versus"
                     title={
                         thrownOut
                             ? 'You were removed'
@@ -386,7 +385,6 @@ export default function RoomScreen({ code }: { code: string }) {
             {/* The room won, rained once, the first time the result is looked at. */}
             {celebrating && <Confetti />}
             <StageHeader
-                eyebrow={`Room ${view.code}`}
                 // A room of two plays one match and calling it the Final is grandiose; a
                 // room of eight plays three rounds and "The match" says nothing.
                 title={

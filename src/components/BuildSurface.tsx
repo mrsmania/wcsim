@@ -24,17 +24,20 @@ import { FORMATIONS_DATA } from '../domain/formations';
 // album, the money the career allows, and what pressing Start Run means - so nothing here
 // reaches for the app's state, and none of it is specific to the single-player game.
 
-/** Section eyebrow/title, by sub-view. Derived from the drafted data (not `phase`), so
- *  navigating back to the build mid-run still reads as the locked XI. */
-function headerCopy(view: BuildView): { eyebrow: string; title: string } {
-    const eyebrow = view === 'complete' ? 'Confirmed line-up' : 'Team sheet';
-    const title =
-        view === 'setup'
-            ? 'Set your formation'
-            : view === 'draft'
-              ? 'Build your XI'
-              : 'Your XI is set';
-    return { eyebrow, title };
+/** The section title, by sub-view. Derived from the drafted data (not `phase`), so
+ *  navigating back to the build mid-run still reads as the locked XI.
+ *
+ *  There was an eyebrow above it, reading "Team sheet" on all three steps and briefly
+ *  "Confirmed line-up" on the last. Every page eyebrow in the game went on 2026-09-07:
+ *  most of them were saying their own title again, and the owner's call was that a line
+ *  which survives on some screens and not others is worse than not having it, whatever
+ *  each individual case argues. So the title carries the whole of it now. */
+function headerTitle(view: BuildView): string {
+    return view === 'setup'
+        ? 'Set your formation'
+        : view === 'draft'
+          ? 'Build your XI'
+          : 'Your XI is set';
 }
 
 export default function BuildSurface({
@@ -83,12 +86,11 @@ export default function BuildSurface({
     const { formation, filled, style, formationName, selectedPlayerId, rerollsLeft, rolling } =
         state;
     const STICKERS = FEATURES.stickerAlbum;
-    const header = headerCopy(view);
+    const title = headerTitle(view);
 
     return (
         <BuildPage
-            eyebrow={header.eyebrow}
-            title={header.title}
+            title={title}
             panelRef={build.panelRef}
             boardRef={build.boardRef}
             panel={

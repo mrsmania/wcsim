@@ -77,7 +77,7 @@ export default function VersusScreen({
     if (gate.kind === 'checking') {
         return (
             <>
-                <StageHeader eyebrow="Versus" title="Play somebody" />
+                <StageHeader title="Play somebody" />
                 <div className={`${CARD} p-5`}>
                     <RoomNote>Checking with the referee.</RoomNote>
                 </div>
@@ -89,7 +89,7 @@ export default function VersusScreen({
         const mine = clientVersion();
         return (
             <>
-                <StageHeader eyebrow="Versus" title="Versus is updating" />
+                <StageHeader title="Versus is updating" />
                 <div className={`${CARD} p-5`}>
                     <RoomNote>
                         {gate.kind === 'unreachable'
@@ -183,7 +183,7 @@ function SignedOut({ code, onOpenAccount }: { code: string | null; onOpenAccount
     if (!code) {
         return (
             <>
-                <StageHeader eyebrow="Versus" title="Play somebody" />
+                <StageHeader title="Play somebody" />
                 <div className={`${CARD} p-5`}>
                     <RoomNote>
                         Two, four or eight people, a team each from the same money or the same
@@ -216,7 +216,7 @@ function SignedOut({ code, onOpenAccount }: { code: string | null; onOpenAccount
 
     return (
         <>
-            <StageHeader eyebrow="Versus" title="You have been invited" />
+            <StageHeader title="You have been invited" />
             <div className={`${CARD} p-5`}>
                 <div className={MONO_CAP}>The room you were sent</div>
                 <div className="mt-1.5">
@@ -348,7 +348,6 @@ function NamePanel({
     return (
         <>
             <StageHeader
-                eyebrow="Versus"
                 title={current === null ? 'Pick a name' : 'Change your name'}
                 // The way back, as the crumb every versus screen carries - and it is what
                 // `onCancel` means, so it appears exactly when there IS somewhere to go.

@@ -9,7 +9,6 @@ import { StageHeader } from './matchUi';
  *  restack in on a phone, the scroll anchors the mobile dance needs, and the placeholder
  *  while the formations load. */
 export default function BuildPage({
-    eyebrow,
     title,
     panelRef,
     boardRef,
@@ -18,7 +17,6 @@ export default function BuildPage({
     stack,
 }: {
     /** The section header, derived from the build's sub-view. */
-    eyebrow: string;
     title: string;
     /** The source panel's scroll anchor, and the board's (hooks/useStackedScroll). */
     panelRef: MutableRefObject<HTMLElement | null>;
@@ -33,7 +31,7 @@ export default function BuildPage({
 }) {
     return (
         <>
-            <StageHeader eyebrow={eyebrow} title={title} />
+            <StageHeader title={title} />
             {/* One column below 760, two to 1080, three above; the source panel (setup /
                 drawn squad / market / complete) is always FIRST on a phone, then the
                 pitch, then the ratings.

@@ -79,7 +79,9 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
 
     return (
         <div>
-            <StageHeader eyebrow="Your collection" title="The Sticker Album" />
+            {/* It read "Your collection" over "The Sticker Album", the same thing twice.
+                No page header takes an eyebrow now; the rule is in `StageHeader`. */}
+            <StageHeader title="The Sticker Album" />
 
             {/* Completion counter + duplicate pool */}
             <section className={`grid grid-cols-1 overflow-hidden ${CARD} sm:grid-cols-[minmax(0,1fr)_210px]`}>

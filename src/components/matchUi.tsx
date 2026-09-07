@@ -157,13 +157,31 @@ export const CARD_SM = `${CARD_FLAT} shadow-hard-sm`;
 export const MONO_CAP =
     'font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted';
 
-/** The green mono eyebrow that sits above a page's display title. Wider tracking and a
- *  point larger than MONO_CAP, because it labels the whole screen rather than a card.
- *  StageHeader renders it; the handful of screens that lay out their own header (the
- *  front page, the squad browser, the album, the challenge ledger, the group draw) use
- *  this directly. */
+/** The green mono caption, a point larger than MONO_CAP and with wider tracking.
+ *
+ *  It was the PAGE eyebrow, above a display title, and `StageHeader` no longer has such a
+ *  slot (see its docblock). What survives is the type treatment, used inside cards and
+ *  panels that need a caption heavier than MONO_CAP: the album's completion card, the
+ *  challenge ledger's counter and the group draw. Do not reintroduce it above a page
+ *  title. */
 export const PAGE_EYEBROW =
     'font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch-ink';
+
+/** The gap between the chrome and whatever a page opens with.
+ *
+ *  ONE VALUE, SHARED, because three places set it and they were three copies of 30px:
+ *  `StageHeader`, the run screen's back crumb (which is the top element on that page
+ *  instead of a header) and the front page's root. A page that starts 18px lower than the
+ *  one beside it is the kind of drift nobody notices until every screen has a different
+ *  answer.
+ *
+ *  IT WENT UP FROM 30px WHEN THE EYEBROWS WENT (2026-09-07). Every page header used to
+ *  open with a mono caption above its title, and removing them moved every title in the
+ *  game up by about 15px into a 45px chrome, which read as crowded. This is not merely
+ *  the old spacing restored: the eyebrow was ink on the page and this is air, so matching
+ *  the old number would have left the titles feeling higher than before even though they
+ *  sat in the same place. */
+export const PAGE_TOP = 'mt-12';
 
 /** A horizontal progress meter: a chalk track with a 1px rule and a filled bar.
  *  Six copies of this existed - album completion, honours completion, the career's
@@ -553,8 +571,22 @@ export function StageCrumb({
     );
 }
 
-/** A stage header (eyebrow + display heading), optionally carrying a breadcrumb link
- *  and the playback controls on the right.
+/** A stage header (a display heading), optionally carrying a breadcrumb link and the
+ *  playback controls on the right.
+ *
+ *  NO EYEBROW, ON ANY PAGE. It took one until 2026-09-07 and most of them said the title
+ *  again: "Your collection" over The Sticker Album, "Your honours" over Records, "Your
+ *  career" over Cup Run Career. The first pass at this (authenticity pass A10) kept the
+ *  ones that named a real PARENT, which was the squad browser's "Squads database" over a
+ *  nation and the build page's "Team sheet" over whichever step you were on. The owner
+ *  overruled that: a line which survives on two screens out of eight is worse than no
+ *  line at all, however well each individual case argues, because what a reader notices
+ *  is not the reasoning but that the pages do not match. So the prop is gone rather than
+ *  optional, and a page header is a title.
+ *
+ *  `PAGE_EYEBROW` still exists and is still correct: it is the caption style for a CARD
+ *  or a panel inside a page, which several screens use. It is the page-level slot that
+ *  went, not the type treatment.
  *
  *  THE CRUMB SITS UNDER THE TITLE, not above the eyebrow (2026-09-02, asked for). Above
  *  it, the way out was the first thing on the page and the page did not say what it was
@@ -568,13 +600,11 @@ export function StageCrumb({
  *  four call sites each spelling one out, and four copies of a spacing are how two of
  *  them come to differ. */
 export function StageHeader({
-    eyebrow,
     title,
     controls,
     headingRef,
     crumb,
 }: {
-    eyebrow: string;
     title: string;
     controls?: ReactNode;
     headingRef?: Ref<HTMLDivElement>;
@@ -583,11 +613,10 @@ export function StageHeader({
     return (
         <div
             ref={headingRef}
-            className="mb-[18px] mt-[30px] flex flex-wrap items-end justify-between gap-4"
+            className={`${PAGE_TOP} mb-[18px] flex flex-wrap items-end justify-between gap-4`}
         >
             <div>
-                <div className={PAGE_EYEBROW}>{eyebrow}</div>
-                <h2 className="mt-0.5 font-display text-[30px] font-extrabold leading-none tracking-[-0.02em] max-sm:text-2xl">
+                <h2 className="font-display text-[30px] font-extrabold leading-none tracking-[-0.02em] max-sm:text-2xl">
                     {title}
                 </h2>
                 {crumb && <StageCrumb {...crumb} className="mt-2.5" />}

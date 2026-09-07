@@ -434,7 +434,10 @@ export default function App({
                                 screens drop their own headers here (`heading={false}`),
                                 since a second title under the control that names the
                                 same thing is a title twice. */}
-                            <StageHeader eyebrow="Your honours" title="Records" />
+                            {/* It read "Your honours" over "Records", the same words
+                                twice. No page header takes an eyebrow now; the rule and
+                                why it ended up absolute are in `StageHeader`. */}
+                            <StageHeader title="Records" />
                             <SubTabs
                                 className="mb-[18px] max-w-[320px]"
                                 items={[
