@@ -173,6 +173,26 @@ export default function ChallengesScreen({
         )}
       </div>
 
+      {/* NO FAMILY HAS ANYTHING TO SHOW, which is a real state and used to be a blank
+          page. Every family returns null when the filter matches none of its entries, so
+          "Completed" on a career that has completed nothing rendered the head, the counter,
+          the filter row, and then several hundred pixels of nothing. Found while rewriting
+          the empty states (authenticity pass A13), and it is the one place there was no
+          copy to rewrite because there was no copy.
+
+          Both branches state the fact and why, and neither tells anybody to go and play a
+          run: the honours are the reward for playing, so a ledger nagging about it is the
+          shape A13 exists to remove. `open` being empty is the opposite state and a rarer
+          one, since it means the whole catalogue is done. `all` cannot be empty, the
+          catalogue being a constant, so it needs no branch. */}
+      {shownFamilies.length === 0 && (
+        <p className="mt-[22px] max-w-[46ch] text-[13px] leading-[1.5] text-muted">
+          {filter === 'done'
+            ? 'Nothing completed yet. An honour is judged when a run ends, against the run that just finished.'
+            : 'Nothing available. Every honour in the catalogue is already completed.'}
+        </p>
+      )}
+
       {/* The catalogue, by family */}
       {FAMILIES.map((family) => {
         const list = byFamily.get(family);

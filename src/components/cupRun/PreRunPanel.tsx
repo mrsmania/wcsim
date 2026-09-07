@@ -31,10 +31,14 @@ export default function PreRunPanel({
   ascension: { tier: number; max: number; onSelect: (tier: number) => void };
 }) {
   if (!xi) {
+    // An empty state says what is not here and why, and stops (authenticity pass A13,
+    // with the versus and cabinet ones as the model). It read "Draft your XI first,
+    // then bring it here for a Cup Run", which is an instruction to go and do the thing
+    // the button underneath it already does.
     return (
       <div className="rounded-md border border-dashed border-line bg-panel p-8 text-center shadow-hard">
         <p className="mb-4 text-[13.5px] text-muted">
-          Draft your XI first, then bring it here for a Cup Run.
+          A run plays the eleven you drafted, and there is no finished XI yet.
         </p>
         <Link to={buildTo} className={PRIMARY_BTN}>
           Draft your XI

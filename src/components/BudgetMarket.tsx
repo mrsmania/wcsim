@@ -715,7 +715,14 @@ export default function BudgetMarket({
           )}
         </div>
       ) : (
-        <div className="p-6 text-center font-mono text-[12px] text-muted">XI complete.</div>
+        // Says what is not there and why, in one sentence (authenticity pass A13). It read
+        // "XI complete.", which states what IS and leaves the reader to work out why the
+        // list they were shopping from has gone. No instruction to go and undo a purchase:
+        // the badge's remove control on the board is what reopens a slot, and a sentence
+        // pointing at it would be this panel telling somebody to fix something.
+        <div className="p-6 text-center font-mono text-[12px] text-muted">
+          Every slot is filled, so there is nothing left to buy.
+        </div>
       )}
 
       {onStartOver && (
