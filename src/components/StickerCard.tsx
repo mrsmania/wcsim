@@ -5,8 +5,32 @@ import Flag from './Flag';
 import { onStickerArtError, stickerArtSrc, TIER_META } from './stickerTheme';
 
 
-/** LOCAL EXPERIMENT (do not ship): how much of the card art is shown, measured from
- *  the TOP of the image. 1 = the whole picture, 0.5 = the upper half only. */
+/** How much of the card art is shown, measured from the TOP of the image. 1 = the whole
+ *  picture, 0.5 = the upper half only.
+ *
+ *  RATIFIED 2026-09-06, and it needed ratifying because it arrived by accident: it landed
+ *  in `ed0449e`, a commit about the missing-artwork silhouette, which never mentions it,
+ *  and it carried the comment "LOCAL EXPERIMENT (do not ship)" for twelve days while being
+ *  live on the site the whole time.
+ *
+ *  WHY 0.65 IS THE RIGHT NUMBER, measured over all 115 drawings rather than judged by eye.
+ *  The art is drawn to one template: the top of the head sits between 0% and 4.7% of the
+ *  image height on every card (a spread of 4.7 points across the whole set), and every
+ *  drawing runs to 99.3%, so all of them fill the canvas. A fixed crop from the top is
+ *  therefore safe here in a way it would not be for art composed freely - nothing is
+ *  beheaded, and 0.65 lands at the waistband on essentially every card.
+ *
+ *  WHAT IT COSTS, so nobody has to rediscover it. The drawings are not full-body: they are
+ *  cut at mid-thigh by the edge of the 400x600 canvas. Shown whole, a card is a figure
+ *  amputated above the knee standing in a large empty area of plain shorts, which is why
+ *  uncropped looks worse rather than more generous. Two things do go: a GOALKEEPER'S GLOVES
+ *  sit at 70-85% and are lost, so Neuer, Buffon, Casillas, Kahn and the rest are a coloured
+ *  long-sleeve shirt and nothing else; and the shorts number goes, which is redundant with
+ *  the shirt number. No face, crest, sleeve, armband or shirt number is near the line.
+ *
+ *  The lightbox depends on this. `AlbumScreen` opens a card to the FULL picture, and that
+ *  is only worth a gesture while the grid shows a crop. Take the crop out and opening a
+ *  card reveals nothing, so the two move together. */
 export const ART_VISIBLE_FRACTION = 0.65;
 
 /** Intrinsic size of every built sticker (`scripts/build-sticker-art.py` writes 400px
@@ -15,10 +39,21 @@ const ART_W = 400;
 const ART_H = 600;
 
 /** One sticker image, cropped to `ART_VISIBLE_FRACTION` of its height from the top.
- *  The box carries the visible aspect ratio and clips; the image itself is drawn at
- *  full card width, so the crop is a scale-up rather than a window onto the old size.
- *  A file that is missing or will not decode swaps to `STICKER_PLACEHOLDER_SRC`, so the
- *  box keeps its space and the grid does not reflow around the gap. */
+ *  The box carries the visible aspect ratio and clips; the image itself is drawn at full
+ *  card width.
+ *
+ *  THE SCALE-UP THIS COMMENT USED TO CLAIM IS MEASURED AGAINST THE VERSION BEFORE LAST,
+ *  and saying so matters because it changes what "revert" would mean. Against the same
+ *  code at `ART_VISIBLE_FRACTION = 1` this is a plain window onto the identical rendered
+ *  size: the image is 192x288 either way at a 192px column, and only the box shrinks, to
+ *  192x187. The scale-up is real against what came BEFORE the constant existed, which
+ *  letterboxed the 2:3 art inside a SQUARE (`aspect-square object-contain`, so 128x192 with
+ *  32px of dead space each side). So setting the constant to 1 does not restore the old
+ *  card, it produces a third framing that has never shipped.
+ *
+ *  A file that is missing or will not decode swaps to `STICKER_PLACEHOLDER_SRC`, so the box
+ *  keeps its space and the grid does not reflow around the gap. That silhouette is drawn
+ *  with the head high enough to survive this crop, which is one more thing tied to it. */
 export function StickerArt({
     id,
     className = '',
