@@ -7,6 +7,50 @@
       name="description"
       content="Draft an XI of real World Cup players, one position at a time, then play a simulated group stage and knockout run and try to win the cup."
     />
+    <!-- The link preview. This is the front door and not a nicety: a duel invitation
+         travels as a link by design, so the first thing most people ever see of the game
+         is whatever a chat client draws from these tags.
+
+         EVERY URL HERE IS ABSOLUTE, and it has to be: a preview crawler fetches the tag
+         values on their own, with no page to resolve a relative path against. The same
+         rule already caught the sign-in email's logo (see CLAUDE.md, "Hosting"), and it
+         fails silently in exactly the same way - a blank preview, no error anywhere.
+         The host is the custom domain, which serves from the root.
+
+         THE "15" IS THE ONE FIGURE IN THIS FILE THAT CANNOT DERIVE ITSELF. A meta tag is
+         static text; nothing reads WORLD_CUP_YEARS here. It was 15 when this was written,
+         verified against src/data/squads.ts, so: ADD A TOURNAMENT AND CHANGE IT HERE TOO,
+         in both the og and twitter copies, or the front door starts undercounting the game.
+
+         The image is built by `python scripts/build-share-card.py`, which derives its four
+         cards from the dataset (the highest-rated collectibles) and its colours from the
+         palette tokens. Re-run it after a ratings pass or a change to the card art. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Mondialino" />
+    <meta property="og:url" content="https://mondialino.ch/" />
+    <meta property="og:title" content="Mondialino - draft an XI from 15 World Cups" />
+    <meta
+      property="og:description"
+      content="A random World Cup squad comes up. You take one player, and he never comes up again. Do that eleven times, then play the tournament."
+    />
+    <meta property="og:image" content="https://mondialino.ch/share-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Four drawn sticker cards of World Cup players, side by side under the Mondialino wordmark."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Mondialino - draft an XI from 15 World Cups" />
+    <meta
+      name="twitter:description"
+      content="A random World Cup squad comes up. You take one player, and he never comes up again. Do that eleven times, then play the tournament."
+    />
+    <meta name="twitter:image" content="https://mondialino.ch/share-card.png" />
+    <meta
+      name="twitter:image:alt"
+      content="Four drawn sticker cards of World Cup players, side by side under the Mondialino wordmark."
+    />
     <!-- The browser chrome's colour, per theme. It matters more here than usual: the boot
          cover below paints its own literal background before any CSS loads, so without
          these the phone's address bar sat at its default while the page underneath was
