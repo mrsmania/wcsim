@@ -32,7 +32,13 @@ export default function RunEndPanel({
           {reward.ascensionMult > 1 && (
             <span className="ml-2 text-amber-ink">Ascension x{reward.ascensionMult}</span>
           )}
-          {reward.leveledUp && <span className="ml-2 font-bold text-pitch-ink">Level up!</span>}
+          {/* No exclamation mark, which it had: it was the only one in the app, and the
+              voice this pass is written to has none (A14, A19). The line beside it is
+              already the reward stated as figures, so the mark was atmosphere on top of
+              information. */}
+          {reward.leveledUp && (
+            <span className="ml-2 font-bold text-pitch-ink">New level</span>
+          )}
         </div>
       )}
       {!!reward?.challenges.length && (
