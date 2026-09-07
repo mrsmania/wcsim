@@ -112,9 +112,30 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
 
     return (
         <div className="mt-[30px]">
-            {/* HERO - the pitch as a tactics board, text laid over the grass */}
+            {/* HERO - the pitch as a tactics board, text laid over the grass.
+
+                THE RADIUS AND THE SHADOW ARE THE HOUSE ONES, and both used to be this
+                page's own (fixed 2026-09-07, authenticity pass A3). The corner was
+                `rounded-[14px]` and the beat tiles below are still `rounded-[10px]`, and
+                those were the only two radii in the whole codebase used exactly once:
+                everything else is 5px (33 uses) or the 6px card idiom (22). The 10px goes
+                when the beats do.
+
+                The shadow was the one that mattered. It was a bespoke
+                `7px_7px_0_var(--color-ink)` against the system's 6px `shadow-hard`, and
+                `ink` INVERTS, so in the DARK theme the front page carried a near-white slab
+                down its right and bottom edges, brighter than anything else on the screen.
+                That is the same fault class as the scrim below, whose own note records
+                being fixed on 2026-09-02, three days earlier, and this one stayed live.
+                `--shadow-hard` is `6px 6px 0 var(--color-pitch-dark)`, which does not
+                invert, so the offset is a deep green in both themes: it matches the sticker
+                cards further down the page in daylight, and at night it nearly disappears,
+                which is what every card in the app already does. The general rule is the
+                one the scrim states below in capitals, reached a second time from a
+                different direction: a theme-swapped token laid over a surface that is NOT
+                theme-swapped is a bug waiting for somebody to open the other theme. */}
             <section
-                className="relative flex items-center gap-10 overflow-hidden rounded-[14px] px-[clamp(22px,5vw,52px)] py-[clamp(30px,5vw,54px)] text-white shadow-[7px_7px_0_var(--color-ink)]"
+                className="relative flex items-center gap-10 overflow-hidden rounded-[5px] px-[clamp(22px,5vw,52px)] py-[clamp(30px,5vw,54px)] text-white shadow-hard"
                 style={{ background: GRASS_BASE }}
             >
                 <div
