@@ -4,3 +4,8 @@
 # and the custom domain then silently does not apply. This repo is worked on from
 # Windows with core.autocrlf=true, which converts it on checkout, so pin it to LF.
 public/CNAME text eol=lf
+
+# A shell script deployed to the NAS: a CR after the shebang makes it "bad
+# interpreter" on Linux, and this repo is worked on from Windows with
+# core.autocrlf=true, which would convert it on checkout. Same reason as CNAME.
+scripts/nas-pg-backup.sh text eol=lf
