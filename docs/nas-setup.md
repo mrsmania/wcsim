@@ -1260,11 +1260,109 @@ ssh $NAS "cd $STACK && sudo -n /usr/local/bin/docker compose restart api-gw"
 Then heal the firewall again. `scripts/studio-lan-only.py --revert` does the same thing when
 the patch is being run on the box itself.
 
+## The sign-in rate limits
+
+Roadmap item 62 habit 1, applied 2026-09-08. **The endpoint was never unlimited**, which is
+what the item assumed: the `supabase/gotrue` image ships three separate limiters and all
+three were live on their defaults. What was wrong was the SIZE of one of them, and it was
+wrong in the opposite direction to the one the item worried about.
+
+| Limiter | Env var | Default | Scope |
+| --- | --- | --- | --- |
+| gap between two codes to the same address | `GOTRUE_SMTP_MAX_FREQUENCY` | 1 minute | per address |
+| code requests | `GOTRUE_RATE_LIMIT_OTP` | 30 per 5 min | **per IP** |
+| mail actually sent | `GOTRUE_RATE_LIMIT_EMAIL_SENT` | 30 per hour | **one shared bucket** |
+
+**The per-address gap is the one players see** ("you can only request this after 37
+seconds") and it was doing its job. **The shared hourly bucket was the problem.** Thirty an
+hour caps the spam story the item told, so nobody was ever going to mail thousands of
+strangers; what it does instead is hand anybody a way to switch sign-in off for everyone.
+The per-IP limiter's burst is **hardcoded to 30 in the image whatever this file says**
+(`newLimiterPer5mOver1h` calls `SetBurst(30)`), so one IP with thirty addresses drains the
+whole hour's mail in one go and every real player then gets the blocking unreachable screen
+(D9) until it resets.
+
+So the three are now set explicitly, in `.env` **and** passed through in
+`docker-compose.yml`:
+
+```
+GOTRUE_RATE_LIMIT_EMAIL_SENT=200/1h
+GOTRUE_RATE_LIMIT_OTP=10
+GOTRUE_SMTP_MAX_FREQUENCY=60s
+```
+
+**`200/1h` rather than `200` is a different limiter, not a tidier spelling.** A bare number
+decodes to an interval counter that resets on the hour, so it fails hard and stays failed;
+`N/duration` decodes to a token bucket that refills steadily (one every 18 seconds here) and
+recovers on its own. 200 also sits comfortably above the ~120 an hour one IP can sustain at
+`OTP=10`, which is the whole point: **a single attacker must no longer be able to empty the
+bucket everybody shares.**
+
+**Amazon SES's "maximum send rate" is not this control and does not replace it.** That 14 a
+second is a ceiling on the sender, there to protect Amazon, and says nothing about who may
+ask us to send. What SES does enforce is bounce and complaint rate, and it pauses an account
+that crosses them, so the move to SES raised the stakes on this rather than settling them.
+
+**It cannot be tested by exercising it**, and that is worth stating rather than leaving as a
+gap in the record: proving the hourly bucket would mean sending 200 real emails, which is the
+exact thing it exists to prevent, and aiming them at invented addresses would bounce and
+damage the reputation SES scores us on. What was verified: the values are present in the
+running container, and **a malformed rate stops GoTrue booting**, so a healthy container is
+itself proof they parsed.
+
+**Applying them re-creates the container** (environment is fixed at creation, so editing
+`.env` alone is inert and a restart is not enough), which wipes the docker bridge firewall
+and blacks the stack out for three to five minutes. See "The container firewall rules".
+
+## The nightly database dump
+
+Roadmap item 62 habit 2. `scripts/nas-pg-backup.sh` in the repo, deployed to
+`/volume1/docker/wcsim-supabase/nas-pg-backup.sh`. **NFR-6 said no backups and that was
+right while there were no accounts**; an album is not re-earnable and a career is not
+re-playable, so it stops being right the day a collection is real.
+
+It dumps the `postgres` database in custom format to **`/volume1/backup/wcsim-db/`** and
+keeps 30 days. Measured 2026-09-08: the database is 19 MB and a dump is **508 KB**, so a
+month of them is about 15 MB.
+
+Three things in it are decisions rather than detail:
+
+- **The dumps do not live beside the stack.** A dump on the same disk as the database dies
+  with the database, so it has to land where an off-box job already copies it.
+  **`/volume1/backup` must be in the Hyper Backup selection or this is not a backup**, and
+  that is the one part of this no script can check.
+- **It reads back what it wrote.** Every run lists the dump's own table of contents and
+  refuses a file that cannot be read or that comes out implausibly small, writing to a temp
+  name and renaming only once that passes. A half-written dump can therefore never be
+  mistaken for a good one.
+- **Pruning never empties the folder.** If the retention rule would delete everything, it
+  deletes nothing and says so in the log.
+
+**The restore was tested, into a scratch database rather than over the live one** (2026-09-08).
+All four game tables came back with exactly the live counts (profiles 8, career 6,
+album_stickers 141, auth.users 8) across 42 tables. **Two objects fail to restore and both
+are Supabase's own, not the game's**: `realtime.list_changes` (it sets `log_min_messages`,
+which needs a privilege the restoring role does not have) and `vault.secrets`. Both are
+recreated by the stack's own init, so the dump is a complete backup of the GAME's data and
+not a complete image of the cluster. Worth knowing now rather than during a disaster.
+
+```
+# restore over the live database, in anger
+docker exec -i supabase-db pg_restore -U postgres -d postgres --clean --if-exists < <dump>
+```
+
+**The schedule is the one part that needs the owner.** The sudoers rule covers
+`/usr/local/bin/docker` and nothing else, so an agent cannot create a scheduled task: DSM,
+Control Panel, Task Scheduler, a nightly user-defined script running
+`/volume1/docker/wcsim-supabase/nas-pg-backup.sh`. It is safe to run as root or as `mario`;
+the script works out whether it needs `sudo`.
+
 ## Afterwards
 
 - **Updates are manual.** Pull new images deliberately; self-hosted version bumps
   occasionally need a hand-applied step. Read their release notes before a jump.
-- **Nothing is backed up** (NFR-6, an accepted decision). If you change your mind, a
-  nightly `pg_dump` into a folder Hyper Backup already covers is the cheap version.
+- **The dump exists now** (2026-09-08), which reverses NFR-6's "nothing is backed up" for
+  the database: see "The nightly database dump" above. It still needs its schedule creating
+  in Task Scheduler, and `/volume1/backup` needs to be in the Hyper Backup selection.
 - **Rotating `JWT_SECRET` invalidates both keys and every session**, so it is not a casual
   change once people are signed in.

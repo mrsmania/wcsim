@@ -367,17 +367,42 @@
       project's send quota and its sender reputation and locks every signed-in player out;
       <b>nothing is backed up</b>, which was a recorded decision (NFR-6) and stops being the
       right one the day a collection is real; and <b>five</b> public-facing images are pinned
-      with nobody watching their advisories. <b>An hour for the first, an evening for the second, a diary entry for the
-      third.</b> None of them is urgent and none of them is hard.</span>
+      with nobody watching their advisories. <b>Two of the three are DONE (2026-09-08): the limits are set and the dump is written and
+      its restore tested.</b> What is left is the dump's nightly schedule and its off-box
+      copy, both of which need the owner in DSM, and the third habit, which is a diary entry
+      rather than work.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>1. The sign-in mail has no limits, and it is the likeliest of the three to
-    happen.</strong> The stack's <code>.env</code> sets no <code>GOTRUE_RATE_LIMIT_*</code>
-    value, so the endpoint runs on whatever the <code>supabase/gotrue</code> image happens to
-    default to, which is a real answer to nobody. It costs no data at all, which is exactly
+    <p><strong>1. DONE 2026-09-08, and the premise below was WRONG in a way worth keeping.</strong>
+    The runbook section is
+    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>,
+    "The sign-in rate limits". <b>The endpoint was never unlimited.</b> The
+    <code>supabase/gotrue</code> image ships three limiters and all three were live on their
+    defaults: a one minute gap per address (which is the "you can only request this after 37
+    seconds" a player sees, reported by the owner and the thing that prompted the recount), 30
+    code requests per 5 minutes <b>per IP</b>, and 30 mails an hour in <b>one bucket shared by
+    everybody</b>. So the spam story this item told could not happen: 30 an hour is not
+    thousands of strangers.
+    <br><br>
+    <b>What was actually wrong was the size of the shared bucket, and it pointed the other
+    way.</b> Not "somebody mails the world" but "anybody switches sign-in off for everybody":
+    the per-IP limiter's burst is <b>hardcoded to 30 in the image whatever the config says</b>,
+    so one IP with thirty addresses drains the whole hour's mail in one go and every real
+    player then meets D9 until it resets. The three are now set explicitly
+    (<code>EMAIL_SENT=200/1h</code>, <code>OTP=10</code>, <code>MAX_FREQUENCY=60s</code>), and
+    <code>200/1h</code> rather than <code>200</code> is a <b>different limiter</b> rather than a
+    tidier spelling: a bare number is an interval counter that resets on the hour, where
+    <code>N/duration</code> is a token bucket that refills steadily and recovers on its own. 200
+    sits above the ~120 an hour one IP can sustain, which is the point.
+    <br><br>
+    <b>It cannot be tested by exercising it</b>, and that is recorded rather than glossed:
+    proving the bucket means sending 200 real emails, which is the thing it prevents, and
+    aiming them at invented addresses would bounce and damage the reputation SES scores us on.
+    A malformed rate stops GoTrue booting, so a healthy container is the proof they parsed.
+    <b>The original reasoning, kept because the shape of it still holds:</b> It costs no data at all, which is exactly
     why it is easy to leave: somebody hammering it sends Mondialino codes to thousands of
     strangers, those strangers report them as spam, and <b>every signed-in player then cannot
     log in</b> (D9, the blocking unreachable screen) while the single-player game carries on
@@ -402,7 +427,25 @@
     already carries twice (the mailer templates in 2026-08-26, the OTP expiry in
     2026-09-08).</p>
 
-    <p><strong>2. Nothing is backed up, and that was the right call until it wasn't.</strong>
+    <p><strong>2. DONE 2026-09-08, bar the schedule, which needs the owner.</strong>
+    <code>scripts/nas-pg-backup.sh</code>, runbook in
+    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>,
+    "The nightly database dump". It dumps to <code>/volume1/backup/wcsim-db/</code> and keeps
+    30 days; the database is 19 MB and a dump is <b>508 KB</b>, so a month is about 15 MB. It
+    reads back what it wrote (lists the dump's own table of contents, refuses one that cannot
+    be read or is implausibly small, renames only once that passes) and it will not prune the
+    folder to nothing.
+    <b>The restore was tested, into a scratch database rather than over the live one:</b> all
+    four game tables came back with exactly the live counts across 42 tables. <b>Two objects
+    fail and both are Supabase's own rather than the game's</b> -
+    <code>realtime.list_changes</code> and <code>vault.secrets</code>, both recreated by the
+    stack's init - so this is a complete backup of the GAME's data and not an image of the
+    cluster, which is worth knowing now rather than during a disaster.
+    <b>Two things are still owed and neither is code:</b> the nightly Task Scheduler entry
+    (the sudoers rule covers docker and nothing else, so no agent can create one), and
+    <code>/volume1/backup</code> being in the Hyper Backup selection, which is the one part
+    of this no script can check and without which it is not a backup at all.
+    <b>The original reasoning:</b>
     NFR-6 in <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>
     decided it deliberately, and it held while there were no accounts and while the accounts
     were being wiped before launch. The day a player has a collection worth having, an album
