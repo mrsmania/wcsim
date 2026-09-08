@@ -513,9 +513,35 @@
     the residual risk once all of the above is done, and the answer to it is the same three
     habits: fewer hostnames on that port, updates applied, and a backup that exists.</p>
 
-    <p class="next"><strong>Next step:</strong> run check A and read the two screens of check
-    B. Together they turn the third link from "not proved" into an answer, and neither
-    changes a thing. Then D1, which is the only decision that can delete work.</p>
+    <div class="callout">
+      <span class="ct">D1 is answered, and the change is written and waiting (2026-09-08)</span>
+      <b>The console password leaked</b>, by being built into a web address and pasted into a
+      chat, which is the ordinary way that one leaks: a link is something you share without
+      thinking. It has been rotated. <b>D1 is therefore decided by events rather than on the
+      merits</b>: the console loses its internet path and keeps the LAN and the VPN.
+      <br><br>
+      The patch is <code>scripts/studio-lan-only.py</code>, with fourteen assertions beside
+      it in <code>scripts/studio-lan-only.test.py</code> and the runbook in
+      <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>,
+      "Taking the admin console off the internet". Two rules in it are worth carrying: it is
+      a <b>surgical edit of the live file</b> rather than a file pushed from the laptop,
+      because <code>dkr/</code> is a mirror that goes stale and pushing from it is how the
+      mailer settings were reverted on 2026-08-26; and the rule <b>matches on the requested
+      hostname, not the client address</b>, because the DSM proxy dials the same listener
+      over loopback so an internet request is indistinguishable from a LAN one by address.
+      That is also what makes it fail closed.
+      <br><br>
+      <b>Not applied yet, and it needs the home network</b>, which is the same wall the
+      referee rebuilds hit: the API answers over HTTPS from anywhere, but editing the config
+      needs to reach the box. <b>The one check that cannot be done from indoors</b> is a
+      phone on mobile data: if the public root still prompts for a password there, the proxy
+      is rewriting the host to the NAS's own address and the rule is matching it, which is
+      the single way this looks applied and is not.
+    </div>
+
+    <p class="next"><strong>Next step:</strong> apply the prepared change from a machine with
+    home access, then run check A and read the two screens of check B. Together those turn
+    the third link from "not proved" into an answer, and neither changes a thing.</p>
     <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a> (sections 3 and 4, and "The container firewall rules"), <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a> (NFR-6), <code>dkr/docker-compose.yml</code> and <code>dkr/volumes/api/envoy/lds.template.yaml</code> (both untracked, mirrors of the NAS), <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
   </div>
 </details>

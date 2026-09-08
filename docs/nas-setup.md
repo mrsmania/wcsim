@@ -1001,6 +1001,122 @@ every step above safe to do in advance.
 - The full undo is the rollback block in `0017_pvp_referee.sql`, then 0016's, then stopping
   the two containers and reverting the three envoy files.
 
+---
+
+## Taking the admin console off the internet
+
+Roadmap item 61. **The console used to answer at the root of `HOST` behind one basic-auth
+password, and the connection behind it is `postgres`, the SUPERUSER**: read and write every
+table, and `copy ... from program` for a shell inside the `db` container. So a password that
+leaked once was total control of the database from anywhere in the world, with no second
+factor, no lockout and no rate limit anywhere in the chain. It leaked on 2026-09-08, by being
+built into a web address and pasted into a chat, which is the ordinary way that password
+leaks: a link is something you share without thinking.
+
+**The game is not affected by any of this and must not be.** Sign-in, saving and versus live
+on `/auth/v1/`, `/rest/v1/` and `/referee/`, which are matched earlier in the same listener
+and never reach the console's route. **The API stays public**: every signed-in player's
+browser calls it from the internet, so making the API itself LAN-only would break the
+product. Only the console moves.
+
+### What the change is
+
+`volumes/api/envoy/lds.template.yaml` ends with one unconditional catch-all: anything not
+claimed by an earlier route goes to `cluster: studio`. It becomes two routes:
+
+- **`studio-lan`**, the same route with a `:authority` header match, so the console answers
+  only a request addressed to the NAS itself (`http://192.168.1.115:8000/`). The password
+  still guards it.
+- **`studio-not-here`**, a `direct_response` 404 for everything else, with `basic_auth`
+  **disabled** on that route: a password prompt would confirm there is something there worth
+  guessing at.
+
+**IT IS MATCHED ON THE HOST BECAUSE THE ADDRESS CANNOT TELL THEM APART**, and that is the one
+non-obvious thing here. The DSM reverse proxy dials this same listener over loopback, so an
+internet request arrives from the host exactly as a LAN one does and `use_remote_address`
+buys nothing. What differs is what the request ASKS FOR. **So it fails closed**: only the
+NAS's own address is allowed, and the public hostname, `localhost`, and any header nobody
+predicted all fall through to the 404. Add a prefix if you reach the NAS by name;
+**never add the public hostname**, which is the whole point.
+
+### Applying it
+
+`scripts/studio-lan-only.py` is the patch, and it is a **surgical edit of the live file
+rather than a new file pushed from a laptop**, because `dkr/` is a mirror that goes stale in
+both directions and shipping a whole file from it is how the mailer settings were silently
+reverted on 2026-08-26. It refuses to touch anything that is not the shape it expects and
+prints why, it is idempotent, and it keeps a timestamped backup. `--check` changes nothing.
+`scripts/studio-lan-only.test.py` is fourteen assertions over the staged fixture (it needs
+`pip install pyyaml` and is deliberately not part of `npm run checks`, which has no python).
+
+Run it against a copy fetched from the box, then put that copy back, so the patch never needs
+python on the NAS:
+
+```
+NAS=mario@192.168.1.115
+STACK=/volume1/docker/wcsim-supabase
+LDS=$STACK/volumes/api/envoy/lds.template.yaml
+
+# 1. Fetch the LIVE file. `ssh cat` rather than scp: DSM ships the SFTP subsystem off.
+ssh $NAS "cat $LDS" > /tmp/lds.live.yaml
+
+# 2. Patch the copy. Refuses and explains itself if the live file has drifted.
+LDS_PATH=/tmp/lds.live.yaml python3 scripts/studio-lan-only.py --check
+LDS_PATH=/tmp/lds.live.yaml python3 scripts/studio-lan-only.py --apply
+
+# 3. Back the live file up, then write the patched one over it.
+ssh $NAS "cp -p $LDS $LDS.bak-\$(date +%Y%m%d-%H%M%S)"
+ssh $NAS "cat > $LDS" < /tmp/lds.live.yaml
+
+# 4. Envoy reads its routes at STARTUP, so nothing is live until this.
+ssh $NAS "cd $STACK && sudo -n /usr/local/bin/docker compose restart api-gw"
+```
+
+**Then heal the bridge firewall.** Step 4 is a container operation, so it wipes the docker
+bridge FORWARD rules and the whole stack answers
+`upstream connect error ... reset reason: connection timeout` until they come back. DSM,
+Control Panel, Task Scheduler, press **Run** on the docker firewall job, or wait out its
+5-minute schedule. **This step needs the owner**: the NOPASSWD sudoers rule covers
+`/usr/local/bin/docker` and nothing else, so `iptables` is not available to an agent.
+
+### Proving it
+
+**The LAN test and the internet test are the same test, and that is a property of the rule
+rather than a shortcut.** It keys on the hostname the request asks for, not on where the
+request came from, so asking for the public hostname exercises the public path even from
+indoors, as long as it goes through the proxy on 443.
+
+```
+# Must be 404, and must NOT prompt for a password.
+curl -s -o /dev/null -w '%{http_code}\n' https://HOST/
+
+# Must still be a version JSON: the game is untouched.
+curl -s https://HOST/referee/version
+
+# Must be 401 with detail not-authenticated, not 404: the referee still refuses the anon key.
+curl -s -X POST -H "Authorization: Bearer ANON_KEY" https://HOST/referee/v1/rooms
+
+# Must still prompt for the dashboard password, and let you in.
+open http://192.168.1.115:8000/
+```
+
+Then confirm from a phone **on mobile data** rather than wifi, which is the only check that
+involves none of the home network at all. If `https://HOST/` prompts for a password there,
+the proxy is rewriting the host to the NAS's own address and the rule is matching it: that is
+the one way this change looks applied and is not.
+
+### Rolling back
+
+One command and a restart, and the console is public again:
+
+```
+ssh $NAS "cp -p \$(ls -t $LDS.bak-* | head -1) $LDS"
+ssh $NAS "cd $STACK && sudo -n /usr/local/bin/docker compose restart api-gw"
+```
+
+Then heal the firewall again. `scripts/studio-lan-only.py --revert` does the same thing when
+the patch is being run on the box itself.
+
 ## Afterwards
 
 - **Updates are manual.** Pull new images deliberately; self-hosted version bumps
