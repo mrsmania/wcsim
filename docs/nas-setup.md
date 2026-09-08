@@ -753,7 +753,22 @@ DSM rewrite the chain, the boot task does not fire, and the stack is down until 
 Task Scheduler and press **Run** on it. That is the whole recovery. Turning the firewall
 off also "fixes" it, which misleads: it removes the blocking chain rather than restoring
 these rules. **The job ALSO runs on a 5-minute schedule** (confirmed in place 2026-08-27),
-which is what makes the outage self-healing rather than lasting until somebody notices. This
+which is what makes the outage self-healing rather than lasting until somebody notices -
+**except that on 2026-09-08 it did not, and that is the failure mode to know about.**
+Three container operations that morning each healed in one to three minutes, exactly as
+described. A fourth, re-creating `api-gw` for the Envoy upgrade, did not heal at all: the
+stack was down for over half an hour and only a manual **Run** brought it back. The chain
+at the time had **none of the five rules present** and the catch-all DROP at the bottom had
+swallowed 29,379 packets, so the guard clause below could not have been what stopped it -
+with rule 1 absent, `-C` fails and the job proceeds to insert. The only reading left is that
+the scheduled task **was not executing**, and nothing in the stack can tell you that: the job
+logs through `logger` to `/var/log/messages`, which is `system:log` and unreadable by
+`mario`, so its silence is not evidence either way.
+**So treat the self-heal as a convenience and never as the recovery.** After any container
+operation, if the stack is still answering 503 after about five minutes, go and press Run
+rather than waiting longer, and while you are in Task Scheduler check the job is still
+enabled and still has both its triggers. The five rules can also be re-inserted by hand,
+which is what the block above is, and a re-run is a no-op because of the guard. This
 paragraph used to argue the opposite, that a repeating task was not worth a job running
 forever for something you do twice a year: that reasoning died when the rules turned out to
 be wiped by ANY container operation and not just by boots and firewall edits, which is many
