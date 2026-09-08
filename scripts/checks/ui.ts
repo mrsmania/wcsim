@@ -212,6 +212,44 @@ export function uiChecks(): void {
     );
   }
 
+  // --- Gold on the green, which is a surface that does NOT flip -------------
+  // `amber-on-green` exists because `amber-ink` was used here and `amber-ink` FLIPS: deep
+  // amber on paper, bright amber on graphite. The champion banner and the bracket's cup
+  // node are dark green under BOTH themes, so a foreground that inverts is right in one of
+  // them and unreadable in the other. It measured 1.37 in the light theme, the worst figure
+  // in the app, and 4.86 in the dark one, which is exactly why it survived every earlier
+  // contrast pass: whoever looked was in the other theme.
+  //
+  // This is the third instance of that one fault (the hero's scrim, the hero's shadow, and
+  // now this), so it is worth a check rather than another comment.
+  {
+    const bad: string[] = [];
+    for (const [label, theme] of [['light', light], ['dark', dark]] as const) {
+      const v = contrast(theme['amber-on-green']!, theme['pitch-dark']!);
+      if (v < AA) bad.push(`amber-on-green on pitch-dark ${label} ${v.toFixed(2)}`);
+    }
+    // IT MUST NOT FLIP. A token redefined per theme cannot be correct on a surface that is
+    // the same colour in both, and re-adding it to the dark block is the obvious "tidy-up"
+    // that would put the bug straight back.
+    if (light['amber-on-green'] !== dark['amber-on-green']) {
+      bad.push(`amber-on-green differs by theme: ${light['amber-on-green']} vs ${dark['amber-on-green']}`);
+    }
+    // VACUITY, and it is the load-bearing half: both of the colours that were being used
+    // here have to FAIL, or this check is passing on a claim that was never in doubt and a
+    // revert to either one would go unnoticed.
+    if (contrast(light['amber-ink']!, light['pitch-dark']!) >= AA) {
+      bad.push('amber-ink already passed on the green, so this check proves nothing');
+    }
+    if (contrast(light['amber']!, light['pitch-dark']!) >= AA) {
+      bad.push('the surface amber already passed on the green, so this check proves nothing');
+    }
+    check(
+      'ui: gold on the champion green clears AA in both themes, and does not flip with the theme',
+      () => bad.length === 0,
+      () => bad.join(', '),
+    );
+  }
+
   // --- The hero's turf, which is the only reason a dark surface exists -----
   // The front page's CTAs sit on the grass, under the scrim that deepens it for the words.
   // Three alphas stack there, so the ground is COMPOSITED rather than assumed, and both

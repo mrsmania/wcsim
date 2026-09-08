@@ -75,6 +75,28 @@
        the latter carrying a comment that it mirrored Pitch by hand. */
     --color-grass: #1a7d45;
     --color-grass-stripe: #1f8a4d;
+    /* GOLD AS TEXT ON THE APP'S DARK GREEN, and like the grass pair above it is
+       deliberately NOT overridden in the dark theme: the surfaces it goes on (the champion
+       banner, the bracket's cup node) are green under either theme, so a foreground laid
+       over them must be too.
+
+       It exists because `--color-amber-ink` was being used there and `amber-ink` FLIPS: it
+       is a deep amber on paper and a bright one on graphite, which is right for its actual
+       job (amber as text on a light surface, where the surface amber fails AA) and wrong
+       on a surface that does not flip with it. The champion banner's eyebrow measured
+       **1.37** in the light theme, the worst figure in the app and effectively invisible,
+       while reading a perfectly healthy 4.86 in the dark theme, which is why it survived
+       every previous contrast pass: whoever checked it was in the other theme.
+
+       This is the THIRD instance of that one fault. The hero's scrim was `ink` over green
+       until 2026-09-02, the hero's shadow was `ink` over the page until 2026-09-07, and
+       this is the same sentence a third time: a theme-swapped token over a surface that is
+       not theme-swapped is a bug waiting for somebody to open the other theme.
+
+       4.89 on the light theme's `pitch-dark` and 6.26 on the dark theme's, so it clears the
+       4.5 that 9px and 10px labels need in both. `npm run checks` recomputes both from the
+       real tokens. */
+    --color-amber-on-green: #f5c168;
     --shadow-soft: 0 1px 2px rgba(19, 33, 26, 0.05), 0 12px 30px rgba(19, 33, 26, 0.07);
     /* Tifo-style hard drop shadow for cards: solid colour, zero blur, offset. */
     --shadow-hard: 6px 6px 0 var(--color-pitch-dark);
@@ -485,13 +507,18 @@ button.bkt-match:focus-visible {
     font-weight: 600;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--color-amber);
+    /* See --color-amber-on-green. The surface amber measured 3.25 here in the light theme
+       against the 4.5 a 9px label needs. */
+    color: var(--color-amber-on-green);
 }
 .bkt-cup .bkt-cup-trophy {
     display: block;
     width: fit-content;
     margin: 5px auto 4px;
-    color: var(--color-amber);
+    /* The trophy moves with its label rather than staying on the surface amber: as an icon
+       it only owed 3:1 and was already clearing it, but two different golds 5px apart on
+       one node is worse than either. */
+    color: var(--color-amber-on-green);
 }
 .bkt-cup .bkt-cup-nm {
     font-family: var(--font-display);

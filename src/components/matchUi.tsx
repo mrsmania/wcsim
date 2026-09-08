@@ -762,9 +762,13 @@ export function Banner({
             <span
                 className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full border-2 ${arc}`}
             />
+            {/* The champion branch was `text-amber-ink` on this green, which measured
+                1.37 in the light theme: `amber-ink` is a DEEP amber on paper, and this
+                surface is dark green in both themes rather than paper in one of them. See
+                --color-amber-on-green in index.css, which does not flip. */}
             <div
                 className={`relative font-mono text-[10px] font-semibold uppercase tracking-[0.2em] ${
-                    champion ? 'text-amber-ink' : 'text-loss'
+                    champion ? 'text-amber-on-green' : 'text-loss'
                 }`}
             >
                 {eyebrow}
