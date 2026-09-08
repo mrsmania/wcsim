@@ -341,7 +341,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-09-08<br>
-    <strong>Open:</strong> 6 items, one scheduled<br>
+    <strong>Open:</strong> 6 items, none scheduled<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -351,284 +351,70 @@
   <button id="toggle-all" type="button">Expand all</button>
 </div>
 
-<div class="band"><h2>Next up</h2><span>before the site takes real traffic</span></div>
+<div class="band"><h2>Next up</h2><span>nothing scheduled</span></div>
 
-<details class="item">
-  <summary>
-    <span class="num">61</span>
-    <span class="title">Can a player reach the files on the NAS?
-      <span class="sub">The site goes live on a home connection, so the question worth answering is not whether one player can read another's album, it is whether anybody can reach the <b>photos, videos and documents</b> on the box. The chain has four links: <b>three are already shut, and two of those by accident rather than by decision.</b> The one config change is <b>APPLIED and verified (2026-09-08)</b>: the database admin console no longer answers on the public hostname, and keeps the LAN and the VPN. It was confirmed from a phone on mobile data, so the one check that could have contradicted it is in. Check A is also run and green, which proves a container can reach nothing on the NAS itself. Check B is half answered: every NAS login carries MFA and <code>admin</code> is disabled, so <b>what is left of it is the exposure LIST rather than the login strength</b>, since the flaws that matter on that port are reached without a login form ever being drawn. Then three cheap habits. <b>Half a day, and it is a launch gate rather than a feature.</b></span>
-    </span>
-    <span class="tag">Hosting</span>
-    <span class="chev">&#9656;</span>
-  </summary>
-  <div class="detail">
-    <p><strong>The reframing is the whole item, and it changes what the work is.</strong>
-    The game's own database is close to worthless: there are no production users, nothing is
-    backed up by a recorded decision (NFR-6 in
-    <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener"><code>docs/cloud-sync-requirements.md</code></a>),
-    and the accounts are being wiped before launch anyway. A photo library is neither
-    replaceable nor re-earnable. So everything below is ordered by <b>blast radius</b>
-    rather than by what protects an album, and the three recommendations that only protect
-    the app's own data are last on purpose.</p>
-
-    <p><strong>The honest answer to "is it possible at all" is: not in one step, and
-    probably not at all, but the last link is not proved.</strong> Reaching a file needs
-    four separate things to go wrong, and it is the third that nobody has written an answer
-    for.</p>
-
-    <ol>
-      <li><b>Get past the front door.</b> One port is forwarded (443) and it carries five
-      paths. Four of them are the game and are gated properly: sign-in and the accounts data
-      need the public key and then per-row rules, the raw SQL endpoint needs the secret key
-      which never leaves the box, and the versus referee checks the player's own session and
-      refuses the public key on purpose. <b>The fifth is the database admin console at the
-      root of that hostname, and it is guarded by one password.</b> See the change below.</li>
-
-      <li><b>Get out of the container.</b> The link that is genuinely shut, and it was shut
-      by following the upstream compose rather than by anybody deciding it:
-      <b>no container mounts the docker socket, none is privileged, none adds a capability,
-      and none mounts a host path outside the stack's own folder</b> (one line,
-      <code>./volumes/db/data</code>). Superuser SQL through the admin console does reach a
-      shell inside the database container, and that shell finds the stack folder and nothing
-      else belonging to the owner. Worth re-checking after any compose change, because the
-      upstream file <em>does</em> ship a service that mounts the socket
-      (<code>vector</code>) and the trim in section 4 is what removes it. <b>If a future pull
-      puts it back, this item's answer changes from "no" to "yes".</b></li>
-
-      <li><b>Reach the NAS itself from the container network.</b> <b>NOT PROVED, and it is
-      the check to run first.</b> The boot-up task's rule 4
-      (<code>-i docker+ -d 192.168.1.0/24 -j DROP</code>) reads as though it settles this
-      and does not: it is in the <code>FORWARD</code> chain, and a packet a container
-      addresses to the NAS's <em>own</em> address is destined for a local address, so the
-      kernel routes it to <code>INPUT</code> and it never traverses <code>FORWARD</code> at
-      all. What rule 4 does protect is <b>every other machine on the home network</b>, which
-      is real and worth knowing: a broken container cannot scan the laptops or the phones.
-      The host itself is governed by whatever the DSM firewall allows from
-      <code>172.17.0.0-172.31.255.255</code>, which
-      <a class="dl" href="nas-setup.md" target="_blank" rel="noopener"><code>docs/nas-setup.md</code></a>
-      mentions in passing ("covers only container to host traffic") without ever saying what
-      is on that port list.</li>
-
-      <li><b>Get at a share.</b> Only reachable if link 3 is open on the right port: 445 and
-      139 for the file shares, 5000 and 5001 for DSM's own web interface, 22 for the shell,
-      111 and 2049 for NFS, 3260 for iSCSI. <b>Nothing in this stack needs to reach the host
-      at all</b> (the reverse proxy dials in the other direction and its replies are
-      established traffic), so the correct port list for the docker ranges is the empty one.
-      If the check below says otherwise, that is the finding.</li>
-    </ol>
-
-    <div class="callout">
-      <span class="ct">The two checks, and neither changes anything</span>
-      <b>Check A, container to host.</b> Run from inside the real container network, using
-      an image already on the box: the gateway's own health check proves it carries
-      <code>bash</code>, which is what supplies <code>/dev/tcp</code>.
-<pre>sudo -n /usr/local/bin/docker exec supabase-envoy bash -c \
-  'for p in 22 139 445 2049 3260 5000 5001; do \
-     (timeout 2 bash -c "&lt;/dev/tcp/192.168.1.115/$p") 2>/dev/null \
-       &amp;&amp; echo "$p OPEN" || echo "$p shut"; done'</pre>
-      Seven times <code>shut</code> is the answer this item wants, and it turns link 3 into a
-      proved one. Anything <code>OPEN</code> is a port to take off the DSM firewall rule
-      scoped to the docker ranges. Note the sudo rule is per command, so the full path is
-      required and no password is asked for.
-      <br><br>
-      <b>RUN 2026-09-08, and it is seven times <code>shut</code>. Link 3 is proved.</b> So a
-      container that was somehow broken out of reaches no file share, no DSM web interface,
-      no shell, no NFS and no iSCSI on the host, and link 4 is therefore unreachable rather
-      than merely unlikely. <b>It was run with a control in the same command</b>, because a
-      probe that reports <code>shut</code> for everything is exactly what a broken probe
-      looks like: the same <code>/dev/tcp</code> in the same container answered
-      <code>OPEN</code> for <code>supabase-rest:3000</code> and <code>supabase-db:5432</code>
-      in the same breath, so the seven refusals are real refusals. Re-run it after any change
-      to the DSM firewall's docker-range rule, which is the one thing that can quietly
-      reopen it.
-      <br><br>
-      <b>Check B, what else answers on the public address.</b> This one has nothing to do
-      with the game and matters more than everything above it, so do it even if the rest of
-      this item is dropped: Control Panel, Login Portal, Advanced, Reverse Proxy, and read
-      the whole rule list, then the router's port forwarding list beside it. <b>Every other
-      hostname sharing that 443 is a second front door with its own history of
-      vulnerabilities</b>, and DSM's login portal or a photo package on that port is a far
-      shorter route to a file than anything the game exposes. There is no command for it; it
-      is two screens and five minutes.
-    </div>
-
-    <p><strong>The one change worth making, and it is the front door.</strong> The root of
-    the API hostname serves the database admin console, and the connection behind it is the
-    database <b>superuser</b>: read and write every table, and also run shell commands
-    inside that container. Between "past one password" and all of that there are no steps.
-    The password is 64 random characters so guessing is not the worry, and nothing in the
-    chain rate-limits attempts anyway. The worry is that this is a web application updated
-    by somebody else, so any future flaw in it that works before authentication lands
-    directly in front of that single check, and that HTTP basic auth resends the password on
-    every request and never expires.</p>
-
-    <p><strong>Deny it for the public hostname only, at the gateway.</strong> The envoy
-    listener has one virtual host on <code>domains: ['*']</code>. Add a second keyed on the
-    API hostname whose catch-all route is a DENY, the same block the <code>/mcp</code> route
-    already carries, and leave <code>'*'</code> alone: the console stays reachable over the
-    LAN on port 8000, which the DSM firewall already keeps LAN-only, and disappears from the
-    internet. Two traps, both already paid for once in this repo:</p>
-    <ul>
-      <li><b>Do not do it by stopping the container instead.</b> <code>api-gw</code> carries
-      <code>depends_on: studio: condition: service_healthy</code>, so studio comes back on
-      the next boot or deploy and the gateway waits for it while it does.</li>
-      <li><b>The edit belongs in the staged copy under <code>dkr/</code>, not only on the
-      NAS.</b> <code>--config</code> replaces the NAS's compose and envoy files with the
-      local ones, which is exactly how the mailer settings were silently reverted on
-      2026-08-26. <code>dkr/</code> is a mirror and it goes stale in both directions, so
-      pull the live files down before editing them.</li>
-    </ul>
-
-    <p><strong>Then the cheap ones, in the order they will actually bite.</strong></p>
-    <ol>
-      <li><b>Rate limits on the sign-in mail.</b> The most likely thing to happen to this
-      deployment, and it costs no data at all. The <code>.env</code> sets no
-      <code>GOTRUE_RATE_LIMIT_*</code> value, so the sign-in endpoint runs on whatever the
-      image defaults to. Somebody hammering it sends Mondialino codes to thousands of
-      strangers from the project's Gmail, the mailbox is suspended for spam, and <b>every
-      signed-in player then cannot log in</b> while the single-player game carries on
-      unaffected. Set the send and verify limits explicitly. Note the same endpoint
-      enumerates: a distinct answer for a known address says whether that person plays.
-      <b>Updated 2026-09-08:</b> the sign-in mail has moved off Gmail to Amazon SES, sending
-      as <code>no-reply@mondialino.ch</code>, confirmed by a successful sign-in through it.
-      That does not retire this habit, it sharpens it: a metered sender turns an unthrottled
-      endpoint into a bill and a sender reputation as well as a suspension, and the send
-      quota is a ceiling somebody else's flood can spend on your behalf.</li>
-      <li><b>A nightly <code>pg_dump</code> into a folder Hyper Backup already covers.</b>
-      NFR-6 said no backups and that was right while nobody had an account. The day
-      collections are real it stops being right, and this is the cheap version the setup
-      note already names.</li>
-      <li><b>An update habit for four public-facing images.</b> They are pinned by version
-      and nothing announces a hole in one of them. Over a year this is the likeliest way in,
-      ahead of anything clever, and the mitigation is a diary entry rather than code.</li>
-    </ol>
-
-    <p><strong>Three decisions.</strong></p>
-    <ul>
-      <li><b>D1. Does the admin console keep an internet path at all?</b> The 2026-08-17
-      decision was that opening the SQL editor from anywhere is worth the surface, and it
-      was taken when the box was answering to nobody. Denying it costs fixing the database
-      from a phone on somebody else's network; the LAN and the VPN both still reach it, and
-      <code>npm run push:sql</code> works from anywhere regardless, which is most of what
-      that access was ever for.</li>
-      <li><b>D2. Is the home address itself a problem?</b> The API hostname resolves to the
-      house and the game ships that hostname in its bundle, so anybody who plays knows where
-      the connection is. That is a flooding and attention surface rather than a data one, and
-      it is the standing price of self-hosting.</li>
-      <li><b>D3. A tunnel instead of a forwarded port.</b> Answers D2, removes the inbound
-      port entirely, hides the address, and gives somewhere to put the rate limits of item 1.
-      Against it: a third party in front of sign-in, and one more thing that can take
-      accounts down on its own. Already named as the fallback in section 0 of the setup note
-      for a different reason (shared address space), so the shape of the work is known.</li>
-    </ul>
-
-    <p><strong>What this item cannot answer, stated plainly so it is not read as a clean bill
-    of health.</strong> A flaw in DSM or in one of its own packages sits outside every
-    mitigation here, and it is reached through check B rather than through the game. That is
-    the residual risk once all of the above is done, and the answer to it is the same three
-    habits: fewer hostnames on that port, updates applied, and a backup that exists.</p>
-
-    <div class="callout">
-      <span class="ct">D1 is answered, and the change is APPLIED and VERIFIED (2026-09-08)</span>
-      <b>The console password leaked</b>, by being built into a web address and pasted into a
-      chat, which is the ordinary way that one leaks: a link is something you share without
-      thinking. It has been rotated. <b>D1 is therefore decided by events rather than on the
-      merits</b>: the console loses its internet path and keeps the LAN and the VPN.
-      <br><br>
-      The patch is <code>scripts/studio-lan-only.py</code>, with fourteen assertions beside
-      it in <code>scripts/studio-lan-only.test.py</code> and the runbook in
-      <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>,
-      "Taking the admin console off the internet". Two rules in it are worth carrying: it is
-      a <b>surgical edit of the live file</b> rather than a file pushed from the laptop,
-      because <code>dkr/</code> is a mirror that goes stale and pushing from it is how the
-      mailer settings were reverted on 2026-08-26; and the rule <b>matches on the requested
-      hostname, not the client address</b>, because the DSM proxy dials the same listener
-      over loopback so an internet request is indistinguishable from a LAN one by address.
-      That is also what makes it fail closed.
-      <br><br>
-      <b>APPLIED 2026-09-08</b>, by the runbook exactly: the live file was fetched over
-      <code>ssh cat</code>, patched on the laptop, written back beside a timestamped backup,
-      and <code>api-gw</code> restarted. <code>--check</code> found the catch-all once and
-      reported no drift, and the fourteen assertions were re-run first. Envoy came back
-      healthy and logged <code>lds: add/update listener 'supabase'</code> with no config
-      error.
-      <br><br>
-      <b>The three checks, all green.</b> The public root answers <b>404</b> with no
-      <code>www-authenticate</code> header at all, so there is no prompt;
-      <code>/referee/version</code> still answers its JSON; and
-      <code>http://192.168.1.115:8000/</code> still prompts for the dashboard password.
-      <b>What proves it keys on the HOST rather than on the port</b> is the pair that differs
-      by one header: the same box on the same port answers 401 for a request addressed to
-      <code>192.168.1.115</code> and 404 for the identical request addressed to the public
-      hostname. Offering a password to the public root gets the 404 too, so that route really
-      does have <code>basic_auth</code> switched off rather than merely hiding the console
-      behind it, and the console's own deeper paths (<code>/project/default/sql</code>,
-      <code>/api/platform/profile</code>) are 404 as well.
-      <br><br>
-      <b>The game was measured on both sides of the change and did not move.</b> GoTrue
-      answers <code>/auth/v1/health</code> and <code>/auth/v1/settings</code>, PostgREST
-      reaches the database, and the referee still refuses the public key with
-      <code>not-authenticated</code> rather than 404, which is the check that proves
-      <code>/referee/</code> is still matched ahead of the catch-all.
-      <br><br>
-      <b>CONFIRMED FROM A PHONE ON MOBILE DATA</b> by the owner, the same day, which is the
-      only check involving none of the home network and so the only one that could have
-      contradicted the rest. It agrees with what the realm had already implied: BEFORE the
-      change, the public root's password prompt was labelled
-      <code>http://wcsim-api.mariosmania.ch/</code>, which is envoy quoting back the host it
-      was asked for, so the DSM proxy passes the original host through rather than rewriting
-      it to the NAS's own address. That rewrite is the single failure mode this design has,
-      and it is not present. <b>The console's internet path is closed, and proved closed from
-      outside the house.</b>
-      <br><br>
-      <b>The bridge firewall did not need healing, which was not expected.</b>
-      <code>docker compose restart</code> leaves the FORWARD rules alone where a recreate
-      wipes them, so the stack answered throughout and the five-minute window the runbook
-      warns about never opened. Worth knowing for the next restart, and not worth relying on
-      for a recreate.
-      <br><br>
-      <b>The <code>dkr/</code> mirror was brought up to the live file afterwards.</b> It was
-      byte-identical to the PRE-change version, so a later
-      <code>deploy-referee.sh --config</code> would have put the console back on the public
-      internet silently: the 2026-08-26 trap the patch's own header names, reached from the
-      other direction.
-    </div>
-
-    <div class="callout">
-      <span class="ct">Check B, half answered: MFA is on, and MFA is not the question (2026-09-08)</span>
-      Reported by the owner: <b>every login to the NAS requires MFA, and the <code>admin</code>
-      account is disabled.</b> Both are worth having, and the second is worth more than it
-      looks: <code>admin</code> is the one username every credential-stuffing run on earth
-      already knows.
-      <br><br>
-      <b>It does not close check B, because check B was never about guessing a password.</b>
-      Three things sit outside MFA entirely. A <b>pre-authentication</b> flaw in whatever
-      publishes on that port is reached without the login form ever being drawn, so MFA is
-      not in its path at all, and DSM and its packages have a real history of exactly that.
-      <b>Protocols that do not use the portal</b> (SMB, WebDAV, FTP, rsync, NFS) authenticate
-      their own way and mostly cannot carry a second factor. And a <b>stolen session</b> is
-      past the factor by definition.
-      <br><br>
-      So what the two screens answer is unchanged, and it is a COUNT rather than a strength:
-      <b>how many things are published, and does each one need to be?</b> The console this
-      item just moved is the worked example. It had a 64-character password and that was
-      never the point; taking it off the port was. Anything on that list that could be
-      reached over the VPN instead is a door that can stop existing, and the honest target
-      for a box holding the family photo library is that <b>the game's API is the only thing
-      on it</b>.
-    </div>
-
-    <p class="next"><strong>Next step:</strong> read the two screens and write the published
-    list into this item, one line each with whether it has to be public. That is the last
-    thing between this item and a real answer. Then the three habits, sign-in rate limits
-    first: they are the likeliest to bite, and more so now the mail is metered.</p>
-    <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a> (sections 3 and 4, and "The container firewall rules"), <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a> (NFR-6), <code>dkr/docker-compose.yml</code> and <code>dkr/volumes/api/envoy/lds.template.yaml</code> (both untracked, mirrors of the NAS), <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
-  </div>
-</details>
 
 
 <div class="band"><h2>Later</h2><span>spec'd as ideas, not scheduled</span></div>
+
+<details class="item">
+  <summary>
+    <span class="num">62</span>
+    <span class="title">Three habits the accounts server has never had
+      <span class="sub">What item 61 turned up that is genuinely this repo's rather than the
+      NAS's, and all three are about the game's own data rather than the owner's files: the
+      sign-in endpoint has <b>no rate limit set at all</b>, so somebody hammering it spends
+      the project's Gmail and locks every signed-in player out; <b>nothing is backed up</b>,
+      which was a recorded decision (NFR-6) and stops being the right one the day a
+      collection is real; and four public-facing images are pinned with nobody watching their
+      advisories. <b>An hour for the first, an evening for the second, a diary entry for the
+      third.</b> None of them is urgent and none of them is hard.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>1. The sign-in mail has no limits, and it is the likeliest of the three to
+    happen.</strong> The stack's <code>.env</code> sets no <code>GOTRUE_RATE_LIMIT_*</code>
+    value, so the endpoint runs on whatever the <code>supabase/gotrue</code> image happens to
+    default to, which is a real answer to nobody. It costs no data at all, which is exactly
+    why it is easy to leave: somebody hammering it sends Mondialino codes to thousands of
+    strangers from <code>worldcupsim@gmail.com</code>, the mailbox is suspended for spam, and
+    <b>every signed-in player then cannot log in</b> (D9, the blocking unreachable screen)
+    while the single-player game carries on perfectly. Set the send and the verify limits
+    explicitly. <b>Two things go with it.</b> The same endpoint enumerates, so a distinct
+    answer for a known address says whether that person plays; and the limit has to be
+    handed through the compose <code>environment:</code> allowlist as well as set in
+    <code>.env</code>, or it reaches nothing, silently, which is the trap that section
+    already carries twice (the mailer templates in 2026-08-26, the OTP expiry in
+    2026-09-08).</p>
+
+    <p><strong>2. Nothing is backed up, and that was the right call until it wasn't.</strong>
+    NFR-6 in <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>
+    decided it deliberately, and it held while there were no accounts and while the accounts
+    were being wiped before launch. The day a player has a collection worth having, an album
+    is not re-earnable and a career is not re-playable. The cheap version is the one
+    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>
+    already names: a nightly <code>pg_dump</code> into a folder Hyper Backup covers. <b>Test
+    the restore once</b>, or it is a habit rather than a backup.</p>
+
+    <p><strong>3. Four public-facing images are pinned and unwatched.</strong> The gateway,
+    the auth server, PostgREST and the referee's own base, each at a fixed version, and
+    nothing tells anybody when a hole is found in one. Over a year this is a likelier way in
+    than anything clever, and it is the one item here with no code in it: a reminder to read
+    the release notes and pull deliberately, which the runbook's "Afterwards" section already
+    says to do without saying when.</p>
+
+    <p><strong>Why these three are together and why they are in Later.</strong> They are what
+    was left of item 61 after its own question was answered, they are all about the game's
+    own data rather than the owner's files, and not one of them is a reason to delay
+    anything. Take the first one before real traffic if you take any.</p>
+
+    <p class="next"><strong>Next step:</strong> the rate limits, since they are one line in
+    two files and protect the one failure that takes sign-in down for everybody at once.</p>
+    <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a> ("The sign-in code's expiry" has the two-files trap, "Afterwards" has the update note), <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a> (NFR-6), <code>dkr/.env</code> and <code>dkr/docker-compose.yml</code> (both untracked, mirrors of the NAS)</p>
+  </div>
+</details>
 
 <details class="item">
   <summary>
@@ -1282,6 +1068,310 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
+    <h3>Closed 2026-09-08</h3>
+<details class="item">
+  <summary>
+    <span class="num">61</span>
+    <span class="title">Can a player reach the files on the NAS?
+      <span class="sub"><b>CLOSED 2026-09-08, and the question it asked is answered: no.</b> It asked whether anybody reaching the game could reach the photos, videos and documents on the NAS. Three of the four links in that chain are now PROVED shut rather than assumed: a container sees only its own folder, cannot reach anything else in the house, and (check A, seven ports, all shut) cannot reach the NAS itself. The fourth was the front door, and the database admin console no longer answers on the public hostname at all, confirmed from outside the network and from a phone on mobile data. <b>What it turned up beyond the game is out of scope for this repo</b> and the owner is reviewing the NAS as a whole outside the project; the three habits that ARE this repo's are item 62.</b></span>
+    </span>
+    <span class="tag">Hosting</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <div class="callout">
+      <span class="ct">Closed 2026-09-08: what is settled, and what left the project</span>
+      <b>Settled, and each of these was measured rather than argued.</b> The admin console
+      is off the public hostname (verified from a corporate network and from a phone on
+      mobile data: the root answers 404 with no password prompt, while sign-in, saving and
+      versus all still answer normally). Check A came back seven times shut. A container
+      mounts no docker socket, holds no capability and sees no host path but the stack's own
+      folder. Together those are the "no" in the summary.
+      <br><br>
+      <b>What left the project.</b> Check B was "what else does the NAS publish to the
+      internet", and the honest answer to it is a review of the whole box: DSM itself, its
+      packages, the router, the protocols that do not use the portal. None of that is the
+      game's, none of it can be read from this repo, and keeping it open here would have
+      parked an item nobody working on the game could close. <b>The owner is tracking it
+      outside the project.</b> Two findings are worth carrying across if it is ever picked
+      up here again, since both were established and neither is obvious:
+      <ul>
+        <li><b>MFA does not answer it.</b> Every NAS login carries MFA and
+        <code>admin</code> is disabled, which is worth having, and three things sit outside
+        the factor entirely: a pre-authentication flaw never draws the login form, the file
+        protocols authenticate their own way and mostly cannot carry a second factor, and a
+        stolen session is past it by definition.</li>
+        <li><b>The question is a COUNT, not a strength.</b> How many things are published,
+        and does each need to be? This item's own console is the worked example: it had a
+        64-character password and that was never the point, taking it off the port was.</li>
+      </ul>
+      <b>What stayed.</b> The three habits about the game's own data, which are small,
+      genuinely this repo's, and would have vanished with the item that found them. Item 62.
+    </div>
+
+    <p><strong>The reframing is the whole item, and it changes what the work is.</strong>
+    The game's own database is close to worthless: there are no production users, nothing is
+    backed up by a recorded decision (NFR-6 in
+    <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener"><code>docs/cloud-sync-requirements.md</code></a>),
+    and the accounts are being wiped before launch anyway. A photo library is neither
+    replaceable nor re-earnable. So everything below is ordered by <b>blast radius</b>
+    rather than by what protects an album, and the three recommendations that only protect
+    the app's own data are last on purpose.</p>
+
+    <p><strong>The honest answer to "is it possible at all" is: not in one step, and
+    probably not at all, but the last link is not proved.</strong> Reaching a file needs
+    four separate things to go wrong, and it is the third that nobody has written an answer
+    for.</p>
+
+    <ol>
+      <li><b>Get past the front door.</b> One port is forwarded (443) and it carries five
+      paths. Four of them are the game and are gated properly: sign-in and the accounts data
+      need the public key and then per-row rules, the raw SQL endpoint needs the secret key
+      which never leaves the box, and the versus referee checks the player's own session and
+      refuses the public key on purpose. <b>The fifth is the database admin console at the
+      root of that hostname, and it is guarded by one password.</b> See the change below.</li>
+
+      <li><b>Get out of the container.</b> The link that is genuinely shut, and it was shut
+      by following the upstream compose rather than by anybody deciding it:
+      <b>no container mounts the docker socket, none is privileged, none adds a capability,
+      and none mounts a host path outside the stack's own folder</b> (one line,
+      <code>./volumes/db/data</code>). Superuser SQL through the admin console does reach a
+      shell inside the database container, and that shell finds the stack folder and nothing
+      else belonging to the owner. Worth re-checking after any compose change, because the
+      upstream file <em>does</em> ship a service that mounts the socket
+      (<code>vector</code>) and the trim in section 4 is what removes it. <b>If a future pull
+      puts it back, this item's answer changes from "no" to "yes".</b></li>
+
+      <li><b>Reach the NAS itself from the container network.</b> <b>NOT PROVED, and it is
+      the check to run first.</b> The boot-up task's rule 4
+      (<code>-i docker+ -d 192.168.1.0/24 -j DROP</code>) reads as though it settles this
+      and does not: it is in the <code>FORWARD</code> chain, and a packet a container
+      addresses to the NAS's <em>own</em> address is destined for a local address, so the
+      kernel routes it to <code>INPUT</code> and it never traverses <code>FORWARD</code> at
+      all. What rule 4 does protect is <b>every other machine on the home network</b>, which
+      is real and worth knowing: a broken container cannot scan the laptops or the phones.
+      The host itself is governed by whatever the DSM firewall allows from
+      <code>172.17.0.0-172.31.255.255</code>, which
+      <a class="dl" href="nas-setup.md" target="_blank" rel="noopener"><code>docs/nas-setup.md</code></a>
+      mentions in passing ("covers only container to host traffic") without ever saying what
+      is on that port list.</li>
+
+      <li><b>Get at a share.</b> Only reachable if link 3 is open on the right port: 445 and
+      139 for the file shares, 5000 and 5001 for DSM's own web interface, 22 for the shell,
+      111 and 2049 for NFS, 3260 for iSCSI. <b>Nothing in this stack needs to reach the host
+      at all</b> (the reverse proxy dials in the other direction and its replies are
+      established traffic), so the correct port list for the docker ranges is the empty one.
+      If the check below says otherwise, that is the finding.</li>
+    </ol>
+
+    <div class="callout">
+      <span class="ct">The two checks, and neither changes anything</span>
+      <b>Check A, container to host.</b> Run from inside the real container network, using
+      an image already on the box: the gateway's own health check proves it carries
+      <code>bash</code>, which is what supplies <code>/dev/tcp</code>.
+<pre>sudo -n /usr/local/bin/docker exec supabase-envoy bash -c \
+  'for p in 22 139 445 2049 3260 5000 5001; do \
+     (timeout 2 bash -c "&lt;/dev/tcp/192.168.1.115/$p") 2>/dev/null \
+       &amp;&amp; echo "$p OPEN" || echo "$p shut"; done'</pre>
+      Seven times <code>shut</code> is the answer this item wants, and it turns link 3 into a
+      proved one. Anything <code>OPEN</code> is a port to take off the DSM firewall rule
+      scoped to the docker ranges. Note the sudo rule is per command, so the full path is
+      required and no password is asked for.
+      <br><br>
+      <b>RUN 2026-09-08, and it is seven times <code>shut</code>. Link 3 is proved.</b> So a
+      container that was somehow broken out of reaches no file share, no DSM web interface,
+      no shell, no NFS and no iSCSI on the host, and link 4 is therefore unreachable rather
+      than merely unlikely. <b>It was run with a control in the same command</b>, because a
+      probe that reports <code>shut</code> for everything is exactly what a broken probe
+      looks like: the same <code>/dev/tcp</code> in the same container answered
+      <code>OPEN</code> for <code>supabase-rest:3000</code> and <code>supabase-db:5432</code>
+      in the same breath, so the seven refusals are real refusals. Re-run it after any change
+      to the DSM firewall's docker-range rule, which is the one thing that can quietly
+      reopen it.
+      <br><br>
+      <b>Check B, what else answers on the public address.</b> This one has nothing to do
+      with the game and matters more than everything above it, so do it even if the rest of
+      this item is dropped: Control Panel, Login Portal, Advanced, Reverse Proxy, and read
+      the whole rule list, then the router's port forwarding list beside it. <b>Every other
+      hostname sharing that 443 is a second front door with its own history of
+      vulnerabilities</b>, and DSM's login portal or a photo package on that port is a far
+      shorter route to a file than anything the game exposes. There is no command for it; it
+      is two screens and five minutes.
+    </div>
+
+    <p><strong>The one change worth making, and it is the front door.</strong> The root of
+    the API hostname serves the database admin console, and the connection behind it is the
+    database <b>superuser</b>: read and write every table, and also run shell commands
+    inside that container. Between "past one password" and all of that there are no steps.
+    The password is 64 random characters so guessing is not the worry, and nothing in the
+    chain rate-limits attempts anyway. The worry is that this is a web application updated
+    by somebody else, so any future flaw in it that works before authentication lands
+    directly in front of that single check, and that HTTP basic auth resends the password on
+    every request and never expires.</p>
+
+    <p><strong>Deny it for the public hostname only, at the gateway.</strong> The envoy
+    listener has one virtual host on <code>domains: ['*']</code>. Add a second keyed on the
+    API hostname whose catch-all route is a DENY, the same block the <code>/mcp</code> route
+    already carries, and leave <code>'*'</code> alone: the console stays reachable over the
+    LAN on port 8000, which the DSM firewall already keeps LAN-only, and disappears from the
+    internet. Two traps, both already paid for once in this repo:</p>
+    <ul>
+      <li><b>Do not do it by stopping the container instead.</b> <code>api-gw</code> carries
+      <code>depends_on: studio: condition: service_healthy</code>, so studio comes back on
+      the next boot or deploy and the gateway waits for it while it does.</li>
+      <li><b>The edit belongs in the staged copy under <code>dkr/</code>, not only on the
+      NAS.</b> <code>--config</code> replaces the NAS's compose and envoy files with the
+      local ones, which is exactly how the mailer settings were silently reverted on
+      2026-08-26. <code>dkr/</code> is a mirror and it goes stale in both directions, so
+      pull the live files down before editing them.</li>
+    </ul>
+
+    <p><strong>Then the cheap ones, in the order they will actually bite.</strong></p>
+    <ol>
+      <li><b>Rate limits on the sign-in mail.</b> The most likely thing to happen to this
+      deployment, and it costs no data at all. The <code>.env</code> sets no
+      <code>GOTRUE_RATE_LIMIT_*</code> value, so the sign-in endpoint runs on whatever the
+      image defaults to. Somebody hammering it sends Mondialino codes to thousands of
+      strangers from the project's Gmail, the mailbox is suspended for spam, and <b>every
+      signed-in player then cannot log in</b> while the single-player game carries on
+      unaffected. Set the send and verify limits explicitly. Note the same endpoint
+      enumerates: a distinct answer for a known address says whether that person plays.
+      <b>Updated 2026-09-08:</b> the sign-in mail has moved off Gmail to Amazon SES, sending
+      as <code>no-reply@mondialino.ch</code>, confirmed by a successful sign-in through it.
+      That does not retire this habit, it sharpens it: a metered sender turns an unthrottled
+      endpoint into a bill and a sender reputation as well as a suspension, and the send
+      quota is a ceiling somebody else's flood can spend on your behalf.</li>
+      <li><b>A nightly <code>pg_dump</code> into a folder Hyper Backup already covers.</b>
+      NFR-6 said no backups and that was right while nobody had an account. The day
+      collections are real it stops being right, and this is the cheap version the setup
+      note already names.</li>
+      <li><b>An update habit for four public-facing images.</b> They are pinned by version
+      and nothing announces a hole in one of them. Over a year this is the likeliest way in,
+      ahead of anything clever, and the mitigation is a diary entry rather than code.</li>
+    </ol>
+
+    <p><strong>Three decisions.</strong></p>
+    <ul>
+      <li><b>D1. Does the admin console keep an internet path at all?</b> The 2026-08-17
+      decision was that opening the SQL editor from anywhere is worth the surface, and it
+      was taken when the box was answering to nobody. Denying it costs fixing the database
+      from a phone on somebody else's network; the LAN and the VPN both still reach it, and
+      <code>npm run push:sql</code> works from anywhere regardless, which is most of what
+      that access was ever for.</li>
+      <li><b>D2. Is the home address itself a problem?</b> The API hostname resolves to the
+      house and the game ships that hostname in its bundle, so anybody who plays knows where
+      the connection is. That is a flooding and attention surface rather than a data one, and
+      it is the standing price of self-hosting.</li>
+      <li><b>D3. A tunnel instead of a forwarded port.</b> Answers D2, removes the inbound
+      port entirely, hides the address, and gives somewhere to put the rate limits of item 1.
+      Against it: a third party in front of sign-in, and one more thing that can take
+      accounts down on its own. Already named as the fallback in section 0 of the setup note
+      for a different reason (shared address space), so the shape of the work is known.</li>
+    </ul>
+
+    <p><strong>What this item cannot answer, stated plainly so it is not read as a clean bill
+    of health.</strong> A flaw in DSM or in one of its own packages sits outside every
+    mitigation here, and it is reached through check B rather than through the game. That is
+    the residual risk once all of the above is done, and the answer to it is the same three
+    habits: fewer hostnames on that port, updates applied, and a backup that exists.</p>
+
+    <div class="callout">
+      <span class="ct">D1 is answered, and the change is APPLIED and VERIFIED (2026-09-08)</span>
+      <b>The console password leaked</b>, by being built into a web address and pasted into a
+      chat, which is the ordinary way that one leaks: a link is something you share without
+      thinking. It has been rotated. <b>D1 is therefore decided by events rather than on the
+      merits</b>: the console loses its internet path and keeps the LAN and the VPN.
+      <br><br>
+      The patch is <code>scripts/studio-lan-only.py</code>, with fourteen assertions beside
+      it in <code>scripts/studio-lan-only.test.py</code> and the runbook in
+      <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>,
+      "Taking the admin console off the internet". Two rules in it are worth carrying: it is
+      a <b>surgical edit of the live file</b> rather than a file pushed from the laptop,
+      because <code>dkr/</code> is a mirror that goes stale and pushing from it is how the
+      mailer settings were reverted on 2026-08-26; and the rule <b>matches on the requested
+      hostname, not the client address</b>, because the DSM proxy dials the same listener
+      over loopback so an internet request is indistinguishable from a LAN one by address.
+      That is also what makes it fail closed.
+      <br><br>
+      <b>APPLIED 2026-09-08</b>, by the runbook exactly: the live file was fetched over
+      <code>ssh cat</code>, patched on the laptop, written back beside a timestamped backup,
+      and <code>api-gw</code> restarted. <code>--check</code> found the catch-all once and
+      reported no drift, and the fourteen assertions were re-run first. Envoy came back
+      healthy and logged <code>lds: add/update listener 'supabase'</code> with no config
+      error.
+      <br><br>
+      <b>The three checks, all green.</b> The public root answers <b>404</b> with no
+      <code>www-authenticate</code> header at all, so there is no prompt;
+      <code>/referee/version</code> still answers its JSON; and
+      <code>http://192.168.1.115:8000/</code> still prompts for the dashboard password.
+      <b>What proves it keys on the HOST rather than on the port</b> is the pair that differs
+      by one header: the same box on the same port answers 401 for a request addressed to
+      <code>192.168.1.115</code> and 404 for the identical request addressed to the public
+      hostname. Offering a password to the public root gets the 404 too, so that route really
+      does have <code>basic_auth</code> switched off rather than merely hiding the console
+      behind it, and the console's own deeper paths (<code>/project/default/sql</code>,
+      <code>/api/platform/profile</code>) are 404 as well.
+      <br><br>
+      <b>The game was measured on both sides of the change and did not move.</b> GoTrue
+      answers <code>/auth/v1/health</code> and <code>/auth/v1/settings</code>, PostgREST
+      reaches the database, and the referee still refuses the public key with
+      <code>not-authenticated</code> rather than 404, which is the check that proves
+      <code>/referee/</code> is still matched ahead of the catch-all.
+      <br><br>
+      <b>CONFIRMED FROM A PHONE ON MOBILE DATA</b> by the owner, the same day, which is the
+      only check involving none of the home network and so the only one that could have
+      contradicted the rest. It agrees with what the realm had already implied: BEFORE the
+      change, the public root's password prompt was labelled
+      <code>http://wcsim-api.mariosmania.ch/</code>, which is envoy quoting back the host it
+      was asked for, so the DSM proxy passes the original host through rather than rewriting
+      it to the NAS's own address. That rewrite is the single failure mode this design has,
+      and it is not present. <b>The console's internet path is closed, and proved closed from
+      outside the house.</b>
+      <br><br>
+      <b>The bridge firewall did not need healing, which was not expected.</b>
+      <code>docker compose restart</code> leaves the FORWARD rules alone where a recreate
+      wipes them, so the stack answered throughout and the five-minute window the runbook
+      warns about never opened. Worth knowing for the next restart, and not worth relying on
+      for a recreate.
+      <br><br>
+      <b>The <code>dkr/</code> mirror was brought up to the live file afterwards.</b> It was
+      byte-identical to the PRE-change version, so a later
+      <code>deploy-referee.sh --config</code> would have put the console back on the public
+      internet silently: the 2026-08-26 trap the patch's own header names, reached from the
+      other direction.
+    </div>
+
+    <div class="callout">
+      <span class="ct">Check B, half answered: MFA is on, and MFA is not the question (2026-09-08)</span>
+      Reported by the owner: <b>every login to the NAS requires MFA, and the <code>admin</code>
+      account is disabled.</b> Both are worth having, and the second is worth more than it
+      looks: <code>admin</code> is the one username every credential-stuffing run on earth
+      already knows.
+      <br><br>
+      <b>It does not close check B, because check B was never about guessing a password.</b>
+      Three things sit outside MFA entirely. A <b>pre-authentication</b> flaw in whatever
+      publishes on that port is reached without the login form ever being drawn, so MFA is
+      not in its path at all, and DSM and its packages have a real history of exactly that.
+      <b>Protocols that do not use the portal</b> (SMB, WebDAV, FTP, rsync, NFS) authenticate
+      their own way and mostly cannot carry a second factor. And a <b>stolen session</b> is
+      past the factor by definition.
+      <br><br>
+      So what the two screens answer is unchanged, and it is a COUNT rather than a strength:
+      <b>how many things are published, and does each one need to be?</b> The console this
+      item just moved is the worked example. It had a 64-character password and that was
+      never the point; taking it off the port was. Anything on that list that could be
+      reached over the VPN instead is a door that can stop existing, and the honest target
+      for a box holding the family photo library is that <b>the game's API is the only thing
+      on it</b>.
+    </div>
+
+    <p class="next"><strong>Next step:</strong> read the two screens and write the published
+    list into this item, one line each with whether it has to be public. That is the last
+    thing between this item and a real answer. Then the three habits, sign-in rate limits
+    first: they are the likeliest to bite, and more so now the mail is metered.</p>
+    <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a> (sections 3 and 4, and "The container firewall rules"), <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a> (NFR-6), <code>dkr/docker-compose.yml</code> and <code>dkr/volumes/api/envoy/lds.template.yaml</code> (both untracked, mirrors of the NAS), <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
+  </div>
+</details>
     <h3>Closed 2026-09-06</h3>
 <details class="item">
   <summary>
