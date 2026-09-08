@@ -1,6 +1,6 @@
 # Making Mondialino multilingual
 
-A plan, not a change. Nothing here is built. Written 2026-09-04, rewritten the same day
+A plan, not a change. Nothing here is built. Written 2026-09-08, rewritten the same day
 after a review that found nine factual errors in the first draft; the corrections are kept
 in the text where they are load-bearing, because most of them were the first draft reading
 `CLAUDE.md` where it should have read the code.
@@ -12,14 +12,29 @@ library.** Everything else is consequence.
 
 ## 0. The one thing the owner has to decide
 
-**Which languages.** Recommendation: **English and German first, French and Italian after.**
-Swiss domain, three national languages, English stays the source of truth either way.
+**Settled 2026-09-08. `en` and `de` first; `fr`, `it`, `pt-PT` and `pt-BR` later.**
+Six locales, five languages. Swiss domain for the first four, and the two Portuguese ones
+because Brazil is the largest football audience there is and Portugal is not it.
 
 The honest cost, up front: **the code is about a week and the German is the rest of it.**
-Every decision below is aimed at making the second language expensive once and the third and
-fourth nearly free, because that is the only part of this a plan can change.
+Everything below is aimed at making the second locale expensive once and the four after it
+nearly free, because that is the only part of this a plan can change.
 
-One other decision is owed later, in wave 3, and section 8.1 states it.
+One decision is owed later, in wave 3, and section 9.1 states it.
+
+**`pt-PT` and `pt-BR` are two full files, not a base and an override layer**, and this is the
+one place the language list changes the design rather than just its length. The football
+vocabulary genuinely differs (`goleiro` against `guarda-redes`, `time` against `equipa`,
+`zagueiro` against `defesa central`, `torcida` against `adeptos`), so both earn their place.
+But an override layer, where `pt-BR` holds only the entries that differ, produces screens
+half in one dialect and half in the other, which reads worse to a Brazilian than plain
+European Portuguese does. It also breaks the one property the whole approach rests on: with
+an override layer, a missing key is not a build error, it is a silent fall-through. A full
+file costs almost nothing to produce (it is a pass over `pt-PT`, not a fresh translation) and
+keeps the type doing its job.
+
+**The codes are `pt-PT` and `pt-BR`, never a bare `pt`**, so nobody ever has to guess which
+one somebody meant.
 
 ---
 
@@ -36,7 +51,7 @@ Measured against `ec20975`.
 | Perks, Ascensions, badges (`career.ts`, `ascension.ts`, `badges.ts`) | ~50 |
 | Referee refusals (`components/versus/refereeMessage.ts`) | ~40 |
 | Chemistry categories, round names, style labels, tier names | ~30 |
-| Nation names (`data/squads.ts`) | 87 distinct |
+| Nation names (`data/squads.ts`) | 87 distinct, so 522 entries across six locales |
 | `index.html` | the meta description, and `lang="en"` |
 
 Call it **1,100 to 1,300 strings plus 87 nations.**
@@ -68,9 +83,13 @@ covered. **The account server and the referee need nothing** (section 6).
 
 ```
 src/i18n/
-  en.ts    the catalogue, and the only place a new string is added
-  de.ts    the same keys, German values
-  index.ts t(), the plural helper, the Intl wrappers
+  en.ts     the catalogue, and the only place a new string is added
+  de.ts     the same keys, German values
+  fr.ts     ) added later, one file each, no code changes
+  it.ts     )
+  pt-PT.ts  )
+  pt-BR.ts  )
+  index.ts  t(), the plural helper, the Intl wrappers
 ```
 
 `de.ts` is typed `Catalogue`, where `type Catalogue = typeof en`, so **a key missing from
@@ -133,13 +152,19 @@ Both need naming as work rather than being folded into "Intl formatting" in a cl
 
 ### 2.4 Where the catalogue lands in the bundle
 
-**One measurement is owed before this is settled.** `App.tsx:32-40` lazy-loads seven route
-chunks, so today each route's copy rides inside its own chunk and costs nothing until you
-navigate there. A single `en.ts` imported from everywhere pulls **all** of it, versus
-included, onto the boot path. That may well be fine at ~20 KB gzipped for a pair of
-languages, against a bundle already carrying a 9,625-row dataset. It is a decision to take
-against a measured number, not against the first draft's assumption that splitting would
-cost a round trip: there is no round trip today.
+**One measurement is owed before this is settled, and six locales sharpen it.**
+`App.tsx:32-40` lazy-loads seven route chunks, so today each route's copy rides inside its
+own chunk and costs nothing until you navigate there. A catalogue imported from everywhere
+pulls **all** of it, versus included, onto the boot path. At two locales that is perhaps 20 KB
+gzipped and probably fine against a bundle already carrying a 9,625-row dataset. **At six it
+is not**, and five of the six are dead weight for any given player.
+
+So the shape to expect: **eager `en`, and every other locale a dynamic import resolved before
+the first render**, which the boot cover already exists to hide (`main.tsx` awaits the stored
+read before it renders, so there is a place to put the wait and no flash to design around).
+Wave 1 ships eager and measures; the split lands when the third locale does, on a number.
+What must NOT happen is the split arriving as a fallback to English for a chunk that has not
+loaded, which is the silent half-translated screen the type system exists to make impossible.
 
 ---
 
@@ -267,7 +292,7 @@ mechanical.
 
 ## 7. Choosing a language, and the things outside React
 
-**7.1 The setting.** `Settings.language: 'en' | 'de'`, a control in the settings sheet beside
+**7.1 The setting.** `Settings.language: Locale`, a control in the settings sheet beside
 the theme toggle, persisted in `wcsim_settings_v1` for a guest and in the settings jsonb for
 an account, so **no migration on either side**. It is a field of `Settings`, so `toStored`
 carries it by construction. (The first draft warned about the trap that makes `watchedDuels`
@@ -276,7 +301,9 @@ a required parameter of `toStored`; that trap exists precisely because `watchedD
 
 The default is the browser's, once, on a first load with nothing stored, and after that it is
 whatever the player set. A preference that re-guesses on a borrowed laptop is worse than one
-occasionally wrong on the first visit.
+occasionally wrong on the first visit. Matching `navigator.language` wants care with the two
+Portuguese: **match the full tag first, then the bare language**, so `pt-BR` lands on `pt-BR`
+and a plain `pt` lands on `pt-PT`. Anything unrecognised is `en`.
 
 **7.2 `<html lang>`.** `index.html:2` hardcodes `lang="en"`, and the pre-paint script a few
 lines below stamps only the theme, so the boot cover paints under `lang="en"` whatever the
@@ -320,7 +347,9 @@ the app fully working in English, because the type system will not let German be
    from 2.3, check 5.3 with its allowlist (last, because it can only be honest once
    everything has moved), and the bilingual mail.
 
-French and Italian, if they happen, are then one file each and no code changes at all.
+**`fr`, `it`, `pt-PT` and `pt-BR` are then one file each and no code changes at all**, except
+the bundle split in 2.4, which lands with whichever of them is third. That is the whole payoff
+for the typed catalogue: the fifth locale costs a translator and nothing else.
 
 ---
 
@@ -330,6 +359,11 @@ French and Italian, if they happen, are then one file each and no code changes a
 bracket's match boxes, the market rows, the perk tiles, the phone tab bar, the challenge
 ledger's two-up rows. **Every wave has to be looked at in German at 360px**, not just built.
 This is the real cost of waves 3 and 4 and it is not typing.
+
+**German is the right one to build against**, which is the useful consequence of the language
+list: French runs about 15 to 20% longer than English and the two Portuguese about 20 to 25%,
+so a layout that survives German survives all four of them. Reviewing in German at 360px is
+therefore the whole layout job for six locales, not the first of five.
 
 **9.2 The header needs its wrap breakpoint moved, and that is all.** The first draft called
 this the headline risk on a misreading worth correcting, because the same misreading is one

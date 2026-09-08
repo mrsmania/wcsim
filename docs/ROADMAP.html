@@ -341,7 +341,7 @@
   </div>
   <div class="meta">
     <strong>Updated:</strong> 2026-09-08<br>
-    <strong>Open:</strong> 6 items, none scheduled<br>
+    <strong>Open:</strong> 7 items, none scheduled<br>
     <strong>Shipped:</strong> at the bottom
   </div>
 </div>
@@ -1130,6 +1130,146 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
     only one that can delete a card, then build step 1 (the tie-odds helper) and ship it on its
     own. Steps 2 and 3 are a second pass and can wait for a worker.</p>
     <p class="files"><a class="dl" href="../src/domain/odds.ts" target="_blank" rel="noopener">src/domain/odds.ts</a>, <a class="dl" href="../src/domain/effects.ts" target="_blank" rel="noopener">src/domain/effects.ts</a> (xiOf), <a class="dl" href="../src/domain/boons.ts" target="_blank" rel="noopener">src/domain/boons.ts</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/cupRun/BoostOffer.tsx" target="_blank" rel="noopener">src/components/cupRun/BoostOffer.tsx</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/CupRunScreen.tsx" target="_blank" rel="noopener">src/components/CupRunScreen.tsx</a>, <a class="dl" href="redesign-2026/turf-flat/boost-odds-mock.html" target="_blank" rel="noopener">docs/redesign-2026/turf-flat/boost-odds-mock.html</a></p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
+    <span class="num">63</span>
+    <span class="title">Play the game in more than one language
+      <span class="sub">Plan settled 2026-09-08 in <code>docs/i18n-plan.md</code>, nothing built. <b>English and German first, then French, Italian, European Portuguese and Brazilian Portuguese</b> - six locales, one flat typed catalogue each, no library. ~1,200 strings plus 87 nations. <b>No migration and no referee rebuild are owed</b>, which is unusual for a change this size. The code is about a week; the German is the rest of it.</span>
+    </span>
+    <span class="tag">Structure</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The plan is <code>docs/i18n-plan.md</code></strong> and it is the thing to read
+    before touching any of this. What follows is why it exists and the four things in it that
+    are decisions rather than detail.</p>
+
+    <p><b>One flat catalogue per locale, typed against English, and no library.</b>
+    <code>de.ts</code> is typed <code>typeof en</code>, so a missing key is a build error
+    rather than a silent fallback - <code>tsc -b</code> already gates every build and CI, which
+    is the whole argument for writing it by hand. No i18next, no react-intl, no ICU: six
+    runtime dependencies is the house figure, ICU's plural machinery buys nothing for five
+    one/other languages, and 40 KB of message parser does not belong on the boot path.
+    <br><b>Keys are flat and dotted and the values carry no <code>as const</code></b>, and both
+    halves matter at this size. Flat, because <code>t('a.b.c')</code> over a NESTED object needs
+    a recursive template-literal path type, which at ~1,200 leaves is a known <code>tsc</code>
+    blow-up: editor completion in seconds, and every typo answered with
+    <code>not assignable to '"a.b" | ... 1,198 more'</code>. No <code>as const</code>, because
+    widening the values to <code>string</code> is exactly what lets a translation hold different
+    text while still being forced to keep a plural key plural.</p>
+
+    <p><b>There is no glossary file, and the reasoning is in the plan because it will be
+    proposed again.</b> The request that started this asked for one, and the first draft built
+    it: a 60-term table, one row per language, with a check reconciling it against the
+    catalogue. Once <code>de.ts</code> exists it IS the glossary - authoritative, properly
+    inflected, and unable to drift, because it is the shipped copy. A separate table duplicates
+    its English column and then needs a check whose only job is keeping the duplicate honest,
+    which is a mechanism serving a mechanism. What survives is a <code>term.*</code> block
+    inside the catalogue for the words the game renders on their own, and a translator brief at
+    the top of each file.</p>
+
+    <p><b><code>pt-PT</code> and <code>pt-BR</code> are two full files, not a base and an
+    override layer.</b> The football vocabulary genuinely differs (<code>goleiro</code> against
+    <code>guarda-redes</code>, <code>time</code> against <code>equipa</code>,
+    <code>torcida</code> against <code>adeptos</code>), so both earn their place - but an
+    override layer holding only the differences produces screens half in one dialect and half in
+    the other, and it breaks the property the whole approach rests on, since a missing key stops
+    being a build error and becomes a silent fall-through. A full file is a pass over
+    <code>pt-PT</code> rather than a fresh translation, so it costs almost nothing. The codes are
+    <code>pt-PT</code> and <code>pt-BR</code>, never a bare <code>pt</code>.</p>
+
+    <p><b>Neither the server nor the referee learns a language, and that is the best property
+    this change has.</b> The referee already answers in codes which
+    <code>refereeMessage.ts</code> turns into sentences on the client, so translating them is
+    one more catalogue block; the account server stores the locale only as a field inside the
+    settings jsonb it already writes whole, and never reads it. So <b>no migration and no
+    referee rebuild</b>. Do not add a <code>lang</code> parameter to any referee route.</p>
+
+    <p><strong>Five waves</strong>, each of which builds, passes <code>npm run checks</code> and
+    is pushed on its own: the machinery proved on the settings sheet itself; the flat catalogues
+    (challenges, boosts, perks, Ascensions, badges, the referee's refusals - more than a third
+    of the total and mechanical); the screens a new player meets first; everything else,
+    including versus as a unit and the nations; then the closing pass.
+    <b>The four later locales are one file each and no code changes at all</b>, except the
+    bundle split below, which lands with whichever of them is third.</p>
+
+    <p><strong>The review is most of the value here.</strong> The first draft was reviewed and
+    nine of its claims were wrong, and half of those came from reading <code>CLAUDE.md</code>
+    where the code should have been read. The three that changed the plan rather than a number:</p>
+    <ul>
+      <li><b>The header is not short of room.</b> The famous <b>six pixels</b> in
+      <code>CLAUDE.md</code> was the state BEFORE the tagline was deleted, and deleting it
+      bought 196 of them, with another ~80 arriving when the shared minimum tab width came off
+      with the chip. The row has ~190px of slack and German's six labels are ~70px wider, so
+      what actually moves is the wrap breakpoint, from the measured 978px minimum to about
+      1050, past <code>max-[1040px]</code>. It had been written up as the headline risk and it
+      is a one-line change.</li>
+      <li><b>There is no way for a hook to reach the language.</b> <code>useSettings</code> is
+      called exactly once, at <code>App.tsx:55</code>, and prop-drilled, and there is no
+      <code>createContext</code> anywhere in <code>src/</code> - so the draft's
+      <code>useT()</code> would have minted a second copy of the settings. <code>t</code> is a
+      module function over a module-level active locale, and <code>App</code> remounts its
+      subtree on <code>key={locale}</code>: no context, no provider, and the no-state-library
+      property survives. Right for a thing that changes twice in a lifetime.</li>
+      <li><b>A third of the copy is not in <code>components/</code>.</b>
+      <code>domain/pvpView.ts</code> is 923 lines and holds the whole versus copy layer, the
+      strength labels, the round names and the relative-time sentences, with more in
+      <code>challenges.ts</code>, <code>boons.ts</code>, <code>career.ts</code>,
+      <code>badges.ts</code> and <code>run.ts</code>. A leftover-English sweep over
+      <code>components/</code> alone goes green over an entirely English versus mode.</li>
+    </ul>
+
+    <p><b>Six proposed checks came down to three</b> - the missing-key list (justified by the
+    error message: <code>tsc</code> reports three names and "397 more", once, which is 400
+    build-and-fix cycles), placeholder parity, and the leftover-English sweep widened to cover
+    <code>src/domain</code>. One of the deleted three duplicated the existing em-dash sweep, one
+    was a note wearing a check's clothes, and one guarded the deleted glossary.
+    <br><b>Two existing checks are owed by wave 2</b>, and the second is the dangerous one:
+    the three copy-versus-number assertions in <code>scripts/checks/career.ts</code> (lines 159,
+    174/181, 406) go red when perk descriptions become keys and must be rewritten to look up
+    <code>en[key]</code>, staying on English because they assert arithmetic against a sentence
+    and only one locale can be the reference; and <code>challenges.ts:58</code> goes
+    <b>VACUOUS rather than red</b>, going on to assert for ever that key strings contain no
+    em-dashes. (<code>CLAUDE.md</code> says there are five copy-versus-number checks and names
+    the chemistry thresholds, the boot palette and the market's budget lookup. There are three:
+    <code>chemistry.ts</code> and <code>market.ts</code> carry no such assertion and the
+    boot-palette check compares hex, not copy. Corrected here rather than in
+    <code>CLAUDE.md</code> until this is built.)</p>
+
+    <p><b>Two traps outside the string count.</b> Translating the nations is not a display map:
+    <code>domain/market.ts:108</code> and <code>domain/archive.ts:47,64</code> sort by the
+    English literal, so a German list comes out alphabetised by its English names with
+    Deutschland between Ghana and Greece, and <code>market.ts:168</code> builds its search
+    haystack from it, so typing "Brasilien" finds nothing. And the catalogue moves copy from
+    seven lazy route chunks onto the boot path: fine at two locales, not at six, so expect eager
+    <code>en</code> with the rest dynamically imported before the first render, behind the boot
+    cover that already exists to hide exactly that wait.</p>
+
+    <p><b>What stays English, permanently:</b> player names (a name is an identity here,
+    <code>personId</code> is its slug), position codes and formation names,
+    <code>UnreachableScreen</code> and <code>ErrorBoundary</code> (both hand-write their markup
+    so they render when the app cannot), the generated developer pages, every design doc and
+    <code>CLAUDE.md</code>. The sign-in mail becomes bilingual rather than translated, GoTrue
+    having no idea who is signing in; its subject line lives on the NAS, which the rename
+    already caught out once.</p>
+
+    <p><b>Three non-issues, recorded so nobody re-checks them:</b> RTL does not arise (all six
+    locales are left to right; Arabic is the trigger to revisit the no-ICU decision), the three
+    Google fonts pin no subset so latin-ext covers every accent in all of them, and the layout
+    review is German at 360px for all six - French runs 15 to 20% longer than English and the
+    two Portuguese 20 to 25%, so a layout that survives German survives the rest.</p>
+
+    <p class="next"><strong>Next step:</strong> wave 1. <code>src/i18n/</code> with
+    <code>en.ts</code>, <code>de.ts</code> and <code>index.ts</code>,
+    <code>Settings.language</code> and its control, the remount key,
+    <code>&lt;html lang&gt;</code> stamped by the pre-paint script rather than left hardcoded
+    <code>en</code>, the plural helper, and the two catalogue checks. Move the settings sheet
+    itself across as the first screen, because the control lives there: switching locale in
+    front of the words that just changed is the proof.</p>
+    <p class="files"><a class="dl" href="i18n-plan.md" target="_blank" rel="noopener">docs/i18n-plan.md</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/App.tsx" target="_blank" rel="noopener">src/App.tsx</a>, <a class="dl" href="../src/state/settingsStorage.ts" target="_blank" rel="noopener">src/state/settingsStorage.ts</a>, <a class="dl" href="../src/domain/pvpView.ts" target="_blank" rel="noopener">src/domain/pvpView.ts</a>, <a class="dl" href="../src/domain/market.ts" target="_blank" rel="noopener">src/domain/market.ts</a>, <a class="dl" href="../src/domain/archive.ts" target="_blank" rel="noopener">src/domain/archive.ts</a>, <a class="dl" href="../scripts/checks/career.ts" target="_blank" rel="noopener">scripts/checks/career.ts</a></p>
   </div>
 </details>
 
