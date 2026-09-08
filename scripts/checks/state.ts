@@ -28,6 +28,7 @@ import {
 } from '../../src/state/settingsStorage';
 import { GUEST_KEYS } from '../../src/state/store/localStore';
 import { VERSUS_WATCHED_KEY, WATCHED_LIMIT } from '../../src/state/pvp/watchedStorage';
+import { authMessage, isRateLimit, secondsToWait } from '../../src/state/authMessage';
 import { CATALOGUE_PATH } from '../collectibles';
 
 export function stateChecks(): void {
@@ -582,4 +583,56 @@ export function stateChecks(): void {
           : `${live} caps at the literal ${inlined.map((t) => t.operand).join(', ')}`,
     );
   }
+
+  // --- what a refused sign-in says to the player -------------------------------
+  //
+  // The account panel prints whatever `requestCode` throws, so these strings ARE the UI.
+  // The one that matters is the shared hourly bucket: it is the message most people see
+  // at the worst moment, and GoTrue's own words for it are "email rate limit exceeded".
+
+  const busy = authMessage({ message: 'email rate limit exceeded', code: 'over_email_send_rate_limit', status: 429 });
+  check(
+    'a busy-hour sign-in refusal does not show the player the raw server string',
+    () => !busy.toLowerCase().includes('rate limit') && busy.length > 20,
+    () => busy,
+  );
+  check(
+    'and it says it is temporary rather than blaming the player',
+    () => /try again/i.test(busy) && !/you /i.test(busy.split('.')[0]),
+    () => busy,
+  );
+
+  // The per-address gap wears the SAME code, and its number is the useful part, so it
+  // must NOT be swallowed by the sentence above.
+  const gap = authMessage({
+    message: 'For security purposes, you can only request this after 37 seconds.',
+    code: 'over_email_send_rate_limit',
+    status: 429,
+  });
+  check(
+    'the per-address wait keeps its own number, despite sharing a code with the bucket',
+    () => gap.includes('37') && gap !== busy,
+    () => gap,
+  );
+  check('and one second is not "1 seconds"', () => {
+    const one = authMessage({ message: 'you can only request this after 1 seconds.', status: 429 });
+    return one.includes('1 second.') && !one.includes('1 seconds');
+  });
+
+  // Vacuity guards. The mapping is worthless if it rewrites everything it is handed, and
+  // worse than nothing if it invents a sentence for an error nobody anticipated.
+  const unknown = 'database is on fire';
+  check(
+    'an unmapped error keeps the raw server words rather than a made-up sentence',
+    () => authMessage({ message: unknown, code: 'something_new', status: 500 }) === unknown,
+  );
+  check(
+    'the rate-limit test is not vacuous: a non-429 with no code is not treated as one',
+    () => !isRateLimit(undefined, 400) && isRateLimit(undefined, 429),
+  );
+  check(
+    'the wait parser is not vacuous: it finds a number and refuses a message without one',
+    () => secondsToWait('you can only request this after 9 seconds.') === 9
+      && secondsToWait('email rate limit exceeded') === null,
+  );
 }

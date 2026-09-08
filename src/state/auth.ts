@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FEATURES, SUPABASE } from '../config';
+import { authMessage } from './authMessage';
 
 // ---------------------------------------------------------------------------
 // Sign-in, and nothing else. One email field, a 6-digit code, and you are in -
@@ -72,7 +73,11 @@ export async function requestCode(email: string): Promise<void> {
     email: foldEmail(email),
     options: { shouldCreateUser: true },
   });
-  if (error) throw new Error(error.message);
+  // `authMessage` reads the error's `code` and `status`, so it has to see the object the
+  // client returned rather than a re-wrapped copy of its message. See its header for why
+  // the raw string is not good enough here: the busiest hour of the product's life is
+  // exactly when the rawest of them ("email rate limit exceeded") reaches the most people.
+  if (error) throw new Error(authMessage(error));
 }
 
 /** Exchange a code for a session. Returns the account it belongs to. */
@@ -82,7 +87,7 @@ export async function submitCode(email: string, code: string): Promise<Account> 
     token: code.trim(),
     type: 'email',
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(authMessage(error));
   const user = data.user;
   if (!user?.email) throw new Error('signed in but the account has no email');
   return { id: user.id, email: user.email };
