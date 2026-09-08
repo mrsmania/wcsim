@@ -340,7 +340,7 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-09-07<br>
+    <strong>Updated:</strong> 2026-09-08<br>
     <strong>Open:</strong> 6 items, one scheduled<br>
     <strong>Shipped:</strong> at the bottom
   </div>
@@ -357,7 +357,7 @@
   <summary>
     <span class="num">61</span>
     <span class="title">Can a player reach the files on the NAS?
-      <span class="sub">The site goes live on a home connection, so the question worth answering is not whether one player can read another's album, it is whether anybody can reach the <b>photos, videos and documents</b> on the box. The chain has four links: <b>three are already shut, and two of those by accident rather than by decision.</b> One config change worth making (the database admin console sits on the public hostname behind a single password, in front of superuser SQL), <b>two checks that can only be answered at the box</b>, and three cheap habits. <b>Half a day, and it is a launch gate rather than a feature.</b></span>
+      <span class="sub">The site goes live on a home connection, so the question worth answering is not whether one player can read another's album, it is whether anybody can reach the <b>photos, videos and documents</b> on the box. The chain has four links: <b>three are already shut, and two of those by accident rather than by decision.</b> The one config change is <b>APPLIED and verified (2026-09-08)</b>: the database admin console no longer answers on the public hostname, and keeps the LAN and the VPN. What is left is <b>two checks that can only be answered at the box</b>, three cheap habits, and one confirmation from a phone on mobile data. <b>Half a day, and it is a launch gate rather than a feature.</b></span>
     </span>
     <span class="tag">Hosting</span>
     <span class="chev">&#9656;</span>
@@ -514,7 +514,7 @@
     habits: fewer hostnames on that port, updates applied, and a backup that exists.</p>
 
     <div class="callout">
-      <span class="ct">D1 is answered, and the change is written and waiting (2026-09-08)</span>
+      <span class="ct">D1 is answered, and the change is APPLIED and VERIFIED (2026-09-08)</span>
       <b>The console password leaked</b>, by being built into a web address and pasted into a
       chat, which is the ordinary way that one leaks: a link is something you share without
       thinking. It has been rotated. <b>D1 is therefore decided by events rather than on the
@@ -531,17 +531,58 @@
       over loopback so an internet request is indistinguishable from a LAN one by address.
       That is also what makes it fail closed.
       <br><br>
-      <b>Not applied yet, and it needs the home network</b>, which is the same wall the
-      referee rebuilds hit: the API answers over HTTPS from anywhere, but editing the config
-      needs to reach the box. <b>The one check that cannot be done from indoors</b> is a
-      phone on mobile data: if the public root still prompts for a password there, the proxy
-      is rewriting the host to the NAS's own address and the rule is matching it, which is
-      the single way this looks applied and is not.
+      <b>APPLIED 2026-09-08</b>, by the runbook exactly: the live file was fetched over
+      <code>ssh cat</code>, patched on the laptop, written back beside a timestamped backup,
+      and <code>api-gw</code> restarted. <code>--check</code> found the catch-all once and
+      reported no drift, and the fourteen assertions were re-run first. Envoy came back
+      healthy and logged <code>lds: add/update listener 'supabase'</code> with no config
+      error.
+      <br><br>
+      <b>The three checks, all green.</b> The public root answers <b>404</b> with no
+      <code>www-authenticate</code> header at all, so there is no prompt;
+      <code>/referee/version</code> still answers its JSON; and
+      <code>http://192.168.1.115:8000/</code> still prompts for the dashboard password.
+      <b>What proves it keys on the HOST rather than on the port</b> is the pair that differs
+      by one header: the same box on the same port answers 401 for a request addressed to
+      <code>192.168.1.115</code> and 404 for the identical request addressed to the public
+      hostname. Offering a password to the public root gets the 404 too, so that route really
+      does have <code>basic_auth</code> switched off rather than merely hiding the console
+      behind it, and the console's own deeper paths (<code>/project/default/sql</code>,
+      <code>/api/platform/profile</code>) are 404 as well.
+      <br><br>
+      <b>The game was measured on both sides of the change and did not move.</b> GoTrue
+      answers <code>/auth/v1/health</code> and <code>/auth/v1/settings</code>, PostgREST
+      reaches the database, and the referee still refuses the public key with
+      <code>not-authenticated</code> rather than 404, which is the check that proves
+      <code>/referee/</code> is still matched ahead of the catch-all.
+      <br><br>
+      <b>The phone on mobile data is still outstanding</b>, and it remains the only check
+      that involves none of the home network. One thing already argues it will pass: BEFORE
+      the change, the public root's password prompt carried the realm
+      <code>http://wcsim-api.mariosmania.ch/</code>, which is envoy quoting back the host it
+      was asked for. So the DSM proxy passes the original host through rather than rewriting
+      it to the NAS's own address, and that rewrite is the single failure mode this design
+      has.
+      <br><br>
+      <b>The bridge firewall did not need healing, which was not expected.</b>
+      <code>docker compose restart</code> leaves the FORWARD rules alone where a recreate
+      wipes them, so the stack answered throughout and the five-minute window the runbook
+      warns about never opened. Worth knowing for the next restart, and not worth relying on
+      for a recreate.
+      <br><br>
+      <b>The <code>dkr/</code> mirror was brought up to the live file afterwards.</b> It was
+      byte-identical to the PRE-change version, so a later
+      <code>deploy-referee.sh --config</code> would have put the console back on the public
+      internet silently: the 2026-08-26 trap the patch's own header names, reached from the
+      other direction.
     </div>
 
-    <p class="next"><strong>Next step:</strong> apply the prepared change from a machine with
-    home access, then run check A and read the two screens of check B. Together those turn
-    the third link from "not proved" into an answer, and neither changes a thing.</p>
+    <p class="next"><strong>Next step:</strong> the config change is done, so what is left
+    is the two checks and the three habits. Run check A and read the two screens of check B,
+    which together turn the third link from "not proved" into an answer and neither of which
+    changes a thing; then the sign-in rate limits, the likeliest of the three to bite. The
+    owner's phone on mobile data still owes the one check that cannot be done from
+    indoors.</p>
     <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a> (sections 3 and 4, and "The container firewall rules"), <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a> (NFR-6), <code>dkr/docker-compose.yml</code> and <code>dkr/volumes/api/envoy/lds.template.yaml</code> (both untracked, mirrors of the NAS), <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
   </div>
 </details>
