@@ -760,14 +760,33 @@ described. A fourth, re-creating `api-gw` for the Envoy upgrade, did not heal at
 stack was down for over half an hour and only a manual **Run** brought it back. The chain
 at the time had **none of the five rules present** and the catch-all DROP at the bottom had
 swallowed 29,379 packets, so the guard clause below could not have been what stopped it -
-with rule 1 absent, `-C` fails and the job proceeds to insert. The only reading left is that
-the scheduled task **was not executing**, and nothing in the stack can tell you that: the job
-logs through `logger` to `/var/log/messages`, which is `system:log` and unreadable by
-`mario`, so its silence is not evidence either way.
+with rule 1 absent, `-C` fails and the job proceeds to insert.
+
+**THE CAUSE WAS THE SCHEDULE'S OWN WINDOW, and it is one field.** DSM expresses a repeating
+task as a start time, a repeat interval and a **Last run time**, and that last field is the
+end of the repeat window rather than the end of the day. It was set to **00:55**, so the job
+ran every five minutes from `00:00` to `00:55`, twelve times, and then not again until the
+next midnight. The task was enabled and correct in every other respect; it had simply clocked
+off eleven hours before the gateway was re-created. **The tell was on the task list all
+along**: "next run time" read tomorrow at `00:00` rather than five minutes from now. It is
+`23:55` now.
+**Note what this means for the 2026-08-27 entry below**: "confirmed in place" confirmed the
+task EXISTED. Nobody opened it and read the window, and existing is not the same as running.
+
+**AND IT MEANS A FAST RECOVERY IS USUALLY NOT THIS JOB AT ALL, which is worth more than the
+fix.** Three container operations that same morning healed in one to three minutes and were
+credited to this job, and none of them can have been: every one was hours outside the 00:55
+window. They were the other post-restart effect this note already describes, envoy marking
+its upstreams dead and PostgREST holding a stale pool, which recovers on its own. **Two
+different faults with identical symptoms**, and the quick one is far commoner, so a stack
+that came back by itself is no evidence the firewall rules were ever restored. The way to
+tell them apart takes one command: from inside the gateway,
+`docker exec supabase-envoy bash -c '</dev/tcp/supabase-rest/3000'` succeeds when the rules
+are fine and the fault is upstream pools, and is refused when it is the firewall.
 **So treat the self-heal as a convenience and never as the recovery.** After any container
 operation, if the stack is still answering 503 after about five minutes, go and press Run
 rather than waiting longer, and while you are in Task Scheduler check the job is still
-enabled and still has both its triggers. The five rules can also be re-inserted by hand,
+enabled, still has both its triggers, and that its **Last run time is 23:55**. The five rules can also be re-inserted by hand,
 which is what the block above is, and a re-run is a no-op because of the guard. This
 paragraph used to argue the opposite, that a repeating task was not worth a job running
 forever for something you do twice a year: that reasoning died when the rules turned out to
