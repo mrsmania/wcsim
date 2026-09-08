@@ -301,6 +301,8 @@ Simulator" right up to that point: the 2026-08-26 rename reached the wordmark in
 `otp.html` and nothing else, because those three live on the NAS rather than in the repo.
 They now read `Mondialino` and `Your Mondialino code`. The sender ADDRESS is unchanged and
 is not a rename job: `worldcupsim@gmail.com` is a real mailbox, so it can only be replaced.
+**It WAS replaced on 2026-09-08**, by `no-reply@mondialino.ch` through Amazon SES: see "The
+sign-in mail's sender" below.
 
 Worth copying if you ever do this again, because it made the whole thing verifiable before
 anything restarted. `docker compose config` resolves the `.env` against the compose file and
@@ -418,8 +420,10 @@ until the database exists:
 chain: DNS resolving your DDNS name, the router forwarding, the certificate being trusted
 by a device that has never seen your network, the CORS allowlist, and the OTP mail landing.
 
-Check the spam folder for that first code. A plain gmail.com sender lands there more often
-than not (D5, accepted).
+Check the spam folder for that first code. **That was the rule until 2026-09-08**, when a
+plain gmail.com sender landed there more often than not (D5, accepted); the mail goes out
+through Amazon SES as `no-reply@mondialino.ch` now, DKIM-signed and DMARC-aligned, and the
+first one landed in the inbox. See "The sign-in mail's sender" below.
 
 ---
 
@@ -553,6 +557,145 @@ curl -s -o /dev/null -w '%{http_code}
 
 If the stack goes quiet afterwards, it is the docker bridge firewall rules rather than
 this change: see the next section, and run that task by hand.
+
+## The sign-in mail's sender: Amazon SES (2026-09-08)
+
+The OTP mail used to leave as `worldcupsim@gmail.com` through Gmail's SMTP, and section 7's
+note that a plain gmail.com sender lands in spam more often than not was the reason to
+change it. It now leaves as **`no-reply@mondialino.ch`** through **Amazon SES in
+eu-central-1 (Frankfurt)**, DKIM-signed under our own domain, and the first mail sent that
+way landed in the Gmail **inbox**.
+
+**On the AWS side**, all in eu-central-1: a **domain identity** for `mondialino.ch` with
+Easy DKIM (RSA 2048); a **custom MAIL FROM domain** of `bounce.mondialino.ch` with behaviour
+on MX failure "use default MAIL FROM domain"; **production access** granted (a new account
+is sandboxed to verified recipients and 200 messages a day); and an IAM user
+`ses-smtp-mondialino` whose only permissions are `ses:SendRawEmail` and `ses:SendEmail`,
+holding one access key. The DNS half is three DKIM CNAMEs plus an MX and a TXT on `bounce`,
+listed in `CLAUDE.md` under "Hosting" beside the rest of the zone.
+
+**Five keys in the `.env`**, all of which `dkr/docker-compose.yml` already passed through to
+`auth`, so this needed no compose change:
+
+```
+SMTP_HOST=email-smtp.eu-central-1.amazonaws.com
+SMTP_PORT=587
+SMTP_USER=<the IAM access key id, AKIA...>
+SMTP_PASS=<the derived SMTP password, see below>
+SMTP_ADMIN_EMAIL=no-reply@mondialino.ch
+```
+
+`SMTP_SENDER_NAME` stays `Mondialino`, and it is `up -d --no-deps auth` rather than a
+restart, as always.
+
+### Seven things that cost time, in the order they bite
+
+**1. SES HAS NO CLASSIC SMTP ENDPOINT IN THE NEWER REGIONS.** eu-central-2 (Zurich) was
+chosen first, for Swiss data residency, and AWS's own regional services table lists SES as
+available there. It is: the API endpoint `email.eu-central-2.amazonaws.com` resolves.
+**`email-smtp.eu-central-2.amazonaws.com` has no address at all**, and neither do
+eu-south-2, il-central-1 or ca-west-1, where eu-central-1, eu-west-1 and eu-north-1 all do.
+So the whole identity was rebuilt in Frankfurt. **Check that the SMTP endpoint RESOLVES
+before choosing a region**, rather than checking whether the service is offered.
+
+**2. The console's own SMTP page is the tell, and it is a trap.** In a region with no classic
+endpoint, SES's "SMTP settings" page offers only Mail Manager's **managed** credentials,
+which create an ingress endpoint plus a Secrets Manager secret and carry Mail Manager
+processing charges. It reads like the normal flow, with a "Choose credential method" heading
+and no other method to choose. Do not create one: it is telling you the region is wrong.
+
+**3. An SMTP password is a DERIVED value and the REGION is one of its inputs.** The username
+is the IAM access key id; the password is the secret access key run through a fixed
+HMAC-SHA256 chain (`AWS4` plus the secret, then `11111111`, the region, `ses`,
+`aws4_request`, `SendRawEmail`, with a `0x04` version byte prefixed and the lot
+base64-encoded). One key therefore yields a different password per region, both 44 characters
+and indistinguishable by eye. That is exactly how a Zurich password ended up in a Frankfurt
+`.env`, and it reads as `535 Authentication Credentials Invalid`.
+
+**4. DERIVE IT ON THE NAS.** The password is 44 random characters that need to reach one file
+on one machine, and every clipboard hop is a chance to carry the wrong one. openssl can do
+the whole chain, so nothing but the IAM secret ever crosses:
+
+```bash
+hexhmac() { printf "%s" "$2" | openssl dgst -sha256 -mac HMAC -macopt "hexkey:$1" -binary | od -An -vtx1 | tr -d ' \n'; }
+read -s -p "Secret access key: " SK; echo
+K=$(printf "%s" "11111111" | openssl dgst -sha256 -mac HMAC -macopt "key:AWS4$SK" -binary | od -An -vtx1 | tr -d ' \n'); unset SK
+K=$(hexhmac "$K" "eu-central-1"); K=$(hexhmac "$K" "ses"); K=$(hexhmac "$K" "aws4_request")
+SESPW=$( { printf '\004'; printf "%s" "SendRawEmail" | openssl dgst -sha256 -mac HMAC -macopt "hexkey:$K" -binary; } | base64 | tr -d '\n' ); unset K
+printf "%s" "$SESPW" | md5sum
+```
+
+Checked against an independent implementation on AWS's documented example key. Note the last
+HMAC emits **binary**, so there is no hex-to-binary conversion to get wrong, which the first
+attempt did get wrong (`printf` with generated escapes silently produced literal text). The
+`read -s` line has to be pasted **alone**: paste it together with the block below and the
+block's own lines are swallowed as the typed password.
+
+**5. md5 is how you tell a wrong password from a mangled one.** Worth running every time,
+because the two failures are otherwise indistinguishable and both read as a credential
+problem. Three hashes, all safe to paste anywhere:
+
+```bash
+printf "%s" "$SESPW" | md5sum
+grep '^SMTP_PASS=' .env | cut -d= -f2- | tr -d '\r\n' | md5sum
+sudo -n /usr/local/bin/docker compose exec auth env | grep '^GOTRUE_SMTP_PASS=' | cut -d= -f2- | tr -d '\r\n' | md5sum
+```
+
+All three equal is the only acceptable answer. Stored and container agreeing while the
+derived one differs is a wrong value pasted, which is what happened here twice; file and
+container disagreeing would be something eating a character on the way in.
+
+**6. Testing it from Windows is a waste of time.** `Send-MailMessage` defaults to TLS 1.0 in
+Windows PowerShell, which SES refuses; it then carries on unencrypted and never sends AUTH at
+all, so SES answers `530 Authentication required` and the message names neither TLS nor the
+password. Setting `[Net.ServicePointManager]::SecurityProtocol` to Tls12 changes the failure
+rather than fixing it, because the poisoned connection state lives in the process, and it
+cannot do implicit TLS on 465 either. **Use curl**, which worked first time. Two curl notes:
+`curl -v` **PRINTS THE AUTH PLAIN PAYLOAD**, which is base64 of the username and password, so
+filter that line out or you will publish your credential, as happened here and cost a key
+rotation; and **Synology's curl is built without SMTP support**, so the NAS cannot run that
+test at all.
+
+**7. Re-creating `auth` trips the bridge firewall wipe, and the heal task alone is not
+enough.** Every re-create in this pass took the stack to 503 a few minutes later. Pressing
+Run on the Task Scheduler job restores the rules, and envoy and PostgREST do not notice, so
+the full recovery is:
+
+```bash
+sudo -n /usr/local/bin/docker compose restart api-gw rest
+```
+
+Both halves are already under "The container firewall rules" as separate bullets (envoy marks
+upstreams dead, PostgREST holds a dead pool). They fire together after a container operation,
+so treat that restart as part of the re-create rather than as a response to a fault.
+
+### What the headers say, and one thing they do not
+
+A delivered message reads `dkim=pass header.i=@mondialino.ch`, `spf=pass` with
+`smtp.mailfrom=...@bounce.mondialino.ch`, and `dmarc=pass (p=QUARANTINE)`. Three things in
+there are worth carrying:
+
+- **MAIL FROM is the ENVELOPE sender, not the `From:` header.** It is where bounces go and
+  what SPF authenticates, and the only place a player could ever see it is Gmail's
+  "mailed-by" line. The `From:` is `SMTP_ADMIN_EMAIL`.
+- **DMARC passes on DKIM alone.** The zone's policy is `adkim=s; aspf=s`, and strict SPF
+  alignment needs the envelope domain to equal the From domain exactly, which
+  `bounce.mondialino.ch` never will, since SES refuses the bare apex as a MAIL FROM. Relaxing
+  that to `aspf=r` would let both mechanisms align; it is a one-record change and nobody has
+  made it.
+- **Only ONE of the three DKIM selectors publishes a key.** The other two resolve and come
+  back empty, in Frankfurt and Zurich alike, which is how SES holds keys in reserve for
+  rotation. Not a fault, nothing to fix, and it looked alarming for an hour.
+
+**`no-reply@mondialino.ch` is not a mailbox.** Sending from it works because the DOMAIN is the
+verified identity, but a player replying to their code is replying into nothing. Making it a
+real mailbox or an alias at nexanet costs a minute and has not been done.
+
+**Cost** is about $0.10 per thousand messages, a rounding error at this volume. **Production
+access and identities are both per REGION**, so the Zurich grant did not carry over to
+Frankfurt and had to be requested again; both were granted within minutes.
+
+---
 
 ## The container firewall rules (and the DNS trap)
 

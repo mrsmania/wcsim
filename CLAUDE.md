@@ -4789,11 +4789,12 @@ Three things about the transition itself:
 - **Mail arrives at both providers for a day or two.** Removing an `MX` does nothing to a
   mailbox, and resolvers keep delivering to the old one until the cached nameservers expire,
   so the old mailbox stays alive and gets read until it goes quiet.
-- **The game's own sign-in mail did not move, and none of this makes it move.** It still
-  leaves as `worldcupsim@gmail.com` through Gmail's SMTP, configured in the NAS `.env` (see
-  `docs/nas-setup.md`). Sending it from `@mondialino.ch` means pointing that block at
-  nexanet's outgoing server and **re-creating the `auth` container** (environment is fixed
-  at creation, so an edit alone is inert), and it cannot be done by changing the sender
-  address alone: nexanet's DMARC is strict, so mail claiming `@mondialino.ch` while relayed
-  through Gmail is quarantined. The gain if it is ever done is real, since
-  `docs/nas-setup.md` already records the plain gmail.com sender as a spam-folder risk.
+- **The game's own sign-in mail did not move with the DNS, and it HAS moved since.** It left
+  as `worldcupsim@gmail.com` through Gmail's SMTP until **2026-09-08**, when it became
+  `no-reply@mondialino.ch` through **Amazon SES in eu-central-1**, DKIM-signed under this
+  domain with a custom MAIL FROM of `bounce.mondialino.ch`. That is what took the mail out
+  of the spam folder, which is the whole reason for it. Nexanet's own outgoing server was
+  the other candidate and was not used. The zone therefore carries three DKIM CNAMEs and an
+  MX plus a TXT on `bounce` beside everything above, and `docs/nas-setup.md` under "The
+  sign-in mail's sender" carries the setup, the seven traps, and the md5 check that tells a
+  wrong password from a mangled one.
