@@ -363,14 +363,16 @@
     <span class="title">Three habits the accounts server has never had
       <span class="sub">What item 61 turned up that is genuinely this repo's rather than the
       NAS's, and all three are about the game's own data rather than the owner's files: the
-      sign-in endpoint has <b>no rate limit set at all</b>, so somebody hammering it spends the
-      project's send quota and its sender reputation and locks every signed-in player out;
+      sign-in endpoint runs on limits <b>nobody chose</b>, one of which is a bucket shared by
+      everybody and small enough that one address list empties it;
       <b>nothing is backed up</b>, which was a recorded decision (NFR-6) and stops being the
       right one the day a collection is real; and <b>five</b> public-facing images are pinned
-      with nobody watching their advisories. <b>Two of the three are DONE (2026-09-08): the limits are set and the dump is written and
-      its restore tested.</b> What is left is the dump's nightly schedule and its off-box
-      copy, both of which need the owner in DSM, and the third habit, which is a diary entry
-      rather than work.</span>
+      with nobody watching their advisories. <b>All three have been acted on (2026-09-08).</b> The limits are set explicitly, the
+      dump is written and its restore tested, and the update habit was exercised for the first
+      time, which found <b>13 CVEs against the gateway, one of them remote and needing no
+      credentials; it is upgraded</b>. What is left needs the owner in DSM (the dump's nightly
+      schedule and its off-box copy) plus two planned upgrades, the database being the one with
+      real work in it.</span>
     </span>
     <span class="tag">Accounts</span>
     <span class="chev">&#9656;</span>
@@ -454,10 +456,43 @@
     already names: a nightly <code>pg_dump</code> into a folder Hyper Backup covers. <b>Test
     the restore once</b>, or it is a habit rather than a backup.</p>
 
-    <p><strong>3. Five public-facing images are pinned and unwatched.</strong> Measured off
-    the gateway's own route table 2026-09-08, and it is <b>five rather than four: realtime
-    was missing from the list</b>. The gateway
-    (<code>envoyproxy/envoy:v1.39.0</code>), the auth server
+    <p><strong>3. THE HABIT WAS EXERCISED ONCE, 2026-09-08, and it was not a dry run.</strong>
+    All five were looked up against published advisories, which is the first time anybody had,
+    and the answer was not "nothing to do". <b>The gateway was on Envoy 1.39.0 with 13 CVEs
+    against it, all fixed in 1.39.1</b>, and one of those needed no configuration and no
+    credentials at all: an HTTP/2 request could make it allocate around 200 GB and be killed,
+    which is remote unauthenticated denial of service against the thing that terminates every
+    request the game makes. <b>It is on 1.39.1 now</b> (pulled, pinned, re-created, config
+    loaded clean, and the console's LAN-only rule re-verified across the upgrade), so the
+    reachable one is closed.
+    <br><br>
+    <b>The database is the bigger mass and it has a trap in it.</b> The image sits on a
+    PostgreSQL <b>17.6</b> base with roughly 41 upstream CVEs against it, about twenty of them
+    RCE-class. The trap: updating within the <code>17.6.1.x</code> line picks up <b>none</b> of
+    them, because even that line's newest build is still 17.6, and only the 17.11 line carries
+    the fixes. And <b>"it is not internet-facing" protects less than it reads</b>, which is the
+    half worth carrying: PostgREST hands anybody holding the public key a live session as the
+    <code>anon</code> role, so the "needs a logged-in database user" bar most of those CVEs sit
+    behind is met by ordinary web traffic. That one is a planned job rather than an afternoon's,
+    because the PG 17 images dropped timescaledb, plv8, plcoffee and plls.
+    <br><br>
+    <b>Realtime carries three advisories</b> (a Medium presence-RLS bypass, a Medium pre-auth
+    log injection, and a Low whose published version range is off by a patch, so 2.102.3 IS
+    affected where GitHub says it is not) and is about 130 releases behind. <b>PostgREST has no
+    published advisory and a real bug</b>: a clock-cache fault means expired tokens can be
+    accepted, fixed in 14.17 on the same branch. <b>supabase/auth has nothing applicable</b>,
+    its four advisories all predating 2.189.0, though the OAuth code-replay and
+    banned-user-token fixes since are worth having.
+    <br><br>
+    <b>Two honest limits</b>, so the answer is not read as cleaner than it is: for PostgREST and
+    the database there are <b>no advisories against those projects themselves</b>, which is not
+    the same as there being none; and one supabase/auth dependency is a confirmed-vulnerable
+    version whose reachability there could not be confirmed. Two things to know before trusting
+    a scanner on this stack: the Realtime presence advisory is repo-scoped and absent from the
+    global GitHub advisory database, and a keyword search for "postgrest" returns 19 CVEs of
+    which none are in PostgREST.
+    <b>The original reasoning, which the exercise bore out:</b> the gateway
+    (<code>envoyproxy/envoy</code>, now v1.39.1), the auth server
     (<code>supabase/gotrue:v2.189.0</code>), PostgREST
     (<code>postgrest/postgrest:v14.12</code>, which serves <code>/graphql/v1</code> too),
     <b>realtime</b> (<code>supabase/realtime:v2.102.3</code>) and the referee's own base, each
