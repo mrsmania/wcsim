@@ -357,7 +357,7 @@
   <summary>
     <span class="num">61</span>
     <span class="title">Can a player reach the files on the NAS?
-      <span class="sub">The site goes live on a home connection, so the question worth answering is not whether one player can read another's album, it is whether anybody can reach the <b>photos, videos and documents</b> on the box. The chain has four links: <b>three are already shut, and two of those by accident rather than by decision.</b> The one config change is <b>APPLIED and verified (2026-09-08)</b>: the database admin console no longer answers on the public hostname, and keeps the LAN and the VPN. It was confirmed from a phone on mobile data, so the one check that could have contradicted it is in. What is left is <b>two checks that can only be answered at the box</b> and three cheap habits. <b>Half a day, and it is a launch gate rather than a feature.</b></span>
+      <span class="sub">The site goes live on a home connection, so the question worth answering is not whether one player can read another's album, it is whether anybody can reach the <b>photos, videos and documents</b> on the box. The chain has four links: <b>three are already shut, and two of those by accident rather than by decision.</b> The one config change is <b>APPLIED and verified (2026-09-08)</b>: the database admin console no longer answers on the public hostname, and keeps the LAN and the VPN. It was confirmed from a phone on mobile data, so the one check that could have contradicted it is in. Check A is also run and green, which proves a container can reach nothing on the NAS itself. What is left is <b>check B, two screens in DSM only the owner can read</b>, and three cheap habits. <b>Half a day, and it is a launch gate rather than a feature.</b></span>
     </span>
     <span class="tag">Hosting</span>
     <span class="chev">&#9656;</span>
@@ -432,6 +432,17 @@
       scoped to the docker ranges. Note the sudo rule is per command, so the full path is
       required and no password is asked for.
       <br><br>
+      <b>RUN 2026-09-08, and it is seven times <code>shut</code>. Link 3 is proved.</b> So a
+      container that was somehow broken out of reaches no file share, no DSM web interface,
+      no shell, no NFS and no iSCSI on the host, and link 4 is therefore unreachable rather
+      than merely unlikely. <b>It was run with a control in the same command</b>, because a
+      probe that reports <code>shut</code> for everything is exactly what a broken probe
+      looks like: the same <code>/dev/tcp</code> in the same container answered
+      <code>OPEN</code> for <code>supabase-rest:3000</code> and <code>supabase-db:5432</code>
+      in the same breath, so the seven refusals are real refusals. Re-run it after any change
+      to the DSM firewall's docker-range rule, which is the one thing that can quietly
+      reopen it.
+      <br><br>
       <b>Check B, what else answers on the public address.</b> This one has nothing to do
       with the game and matters more than everything above it, so do it even if the rest of
       this item is dropped: Control Panel, Login Portal, Advanced, Reverse Proxy, and read
@@ -478,7 +489,12 @@
       strangers from the project's Gmail, the mailbox is suspended for spam, and <b>every
       signed-in player then cannot log in</b> while the single-player game carries on
       unaffected. Set the send and verify limits explicitly. Note the same endpoint
-      enumerates: a distinct answer for a known address says whether that person plays.</li>
+      enumerates: a distinct answer for a known address says whether that person plays.
+      <b>Updated 2026-09-08:</b> the sign-in mail has moved off Gmail to Amazon SES, sending
+      as <code>no-reply@mondialino.ch</code>, confirmed by a successful sign-in through it.
+      That does not retire this habit, it sharpens it: a metered sender turns an unthrottled
+      endpoint into a bill and a sender reputation as well as a suspension, and the send
+      quota is a ceiling somebody else's flood can spend on your behalf.</li>
       <li><b>A nightly <code>pg_dump</code> into a folder Hyper Backup already covers.</b>
       NFR-6 said no backups and that was right while nobody had an account. The day
       collections are real it stops being right, and this is the cheap version the setup
@@ -579,10 +595,11 @@
       other direction.
     </div>
 
-    <p class="next"><strong>Next step:</strong> the config change is done, so what is left
-    is the two checks and the three habits. Run check A and read the two screens of check B,
-    which together turn the third link from "not proved" into an answer and neither of which
-    changes a thing; then the sign-in rate limits, the likeliest of the three to bite.</p>
+    <p class="next"><strong>Next step:</strong> the config change is applied and verified,
+    and check A is run and green, so links 2, 3 and 4 are all answered. What is left is
+    <b>check B</b>, which is two screens in DSM that no command can read and so only the
+    owner can do, and the three habits. Take the sign-in rate limits first: they are the
+    likeliest of the three to bite, and more so now the mail is metered.</p>
     <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a> (sections 3 and 4, and "The container firewall rules"), <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a> (NFR-6), <code>dkr/docker-compose.yml</code> and <code>dkr/volumes/api/envoy/lds.template.yaml</code> (both untracked, mirrors of the NAS), <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
   </div>
 </details>
