@@ -363,11 +363,11 @@
     <span class="title">Three habits the accounts server has never had
       <span class="sub">What item 61 turned up that is genuinely this repo's rather than the
       NAS's, and all three are about the game's own data rather than the owner's files: the
-      sign-in endpoint has <b>no rate limit set at all</b>, so somebody hammering it spends
-      the project's Gmail and locks every signed-in player out; <b>nothing is backed up</b>,
-      which was a recorded decision (NFR-6) and stops being the right one the day a
-      collection is real; and four public-facing images are pinned with nobody watching their
-      advisories. <b>An hour for the first, an evening for the second, a diary entry for the
+      sign-in endpoint has <b>no rate limit set at all</b>, so somebody hammering it spends the
+      project's send quota and its sender reputation and locks every signed-in player out;
+      <b>nothing is backed up</b>, which was a recorded decision (NFR-6) and stops being the
+      right one the day a collection is real; and <b>five</b> public-facing images are pinned
+      with nobody watching their advisories. <b>An hour for the first, an evening for the second, a diary entry for the
       third.</b> None of them is urgent and none of them is hard.</span>
     </span>
     <span class="tag">Accounts</span>
@@ -379,10 +379,23 @@
     value, so the endpoint runs on whatever the <code>supabase/gotrue</code> image happens to
     default to, which is a real answer to nobody. It costs no data at all, which is exactly
     why it is easy to leave: somebody hammering it sends Mondialino codes to thousands of
-    strangers from <code>worldcupsim@gmail.com</code>, the mailbox is suspended for spam, and
-    <b>every signed-in player then cannot log in</b> (D9, the blocking unreachable screen)
-    while the single-player game carries on perfectly. Set the send and the verify limits
-    explicitly. <b>Two things go with it.</b> The same endpoint enumerates, so a distinct
+    strangers, those strangers report them as spam, and <b>every signed-in player then cannot
+    log in</b> (D9, the blocking unreachable screen) while the single-player game carries on
+    perfectly. Set the send and the verify limits explicitly.
+    <br><br>
+    <b>The move to Amazon SES on 2026-09-08 raised this rather than settling it, and SES's own
+    "maximum send rate" is not the same control.</b> That 14 a second is a throughput ceiling
+    on the SENDER, there to protect Amazon; it says nothing about who may ask us to send. A
+    script working through ten thousand addresses at ten a second never approaches it, and
+    every one of those messages is delivered. What bites is the reaction: SES enforces bounce
+    and complaint rates and pauses an account that crosses them, so where Gmail would have
+    suspended a mailbox, SES pauses sending and puts the account under review. There is a
+    daily quota underneath it as well, and an account still in the SES sandbox is capped at
+    200 a day to verified addresses only, which is worth confirming before real traffic.
+    <b>Confirmed on the running container 2026-09-08: no <code>GOTRUE_RATE_LIMIT_*</code> and
+    no <code>GOTRUE_SMTP_MAX_FREQUENCY</code> is set, only <code>GOTRUE_MAILER_OTP_EXP</code>.</b>
+    Nothing needs building in the app: the limiters are in the image already and are simply
+    not switched on. <b>Two things go with it.</b> The same endpoint enumerates, so a distinct
     answer for a known address says whether that person plays; and the limit has to be
     handed through the compose <code>environment:</code> allowlist as well as set in
     <code>.env</code>, or it reaches nothing, silently, which is the trap that section
@@ -398,9 +411,21 @@
     already names: a nightly <code>pg_dump</code> into a folder Hyper Backup covers. <b>Test
     the restore once</b>, or it is a habit rather than a backup.</p>
 
-    <p><strong>3. Four public-facing images are pinned and unwatched.</strong> The gateway,
-    the auth server, PostgREST and the referee's own base, each at a fixed version, and
-    nothing tells anybody when a hole is found in one. Over a year this is a likelier way in
+    <p><strong>3. Five public-facing images are pinned and unwatched.</strong> Measured off
+    the gateway's own route table 2026-09-08, and it is <b>five rather than four: realtime
+    was missing from the list</b>. The gateway
+    (<code>envoyproxy/envoy:v1.39.0</code>), the auth server
+    (<code>supabase/gotrue:v2.189.0</code>), PostgREST
+    (<code>postgrest/postgrest:v14.12</code>, which serves <code>/graphql/v1</code> too),
+    <b>realtime</b> (<code>supabase/realtime:v2.102.3</code>) and the referee's own base, each
+    at a fixed version, and nothing tells anybody when a hole is found in one. Realtime was
+    confirmed by probing a nonsense path through the public hostname and finding the request
+    in that container's own log, so it is its code answering rather than the gateway.
+    <b>Two are NOT on the list and it is worth knowing why</b>, since both look like they
+    should be: <code>postgres-meta</code> is behind <code>/pg/</code>, which the gateway
+    refuses to the public key outright ("RBAC: access denied"), so an attacker never reaches
+    its code; and the admin console left this set on 2026-09-08 when item 61 took it off the
+    public hostname, so the surface shrank by one that day. Over a year this is a likelier way in
     than anything clever, and it is the one item here with no code in it: a reminder to read
     the release notes and pull deliberately, which the runbook's "Afterwards" section already
     says to do without saying when.</p>
