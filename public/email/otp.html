@@ -11,6 +11,15 @@
     <title>Your sign-in code</title>
   </head>
   <!--
+    THE ONE HOUR IS A HAND-MAINTAINED COPY OF A SERVER SETTING, and nothing connects
+    the two. It is `GOTRUE_MAILER_OTP_EXP` on the NAS, set to 3600 on 2026-09-08 (see
+    docs/nas-setup.md, "The sign-in code's expiry"), and this file cannot read it: a mail
+    template is dead text rendered by GoTrue. So changing the server without changing this
+    line leaves the mail promising something untrue, which is the one sentence in it a
+    reader will actually act on. Before this the mail stated no duration at all, on the
+    ground that the setting was unset and the image's own default was not readable from
+    the box; setting it explicitly is what made the sentence sayable.
+
     The sign-in code email. GoTrue fills in the Token placeholder below with the
     six digits (Go text/template, so it would substitute inside a comment too - hence
     naming it rather than writing it out here).
@@ -127,6 +136,18 @@
                   "
                 >
                   {{ .Token }}
+                </p>
+
+                <p
+                  style="
+                    margin: 12px 0 0;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 13px;
+                    line-height: 1.5;
+                    color: #5a5a52;
+                  "
+                >
+                  This code works for one hour.
                 </p>
 
                 <div
