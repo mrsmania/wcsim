@@ -357,7 +357,7 @@
   <summary>
     <span class="num">61</span>
     <span class="title">Can a player reach the files on the NAS?
-      <span class="sub">The site goes live on a home connection, so the question worth answering is not whether one player can read another's album, it is whether anybody can reach the <b>photos, videos and documents</b> on the box. The chain has four links: <b>three are already shut, and two of those by accident rather than by decision.</b> The one config change is <b>APPLIED and verified (2026-09-08)</b>: the database admin console no longer answers on the public hostname, and keeps the LAN and the VPN. It was confirmed from a phone on mobile data, so the one check that could have contradicted it is in. Check A is also run and green, which proves a container can reach nothing on the NAS itself. What is left is <b>check B, two screens in DSM only the owner can read</b>, and three cheap habits. <b>Half a day, and it is a launch gate rather than a feature.</b></span>
+      <span class="sub">The site goes live on a home connection, so the question worth answering is not whether one player can read another's album, it is whether anybody can reach the <b>photos, videos and documents</b> on the box. The chain has four links: <b>three are already shut, and two of those by accident rather than by decision.</b> The one config change is <b>APPLIED and verified (2026-09-08)</b>: the database admin console no longer answers on the public hostname, and keeps the LAN and the VPN. It was confirmed from a phone on mobile data, so the one check that could have contradicted it is in. Check A is also run and green, which proves a container can reach nothing on the NAS itself. Check B is half answered: every NAS login carries MFA and <code>admin</code> is disabled, so <b>what is left of it is the exposure LIST rather than the login strength</b>, since the flaws that matter on that port are reached without a login form ever being drawn. Then three cheap habits. <b>Half a day, and it is a launch gate rather than a feature.</b></span>
     </span>
     <span class="tag">Hosting</span>
     <span class="chev">&#9656;</span>
@@ -595,11 +595,34 @@
       other direction.
     </div>
 
-    <p class="next"><strong>Next step:</strong> the config change is applied and verified,
-    and check A is run and green, so links 2, 3 and 4 are all answered. What is left is
-    <b>check B</b>, which is two screens in DSM that no command can read and so only the
-    owner can do, and the three habits. Take the sign-in rate limits first: they are the
-    likeliest of the three to bite, and more so now the mail is metered.</p>
+    <div class="callout">
+      <span class="ct">Check B, half answered: MFA is on, and MFA is not the question (2026-09-08)</span>
+      Reported by the owner: <b>every login to the NAS requires MFA, and the <code>admin</code>
+      account is disabled.</b> Both are worth having, and the second is worth more than it
+      looks: <code>admin</code> is the one username every credential-stuffing run on earth
+      already knows.
+      <br><br>
+      <b>It does not close check B, because check B was never about guessing a password.</b>
+      Three things sit outside MFA entirely. A <b>pre-authentication</b> flaw in whatever
+      publishes on that port is reached without the login form ever being drawn, so MFA is
+      not in its path at all, and DSM and its packages have a real history of exactly that.
+      <b>Protocols that do not use the portal</b> (SMB, WebDAV, FTP, rsync, NFS) authenticate
+      their own way and mostly cannot carry a second factor. And a <b>stolen session</b> is
+      past the factor by definition.
+      <br><br>
+      So what the two screens answer is unchanged, and it is a COUNT rather than a strength:
+      <b>how many things are published, and does each one need to be?</b> The console this
+      item just moved is the worked example. It had a 64-character password and that was
+      never the point; taking it off the port was. Anything on that list that could be
+      reached over the VPN instead is a door that can stop existing, and the honest target
+      for a box holding the family photo library is that <b>the game's API is the only thing
+      on it</b>.
+    </div>
+
+    <p class="next"><strong>Next step:</strong> read the two screens and write the published
+    list into this item, one line each with whether it has to be public. That is the last
+    thing between this item and a real answer. Then the three habits, sign-in rate limits
+    first: they are the likeliest to bite, and more so now the mail is metered.</p>
     <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a> (sections 3 and 4, and "The container firewall rules"), <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a> (NFR-6), <code>dkr/docker-compose.yml</code> and <code>dkr/volumes/api/envoy/lds.template.yaml</code> (both untracked, mirrors of the NAS), <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/scripts/deploy-referee.sh" target="_blank" rel="noopener">scripts/deploy-referee.sh</a></p>
   </div>
 </details>
