@@ -897,15 +897,36 @@ onto a second row below the fold. Do not add a seventh without a reason of that 
   boost taken is the same tournament, so One-off was a strictly dominated choice, and
   deleting it answers "should a one-off pay?" by deletion. The plain World Cup it led to
   was deleted with it later the same day, along with the `careerMode` flag.
-- **Every destination carries the same header**, an eyebrow + display title (`StageHeader`),
+- **Every destination carries the same header**, a display title (`StageHeader`),
   since the tab row alone does not name the page: `/career` gained one on 2026-08-23
-  ("Your career" / "Cup Run Career") and `/records` one for the destination rather than
-  for each half ("Your honours" / "Records"), sitting ABOVE the `SubTabs` the way `/squads`
+  and `/records` one for the destination rather than
+  for each half, sitting ABOVE the `SubTabs` the way `/squads`
   puts its Display toggle under its header. `ChallengesScreen` and `CabinetScreen`
   therefore render no header of their own at all - the `heading` and `onClose` props they
   used to take for the deleted aliases are gone (see the alias note above). The album's own
   "Back to game" crumb went at the same time: the tabs are the way out, so it was a second
   answer to a question the bar already answers.
+  **THE EYEBROW ABOVE THE TITLE IS GONE, ON EVERY PAGE** (2026-09-07, the authenticity
+  pass, `docs/authenticity-pass.html` A10, owner's call). Each header opened with a mono
+  caption above its display title and most restated it: "Your career" over Cup Run Career,
+  "Your honours" over Records, "Your collection" over The Sticker Album. A10 first kept the
+  two that named a real parent (the squad browser's "Squads database" over a nation, the
+  build page's "Team sheet" over whichever step you are on) and the owner overruled that,
+  on a ground the individual cases cannot answer: a line surviving on two screens out of
+  eight reads as inconsistency rather than as judgement. So `StageHeader` has no such prop
+  at all now, rather than an optional one. `PAGE_EYEBROW` survives as the CARD caption
+  style several screens use; it is the page-level slot that went, not the type treatment.
+  The page's top margin went from 30px to 48px in the same change and is one shared
+  `PAGE_TOP` rather than three copies (the header, the run screen's back crumb and the
+  front page's root), because taking the caption out moved every title up into a 45px
+  chrome.
+  **THE TITLES WERE TAKEN OUT TOO AND PUT STRAIGHT BACK** (2026-09-07, same day). The
+  argument was the same one again, one level up: the tab bar sits directly above with the
+  destination underlined, so "Records" under RECORDS says it twice. It was built, looked
+  at, and rejected on sight by the owner. Do not re-propose it. What the exercise did
+  establish, if it ever comes up again: the spacing has to leave the page's first element
+  before the titles can, because that element is what gets deleted, and the container the
+  masthead sits in is the wrong home for it.
 - **The bar goes inert while a match reveals** (`nav/liveMatch.ts`), because the live
   playback is transient state that is deliberately not persisted - leaving the screen
   loses it. Published from `useMatchClock`, so it covers every live match; the tree's

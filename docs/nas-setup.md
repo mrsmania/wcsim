@@ -163,7 +163,7 @@ mistyped redirect URI.
    | Redirects | `ADDITIONAL_REDIRECT_URLS` = the Pages URL plus `http://localhost:5173` for dev |
    | Google | the client ID and secret from step 2, and its callback (the `*_EXTERNAL_GOOGLE_*` block) |
    | SMTP | the `SMTP_*` block: host `smtp.gmail.com`, port 465, the mailbox as user, the **App Password** as the password, and the sender name (this is what shows in the inbox) |
-   | OTP | 6-digit numeric codes with a short expiry (the mailer OTP length / expiry settings) |
+   | OTP | 6-digit numeric codes. **The expiry is `GOTRUE_MAILER_OTP_EXP`, set to 3600 (one hour) on 2026-09-08** - see "The sign-in code's expiry" below, which is also where the two-files trap is written down |
    | Sessions | 60 days. Self-hosted Auth expresses this as a **session timebox / inactivity pair** plus a short access-token expiry, not one value. Check the names in your `.env.example` |
    | Signups | leave open here; the invite gate is a database trigger (step 6), so it covers both sign-in methods in one place |
 
@@ -509,6 +509,50 @@ it is the service that maps 5432 and 6543), so the prepared file had to be re-me
 it. Comparing hashes before uploading is what caught that.
 
 ---
+
+## The sign-in code's expiry
+
+**`GOTRUE_MAILER_OTP_EXP=3600`**, one hour, set on 2026-09-08. Before that it was set
+NOWHERE, so a code lasted for however long the `supabase/gotrue` image happens to default
+to, which is a real answer to nobody: it is not in the logs, not in `/auth/v1/settings`,
+and not printed by the container. That was found while trying to make the sign-in mail
+state how long a code is good for, and the mail deliberately says nothing rather than
+guess. If you want it to promise an hour, it can now.
+
+**IT TAKES TWO FILES, AND ONE OF THEM IS NOT OBVIOUS.** Adding the value to `.env` alone
+does nothing at all. The `auth` service in `docker-compose.yml` passes an explicit
+ALLOWLIST of environment variables through to the container, and anything not named there
+is simply not forwarded, silently. So the value goes in both:
+
+```
+# .env, beside the other GOTRUE_MAILER_* lines
+GOTRUE_MAILER_OTP_EXP=3600
+```
+```
+# docker-compose.yml, in the auth service's environment block
+      GOTRUE_MAILER_OTP_EXP: ${GOTRUE_MAILER_OTP_EXP}
+```
+
+**Then RE-CREATE the container, because a restart is not enough**: a container's
+environment is fixed when it is created. Same trap as the mail template settings on
+2026-09-03.
+
+```
+cd /volume1/docker/wcsim-supabase
+sudo -n /usr/local/bin/docker compose up -d --no-deps auth
+```
+
+Verify by reading it back out of the running container, which is the only statement that
+counts, and then check the gateway still answers:
+
+```
+sudo -n /usr/local/bin/docker exec supabase-auth env | grep OTP_EXP
+curl -s -o /dev/null -w '%{http_code}
+' https://HOST/auth/v1/health
+```
+
+If the stack goes quiet afterwards, it is the docker bridge firewall rules rather than
+this change: see the next section, and run that task by hand.
 
 ## The container firewall rules (and the DNS trap)
 
