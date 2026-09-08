@@ -45,7 +45,7 @@ to sign in** (NFR-1). Guest play stays exactly as it is today and never touches 
 | D2 | Account model | **Guest-first + optional login** (see NFR-1). Guests play exactly as today with no server involved; signing in moves progress to the account |
 | D3 | Integrity | **Trust client + sanity limits**: client reports earned/traded stickers; server applies validity checks, rate limits, and an append-only audit log |
 | D4 | Deployment | SPA stays on **GitHub Pages**; the API + Postgres run on the **NAS**, exposed via port-forward + **DSM reverse proxy + Let's Encrypt + DDNS** (two origins → CORS) |
-| D5 | OTP delivery | 6-digit email codes sent via **Gmail SMTP**, from a dedicated mailbox (`worldcupsim2026@gmail.com`-style). Needs 2FA + an **App Password**; ~500 sends/day is far above need. Accepted risk: a plain gmail.com sender sometimes lands in spam; a transactional sender is the upgrade path |
+| D5 | OTP delivery | 6-digit email codes sent via **Gmail SMTP**, from a dedicated mailbox (`worldcupsim2026@gmail.com`-style). Needs 2FA + an **App Password**; ~500 sends/day is far above need. Accepted risk: a plain gmail.com sender sometimes lands in spam; a transactional sender is the upgrade path. **SUPERSEDED 2026-09-08:** the upgrade path was taken. Codes go out through **Amazon SES** (eu-central-1) from `hello@mondialino.ch`, DKIM-signed with a custom MAIL FROM, and reach the inbox |
 | D6 | Identity | **One account per verified email**; the offered sign-in methods (D11) that share a verified email resolve to the same account |
 | D7 | Audience | **Private now, public later**: build for a small known set first, but specify abuse/rate-limit/privacy controls so opening up is a config change, not a rewrite |
 | D8 | Guest vs account | **Two separate worlds, never mixed.** Guest progress lives in `localStorage`; account progress lives **only** in the database. Nothing syncs or merges between them. The single crossing point is a **one-time import** at first login. *Revised 2026-08-15: it happens automatically instead of asking. Signing in on a device that has progress means you want that progress, and the safety was never the prompt - it is that the move only runs into an empty account and the server confirms before anything local is deleted.* |
@@ -197,8 +197,9 @@ Kept with their answers so the reasoning is not re-litigated.
 - ~~Session persistence.~~ **60 days**, and **"sign out everywhere" is in v1** (FR-7).
 - ~~Provider email edge cases.~~ Removed by dropping GitHub (D11): Google always returns a
   verified email. Returns only if GitHub is added later.
-- ~~SMTP specifics.~~ **Gmail SMTP from a dedicated mailbox** (D5), App Password, spam risk
-  accepted. Note this is now load-bearing: self-hosted Auth means we send the mail (D10).
+- ~~SMTP specifics.~~ **Amazon SES** since 2026-09-08 (Gmail SMTP from a dedicated mailbox
+  until then, D5), so the spam risk that decision accepted is paid off. Note this is
+  load-bearing either way: self-hosted Auth means we send the mail (D10).
 - ~~NAS exposure.~~ Path confirmed: **DSM reverse proxy + Let's Encrypt + DDNS**, and TLS is
   **mandatory** rather than optional (D10). The remaining items are values to fill in, below.
 - ~~Backup/restore.~~ **Explicitly deferred**, accepted risk (NFR-6).
@@ -212,7 +213,9 @@ Kept with their answers so the reasoning is not re-litigated.
 
 - DDNS provider + hostname for the API, and the router port to forward.
 - Google OAuth client id + secret (redirect URL = the API host).
-- The Gmail mailbox, and its App Password (needs 2FA enabled on that account).
+- An Amazon SES domain identity, and an IAM access key whose **derived** SMTP password is
+  what the stack authenticates with (it was a Gmail mailbox and an App Password until
+  2026-09-08).
 - How the invite allowlist is seeded (default: an `allowed_emails` table, one insert per
   person; adding someone is a one-line SQL statement).
 
@@ -266,11 +269,13 @@ everything else is built.
 
 ### Step 1: accounts to create, outside the NAS
 
-1. **A Gmail mailbox for the game** (the `worldcupsim2026@gmail.com` idea). This is the
-   address the login codes are sent *from*. Turn on two-factor on it, then generate what
-   Google calls an **App Password**: a one-off password that a program can use to send mail,
-   because Google will not let software log in with your normal one. Save that password
-   somewhere safe. You will paste it into the NAS configuration once.
+1. **An Amazon SES sender for the game.** This is where the login codes are sent *from*, and
+   it was a Gmail mailbox with an App Password until 2026-09-08; the change is why the codes
+   now arrive in the inbox instead of the spam folder. You verify the whole DOMAIN with SES,
+   which lets any address at it send, and the codes go out as `hello@mondialino.ch`. What the
+   NAS actually logs in with is an IAM access key whose secret is put through a fixed HMAC to
+   produce an SMTP password. `docs/nas-setup.md` under "The sign-in mail's sender" has all of
+   it, including the region trap that turns ten minutes into an hour.
 2. **A Google sign-in registration.** In Google's developer console you create a project and
    register the game as an application that people can sign in to. It gives you two strings,
    an ID and a secret, and it asks you for the web address it should send people back to
@@ -300,7 +305,7 @@ everything else is built.
    starts the database and the login service.
 7. **Fill in the configuration file** that sits next to the compose file. It holds: the
    database password, a long random signing secret and the two keys derived from it, the
-   dashboard login, your Gmail address and its App Password, the Google ID and secret from
+   dashboard login, the SES sender address and its SMTP credentials, the Google ID and secret from
    step 1, your hostname, and the web address of the game so logins are allowed to come from
    it. All of these are invented or pasted by you, they live only on the NAS, and none of them
    goes into the repository.

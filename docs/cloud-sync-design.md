@@ -223,7 +223,8 @@ tunable per D7 without code changes (FR-22).
 
 - **Providers:** Google, plus email OTP. GitHub deliberately absent (D11).
 - **OTP:** 6 digits, short expiry (10 minutes), single-use, invalidated by a newer code
-  (FR-3, FR-4). Delivered over Gmail SMTP (D5).
+  (FR-3, FR-4). Delivered over **Amazon SES** from `hello@mondialino.ch` since 2026-09-08;
+  Gmail SMTP (D5) until then.
 - **Sessions:** access token short (1 hour), refresh token **60 days**, rolling. "Sign out
   everywhere" is the client calling sign-out with global scope, which revokes every refresh
   token for the user (FR-7). This is why sessions are server-side records rather than

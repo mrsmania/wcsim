@@ -162,7 +162,7 @@ mistyped redirect URI.
    | URLs | `API_EXTERNAL_URL` and `SUPABASE_PUBLIC_URL` = `https://HOST`; `SITE_URL` = the game's URL on GitHub Pages |
    | Redirects | `ADDITIONAL_REDIRECT_URLS` = the Pages URL plus `http://localhost:5173` for dev |
    | Google | the client ID and secret from step 2, and its callback (the `*_EXTERNAL_GOOGLE_*` block) |
-   | SMTP | the `SMTP_*` block: host `smtp.gmail.com`, port 465, the mailbox as user, the **App Password** as the password, and the sender name (this is what shows in the inbox) |
+   | SMTP | the `SMTP_*` block: **Amazon SES**, host `email-smtp.eu-central-1.amazonaws.com`, port 587, the IAM access key id as the user, the **derived** SMTP password (not the secret access key) as the password, `hello@mondialino.ch` as `SMTP_ADMIN_EMAIL` and `Mondialino` as the sender name. See "The sign-in mail's sender" below. Do not use Gmail here: a plain gmail.com sender lands in spam, which is why this moved |
    | OTP | 6-digit numeric codes. **The expiry is `GOTRUE_MAILER_OTP_EXP`, set to 3600 (one hour) on 2026-09-08** - see "The sign-in code's expiry" below, which is also where the two-files trap is written down |
    | Sessions | 60 days. Self-hosted Auth expresses this as a **session timebox / inactivity pair** plus a short access-token expiry, not one value. Check the names in your `.env.example` |
    | Signups | leave open here; the invite gate is a database trigger (step 6), so it covers both sign-in methods in one place |
@@ -301,7 +301,7 @@ Simulator" right up to that point: the 2026-08-26 rename reached the wordmark in
 `otp.html` and nothing else, because those three live on the NAS rather than in the repo.
 They now read `Mondialino` and `Your Mondialino code`. The sender ADDRESS is unchanged and
 is not a rename job: `worldcupsim@gmail.com` is a real mailbox, so it can only be replaced.
-**It WAS replaced on 2026-09-08**, by `no-reply@mondialino.ch` through Amazon SES: see "The
+**It WAS replaced on 2026-09-08**, by `hello@mondialino.ch` through Amazon SES: see "The
 sign-in mail's sender" below.
 
 Worth copying if you ever do this again, because it made the whole thing verifiable before
@@ -422,7 +422,7 @@ by a device that has never seen your network, the CORS allowlist, and the OTP ma
 
 Check the spam folder for that first code. **That was the rule until 2026-09-08**, when a
 plain gmail.com sender landed there more often than not (D5, accepted); the mail goes out
-through Amazon SES as `no-reply@mondialino.ch` now, DKIM-signed and DMARC-aligned, and the
+through Amazon SES as `hello@mondialino.ch` now, DKIM-signed and DMARC-aligned, and the
 first one landed in the inbox. See "The sign-in mail's sender" below.
 
 ---
@@ -562,7 +562,7 @@ this change: see the next section, and run that task by hand.
 
 The OTP mail used to leave as `worldcupsim@gmail.com` through Gmail's SMTP, and section 7's
 note that a plain gmail.com sender lands in spam more often than not was the reason to
-change it. It now leaves as **`no-reply@mondialino.ch`** through **Amazon SES in
+change it. It now leaves as **`hello@mondialino.ch`** through **Amazon SES in
 eu-central-1 (Frankfurt)**, DKIM-signed under our own domain, and the first mail sent that
 way landed in the Gmail **inbox**.
 
@@ -582,7 +582,7 @@ SMTP_HOST=email-smtp.eu-central-1.amazonaws.com
 SMTP_PORT=587
 SMTP_USER=<the IAM access key id, AKIA...>
 SMTP_PASS=<the derived SMTP password, see below>
-SMTP_ADMIN_EMAIL=no-reply@mondialino.ch
+SMTP_ADMIN_EMAIL=hello@mondialino.ch
 ```
 
 `SMTP_SENDER_NAME` stays `Mondialino`, and it is `up -d --no-deps auth` rather than a
@@ -678,18 +678,24 @@ there are worth carrying:
 - **MAIL FROM is the ENVELOPE sender, not the `From:` header.** It is where bounces go and
   what SPF authenticates, and the only place a player could ever see it is Gmail's
   "mailed-by" line. The `From:` is `SMTP_ADMIN_EMAIL`.
-- **DMARC passes on DKIM alone.** The zone's policy is `adkim=s; aspf=s`, and strict SPF
+- **DMARC passed on DKIM alone until the policy was relaxed.** Strict SPF
   alignment needs the envelope domain to equal the From domain exactly, which
-  `bounce.mondialino.ch` never will, since SES refuses the bare apex as a MAIL FROM. Relaxing
-  that to `aspf=r` would let both mechanisms align; it is a one-record change and nobody has
-  made it.
+  `bounce.mondialino.ch` never will, since SES refuses the bare apex as a MAIL FROM. So the
+  zone was relaxed to `aspf=r` on 2026-09-08, which lets SPF align on the organisational
+  domain instead, and **DMARC now stands on both mechanisms rather than one** (`adkim=s` and
+  `p=quarantine` are unchanged). Do not put `aspf=s` back without knowing it takes SPF out of
+  the answer entirely.
 - **Only ONE of the three DKIM selectors publishes a key.** The other two resolve and come
   back empty, in Frankfurt and Zurich alike, which is how SES holds keys in reserve for
   rotation. Not a fault, nothing to fix, and it looked alarming for an hour.
 
-**`no-reply@mondialino.ch` is not a mailbox.** Sending from it works because the DOMAIN is the
-verified identity, but a player replying to their code is replying into nothing. Making it a
-real mailbox or an alias at nexanet costs a minute and has not been done.
+**THE SENDER IS A REAL MAILBOX, AND THAT WAS A DELIBERATE CHANGE** a few hours after the
+move. It shipped as `no-reply@mondialino.ch` and became **`hello@mondialino.ch`** the same
+day, because a player whose code never arrives has nowhere else to turn, and a transactional
+mail nobody can answer is a dead end. SES needed nothing for it: the verified identity is
+the whole DOMAIN, so any address at it can send with no further verification. It is one
+variable, `SMTP_ADMIN_EMAIL`, plus a re-create. **Create the mailbox at nexanet FIRST**, or
+replies bounce in the window between.
 
 **Cost** is about $0.10 per thousand messages, a rounding error at this volume. **Production
 access and identities are both per REGION**, so the Zurich grant did not carry over to
@@ -792,7 +798,9 @@ error: dial tcp: lookup smtp.gmail.com on 127.0.0.11:53: server misbehaving
 
 Sign-in emails stop, the credentials test fine from anywhere else, and it reads as a Gmail
 or password problem. `docker run --rm --network supabase_default busybox nslookup
-smtp.gmail.com` settles it in one command.
+smtp.gmail.com` settles it in one command. **The host has been
+`email-smtp.eu-central-1.amazonaws.com` since 2026-09-08**, so that is the name to look up
+now; the error above is kept verbatim because it is what was actually seen.
 
 Two other symptoms of the same class, worth recognising:
 - **All services 503 while the gateway answers** - rules missing entirely. Re-add them, then

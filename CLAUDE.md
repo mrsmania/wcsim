@@ -288,8 +288,9 @@ was **deleted from the chrome on 2026-09-02** to pay for the one-line header (se
 changed the wordmark inside `public/email/otp.html` and stopped there, which looked
 complete and was not: the mail's **subject line and sender name** are GoTrue settings that
 live on the NAS, not in this repo, so they went on saying "World Cup Simulator" for a day.
-They are `Mondialino` / `Your Mondialino code` now. The sender ADDRESS stays
-`worldcupsim@gmail.com` because it is a real mailbox and can only be replaced, not renamed.
+They are `Mondialino` / `Your Mondialino code` now. The sender ADDRESS could never be
+renamed, only replaced, and it **was** replaced on 2026-09-08: it is `hello@mondialino.ch`
+through Amazon SES now rather than `worldcupsim@gmail.com` through Gmail. See "Hosting".
 The general point for any future rename: **grep the repo and the stack's `.env`**, since
 user-facing copy is not all in `src/`.
 
@@ -4768,7 +4769,8 @@ What the zone has to carry for the site, so it can be rebuilt from here if it is
   and the accounts server and the referee are on a different domain), so it was
   deliberately not carried over.
 - The mail half is nexanet's own and was correct as delivered: `MX mx.cloudfor.ch`, an SPF
-  record, a DKIM key on `default._domainkey`, DMARC at `p=quarantine` with strict alignment,
+  record, a DKIM key on `default._domainkey`, DMARC at `p=quarantine` (strict DKIM
+  alignment, relaxed SPF since 2026-09-08, see below),
   and the four `SRV` records mail clients read. **hostpoint's SPF must NOT be carried
   over**, since it authorises the wrong servers.
 
@@ -4791,7 +4793,7 @@ Three things about the transition itself:
   so the old mailbox stays alive and gets read until it goes quiet.
 - **The game's own sign-in mail did not move with the DNS, and it HAS moved since.** It left
   as `worldcupsim@gmail.com` through Gmail's SMTP until **2026-09-08**, when it became
-  `no-reply@mondialino.ch` through **Amazon SES in eu-central-1**, DKIM-signed under this
+  `hello@mondialino.ch` through **Amazon SES in eu-central-1**, DKIM-signed under this
   domain with a custom MAIL FROM of `bounce.mondialino.ch`. That is what took the mail out
   of the spam folder, which is the whole reason for it. Nexanet's own outgoing server was
   the other candidate and was not used. The zone therefore carries three DKIM CNAMEs and an
