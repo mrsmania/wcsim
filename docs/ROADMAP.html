@@ -359,6 +359,89 @@
 
 <details class="item">
   <summary>
+    <span class="num">65</span>
+    <span class="title">The boost cards do not look pressable
+      <span class="sub">Reported 2026-09-09: the three boosts you pick between "don't appear like real buttons". They are buttons, and the reason is measurable rather than a matter of taste - <b>every signal that they are pressable fires on hover, and there is no hover on a phone.</b> Five options drawn live in <a class="dl" href="redesign-2026/turf-flat/boost-buttons-mock.html" target="_blank" rel="noopener"><code>docs/redesign-2026/turf-flat/boost-buttons-mock.html</code></a>. <b>Needs one decision from the owner</b>, then about an hour.</span>
+    </span>
+    <span class="tag">Cup Run</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The finding.</strong> At rest a boost card is <code>CARD_FLAT</code>, which is
+    the app's <em>shadowless</em> card: the one the modal sheets use and the one a panel
+    nested inside another card uses. So the thing the player is meant to tap is dressed in
+    the app's own idiom for a passive surface, on a screen where every real card carries the
+    hard shadow. The two things that do say "control" are a 2px lift and the border turning
+    green, and <b>both are hover states</b>. Whatever is chosen, the fix has to be visible at
+    rest.</p>
+
+    <p><strong>The five options</strong>, each drawn on one real offer in the comp so it can
+    be hovered and pressed rather than read about:</p>
+    <ul>
+      <li><b>A. It is raised, and pressing it presses it down.</b> <code>CARD_FLAT</code>
+      becomes <code>CARD_SM</code> (the 4px hard shadow the cabinet already uses), hover
+      lifts to the full 6px and the press drops it flat into its own shadow. One token, no
+      new element, no new copy, no height, and it works on touch. <b>Recommended in the
+      comp.</b></li>
+      <li><b>B. The card gets a foot.</b> A chalk strip reading "Take this boost" with an
+      arrow, in the mono caption. The precedent is <code>CardDisclosure</code>. Costs about
+      28px a card and says the same thing three times.</li>
+      <li><b>C. Pick, then confirm.</b> The three become a selector (chosen fills
+      <code>pitch-dark</code>, the app's one chosen-cell green) with one real
+      <code>btn('primary')</code> below. Ends the tension completely and makes an
+      irreversible pick deliberate; costs a tap at every stop, so it is a gameplay decision
+      as much as a visual one.</li>
+      <li><b>D. The rarity becomes a filled cap</b> with the word reversed out, plus a corner
+      arrow. Cheapest change, weakest affordance on its own, and the only one that fixes the
+      contrast miss below on the way past. Pairs with A.</li>
+      <li><b>E. It fills green on hover.</b> Drawn so the ceiling is visible, not as a
+      candidate: it is the primary button three times on a screen that also has one, and it
+      is still hover-only.</li>
+    </ul>
+
+    <div class="callout">
+      <span class="ct">A second finding on the same element: the rarity word misses AA</span>
+      The rarity is printed at 9px bold in the rarity accent, and those hexes are SURFACE
+      colours borrowed from the sticker tier ramp. Against the panel they sit on:
+      <b>Legendary <code>#c99a3a</code> 2.57 light / 6.49 dark, Rare <code>#e4922b</code>
+      2.49 / 6.71, Common <code>#15924c</code> 4.00 / 4.17</b>, against the 4.5 a 9px label
+      needs. Two are badly under on paper and the common green is under in both themes. The
+      relaxed 3:1 does not apply, which is for 18.66px bold and larger.
+    </div>
+
+    <p><strong>The fix has a precedent, twice over.</strong>
+    <code>--color-amber-ink</code> and <code>--color-pitch-ink</code> exist precisely because
+    amber and green <em>as text</em> are separate values from amber and green <em>as a
+    surface</em>. The 3px strip is a surface and keeps the accent; the word needs the ink.
+    Rare takes <code>amber-ink</code> (5.92 on panel), common takes <code>pitch-ink</code>
+    (8.08), and legendary needs one new gold ink token - <code>#7d5f10</code> measures 5.97
+    panel / 5.14 chalk / 5.33 ground. Option D avoids the new token but is not free either:
+    the bright common green carries neither the foil ink (3.47) nor white (4.00), so that cap
+    has to deepen to <code>#0e5c34</code>, where white reads 8.08.</p>
+
+    <p><strong>Three constraints, all of which a first attempt would trip over.</strong>
+    The description STAYS - "no descriptions inside a button" is a house rule and the boost
+    offer is its one written exception, because here the description is the choice. There is
+    no fourth button design, so every option above either reuses something that exists (the
+    hard shadow, the chalk foot, the chosen-cell green) or is a selector, which the rules
+    already hold apart from buttons. And <code>npm run checks</code> reads every class-list
+    string in <code>src/</code> and <b>fails on the app's button voice</b>
+    (<code>font-display</code> plus <code>uppercase</code>) inside a box with its own
+    padding, so a "TAKE THIS" set in Archivo inside the card is a build failure; the mono
+    caption is fine, which is what B uses.</p>
+
+    <p><strong>Two things worth doing whichever is picked.</strong> The shipped card sets no
+    focus style at all, so keyboard focus lands on it invisibly. And the rarity contrast
+    belongs in the tone sweep <code>scripts/checks/ui.ts</code> already runs, which computes
+    every button tone from the real tokens and fails under 4.5 but does not read this
+    element.</p>
+
+    <p class="files"><a class="dl" href="redesign-2026/turf-flat/boost-buttons-mock.html" target="_blank" rel="noopener">docs/redesign-2026/turf-flat/boost-buttons-mock.html</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/cupRun/BoostOffer.tsx" target="_blank" rel="noopener">src/components/cupRun/BoostOffer.tsx</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/cupRun/types.ts" target="_blank" rel="noopener">src/components/cupRun/types.ts</a>, <a class="dl" href="../src/index.css" target="_blank" rel="noopener">src/index.css</a>, <a class="dl" href="../scripts/checks/ui.ts" target="_blank" rel="noopener">scripts/checks/ui.ts</a></p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
     <span class="num">64</span>
     <span class="title">Four containers are behind, and one of them properly
       <span class="sub">What item 62's update habit turned up the first time it was exercised (2026-09-08). <b>The gateway was the urgent one and is already done</b>, so nothing here is reachable-critical. What is left is <b>the database</b>, which carries roughly 41 upstream CVEs and a trap that makes the obvious upgrade path a no-op, plus realtime, PostgREST and the auth server. <b>Deferred by the owner, deliberately.</b> An afternoon for three of them; the database is a planned job.</span>
