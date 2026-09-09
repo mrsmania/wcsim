@@ -163,18 +163,6 @@
   }
   .phone { width: 100%; max-width: 360px; }
 
-  /* the baseline strip: it names the unit, which is half of what was missing */
-  .basestrip {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
-    background: var(--chalk); border: 1px solid var(--line); border-radius: 5px;
-    padding: 7px 10px; margin-bottom: 11px;
-    font-family: var(--mono); font-size: 10.5px; color: var(--muted);
-  }
-  .basestrip .lbl {
-    font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--dim);
-  }
-  .basestrip b { color: var(--ink); font-size: 12px; }
-  .basestrip .sep { color: var(--line); }
   .offerhead {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
     gap: 6px; margin-bottom: 11px;
@@ -237,10 +225,6 @@
   }
   .orow .v .ar { color: var(--dim); font-weight: 500; padding: 0 1px; }
   .orow .v .to { color: var(--pitch-ink); }
-  .orow .v.flat {
-    color: var(--muted); font-weight: 600; font-size: 9px;
-    text-transform: uppercase; letter-spacing: 0.06em;
-  }
   /* a card a number cannot price gets a label, never a zero */
   .olabel {
     display: flex; align-items: center; gap: 5px; margin-top: 9px;
@@ -284,7 +268,6 @@
   .bc:has(> input:checked) .v,
   .bc:has(> input:checked) .v .to { color: #fff; }
   .bc:has(> input:checked) .v .ar { color: rgba(255,255,255,0.6); }
-  .bc:has(> input:checked) .v.flat { color: rgba(255,255,255,0.8); }
   .bc:has(> input:focus-visible) { outline: 2px solid var(--pitch); outline-offset: 2px; }
 
   /* the panel and the button label follow the checked radio */
@@ -316,15 +299,6 @@
     border: 1px solid var(--line); border-left: 3px solid var(--pitch);
     border-radius: 5px; padding: 11px 12px;
   }
-  .detail .dh {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-    flex-wrap: wrap; margin-bottom: 9px;
-  }
-  .detail .dn { font-family: var(--disp); font-weight: 800; font-size: 14px; }
-  .detail .dr {
-    font-family: var(--mono); font-size: 9px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.12em; color: var(--rar);
-  }
   .prow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 9px; margin-bottom: 7px; }
   /* The row label is a SENTENCE, not a data label, so it is set in the body face at
      11.5px, the same as a boost's own description (owner, 2026-09-09). The uppercase and
@@ -335,7 +309,11 @@
      made. The terse labels on the cards in merges 1 and 2 ("vs Brazil", "Cup") stay mono,
      because those really are data labels. */
   .prow .pk {
-    font-family: var(--body); font-size: 11.5px; font-weight: 600;
+    /* Identical to a boost's own description on the card (.bc .ds): same family, same
+       11.5px, same muted colour, and now the same regular weight. It was 600, and semibold
+       against the card's regular was enough on its own to read as a different face, which
+       is what the owner saw. Nothing else differs. */
+    font-family: var(--body); font-size: 11.5px; font-weight: 400;
     color: var(--muted);
     flex: 1 1 100%;
   }
@@ -354,10 +332,10 @@
   }
   .prow .pv .ar { color: var(--dim); font-weight: 500; padding: 0 2px; }
   .prow .pv .to { color: var(--pitch-ink); }
-  .prow .pv.flat { font-size: 11px; color: var(--muted); font-weight: 600; }
-  /* One height per row whatever it holds. "No real change" is 11px where a figure is
-     14px, so without this the panel gets shorter when Sold Out Stadium is chosen and the
-     button under it jumps: the owner reported exactly that. */
+  /* One height per row, pinned rather than left to the content. Every row prints a
+     from-to now so they match anyway, but this is what stopped the panel changing height
+     when Sold Out Stadium was chosen and the button under it jumping, and it should not
+     depend on all four cards happening to hold the same shape of value. */
   .prow .pv { line-height: 20px; }
   .pane.nobar .prow { min-height: 20px; align-items: center; }
   /* 3b has no bar, so the label and the figures share one line instead of stacking. */
@@ -467,7 +445,8 @@
       boost adds, and the scale was <b>cropped at 60%</b>, which was stated nowhere. The
       figure was the added part in <b>percentage points</b>, also stated nowhere, and the
       thing it was added to was in a strip at the top of the screen rather than on the
-      card.</p>
+      card. <b>That strip is gone too</b>, and the delta is why it existed: a from-to
+      carries its own base on every row, so the strip had been repeating it.</p>
     </div>
     <div class="good">
       <h4>What it prints now</h4>
@@ -501,7 +480,7 @@
         <tr><td class="k">Second Wind</td><td class="n">+4</td>
           <td class="n good2">68% better</td><td class="n">6% &rarr; 11%</td></tr>
         <tr><td class="k">Sold Out Stadium</td><td class="n">level</td>
-          <td class="n meh">13%, inside the noise</td><td class="n meh">no real change</td></tr>
+          <td class="n meh">13%, inside the noise</td><td class="n">6% &rarr; 7%</td></tr>
       </tbody>
       <caption>Base 6.3% to lift the cup. The middle column is the movement as a share of
       that base, which is the sense in which a boost "improves your chances" and is not what
@@ -532,9 +511,11 @@
 
   <p><b>What survives from option 03 unchanged:</b> two horizons rather than one, because the
   catalogue lives in both and their disagreement is the feature; position-aware figures, which
-  is the whole finding of item 05; whole points, never decimals; <b>no real change</b> rather
-  than a fake zero when the movement is inside the noise; and a <b>label rather than a
-  number</b> for the four cards that pay outside the simulation.</p>
+  is the whole finding of item 05; whole points, never decimals; and a <b>label rather
+  than a number</b> for the four cards that pay outside the simulation. <b>What did not
+  survive is "no real change"</b>: every row prints a from-to now (owner, 2026-09-09), so
+  Sold Out Stadium's cup row reads 6% to 7% and the reader draws their own conclusion from
+  the two figures rather than being told one.</p>
 
   <h2>Why a one-tie boost moves the cup figure</h2>
 
@@ -571,8 +552,8 @@
           <td>The later rounds. It is permanent, so it is still helping in the final.</td></tr>
         <tr><td class="k">Sold Out Stadium</td><td class="n">57.9%</td><td class="n">12.0%</td>
           <td class="n">7.1%</td><td class="n bad2">-4.9</td>
-          <td>The debt. Minus six in the quarter-final undoes almost all of it, which is why
-          the card reads "no real change".</td></tr>
+          <td>The debt. Minus six in the quarter-final undoes almost all of it, so the card
+          reads 6% to 7% where the tie row reads 31% to 58%.</td></tr>
       </tbody>
       <caption>"Cup, if only the tie had moved" is the tie figure times the baseline chance
       of the cup given the Round of 16 is survived, which is 6.3 / 30.5 = 20.7%. Standard
@@ -635,12 +616,6 @@
     <div class="stages">
       <div class="stage phone">
         <span class="stagecap">Phone, one card wide</span>
-        <div class="basestrip">
-          <span class="lbl">As you stand</span>
-          <span><b>31%</b> to beat Brazil</span>
-          <span class="sep">|</span>
-          <span><b>6%</b> to lift the cup</span>
-        </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
         <div class="cards">
           <button class="bc com" type="button">
@@ -658,21 +633,15 @@
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
             <span class="odds">
               <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></span>
-              <span class="orow"><span class="k">Cup</span><span class="v flat">no real change</span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">7%</span></span></span>
             </span>
             <span class="bar" aria-hidden="true">Take it</span></button>
         </div>
         <p class="stagecap" style="margin: 9px 0 0">Two of the four shown; the offer runs to
-        about 590px of phone</p>
+        about 820px of phone</p>
       </div>
       <div class="stage wide">
         <span class="stagecap">Desktop, four across</span>
-        <div class="basestrip">
-          <span class="lbl">As you stand</span>
-          <span><b>31%</b> to beat Brazil</span>
-          <span class="sep">|</span>
-          <span><b>6%</b> to lift the cup</span>
-        </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span>
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
         <div class="cards">
@@ -709,7 +678,7 @@
             <span class="grow"></span>
             <span class="odds">
               <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></span>
-              <span class="orow"><span class="k">Cup</span><span class="v flat">no real change</span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">7%</span></span></span>
             </span>
             <span class="bar" aria-hidden="true">Take it</span></button>
         </div>
@@ -730,7 +699,7 @@
       <div>
         <h4>What it costs</h4>
         <p>This is the two items shipped next to each other rather than merged, and it pays
-        both bills in full: <b>the phone offer runs to about 590px</b>, so the fourth card is
+        both bills in full: <b>the phone offer runs to about 820px</b>, so the fourth card is
         two screens down, and every offer costs the baseline plus four simulations before
         anything can be shown. And the numbers are on four cards when only one of them is going to be taken.</p>
       </div>
@@ -747,12 +716,6 @@
     <div class="stages">
       <div class="stage pick phone">
         <span class="stagecap">Phone &middot; tap a card</span>
-        <div class="basestrip">
-          <span class="lbl">As you stand</span>
-          <span><b>31%</b> to beat Brazil</span>
-          <span class="sep">|</span>
-          <span><b>6%</b> to lift the cup</span>
-        </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
         <div class="cards">
           <label class="bc com">
@@ -769,20 +732,14 @@
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
             <span class="odds">
               <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></span>
-              <span class="orow"><span class="k">Cup</span><span class="v flat">no real change</span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">7%</span></span></span>
             </span></label>
         </div>
         <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
-        <p class="stagecap" style="margin: 9px 0 0">Two of the four shown; the offer runs to about 570px of phone</p>
+        <p class="stagecap" style="margin: 9px 0 0">Two of the four shown; the offer runs to about 590px of phone</p>
       </div>
       <div class="stage pick wide">
         <span class="stagecap">Desktop &middot; tap a card</span>
-        <div class="basestrip">
-          <span class="lbl">As you stand</span>
-          <span><b>31%</b> to beat Brazil</span>
-          <span class="sep">|</span>
-          <span><b>6%</b> to lift the cup</span>
-        </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span>
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
         <div class="cards">
@@ -820,7 +777,7 @@
             <span class="grow"></span>
             <span class="odds">
               <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></span>
-              <span class="orow"><span class="k">Cup</span><span class="v flat">no real change</span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">7%</span></span></span>
             </span></label>
         </div>
         <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
@@ -842,7 +799,7 @@
         <h4>What it costs</h4>
         <p>The second tap is still buying nothing: the numbers were already on the table
         before it. So this is the safer version of 1 and not the cheaper one - the phone
-        offer is still about 570px, and the simulation bill is unchanged. It is what to ship
+        offer is still about 590px, and the simulation bill is unchanged. It is what to ship
         if comparing at a glance is worth more than the height.</p>
       </div>
     </div>
@@ -858,12 +815,6 @@
     <div class="stages">
       <div class="stage pick phone">
         <span class="stagecap">Phone &middot; tap a card</span>
-        <div class="basestrip">
-          <span class="lbl">As you stand</span>
-          <span><b>31%</b> to beat Brazil</span>
-          <span class="sep">|</span>
-          <span><b>6%</b> to lift the cup</span>
-        </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
         <div class="cards">
           <label class="bc com">
@@ -888,33 +839,29 @@
             <span class="grow"></span></label>
         </div>
         <div class="detail">
-            <div class="pane pane-drills com">
-              <div class="dh"><span class="dn">Defensive Drills</span><span class="dr">Common</span></div>
+            <div class="pane pane-drills">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:3.5%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:3.4%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
             </div>
-            <div class="pane pane-away com">
-              <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
+            <div class="pane pane-away">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:10.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:2.5%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
             </div>
-            <div class="pane pane-wind rare">
-              <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
+            <div class="pane pane-wind">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:17.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:4.3%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
             </div>
-            <div class="pane pane-sold rare">
-              <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
+            <div class="pane pane-sold">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
-                <span class="pbar"><i style="width:6.3%"></i></span><span class="pv flat">No real change</span></div>
+                <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:0.8%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">7%</span></span></div>
             </div>
         </div>
         <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
@@ -925,12 +872,6 @@
       </div>
       <div class="stage pick wide">
         <span class="stagecap">Desktop &middot; tap a card</span>
-        <div class="basestrip">
-          <span class="lbl">As you stand</span>
-          <span><b>31%</b> to beat Brazil</span>
-          <span class="sep">|</span>
-          <span><b>6%</b> to lift the cup</span>
-        </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span>
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
         <div class="cards">
@@ -956,33 +897,29 @@
             <span class="grow"></span></label>
         </div>
         <div class="detail">
-            <div class="pane pane-drills com">
-              <div class="dh"><span class="dn">Defensive Drills</span><span class="dr">Common</span></div>
+            <div class="pane pane-drills">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:3.5%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:3.4%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
             </div>
-            <div class="pane pane-away com">
-              <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
+            <div class="pane pane-away">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:10.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:2.5%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
             </div>
-            <div class="pane pane-wind rare">
-              <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
+            <div class="pane pane-wind">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:17.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:4.3%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
             </div>
-            <div class="pane pane-sold rare">
-              <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
+            <div class="pane pane-sold">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
-                <span class="pbar"><i style="width:6.3%"></i></span><span class="pv flat">No real change</span></div>
+                <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:0.8%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">7%</span></span></div>
             </div>
         </div>
         <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
@@ -1003,8 +940,8 @@
         than the crop being undeclared: fitting the axis to the biggest figure is a chart
         convention for an axis with no meaningful end, and a probability has one. Sold Out
         Stadium is still the card the pair flatters most, since one long run and one that
-        barely starts is the fastest possible reading of "great for this tie, nothing for
-        the run".</p>
+        barely starts is the fastest possible reading of "great for this tie, almost nothing
+        for the run".</p>
       </div>
       <div>
         <h4>What it costs</h4>
@@ -1012,9 +949,9 @@
         way round it: 6% to 9% is three points of a hundred. Measured in the phone panel
         above, on a 231px track, Away Days' tie run is <b>25px</b> of colour and its cup run
         is <b>6px</b>. The old 60% crop made that 10px, which is the whole of what the crop
-        was buying and it was not worth the lie. The panel is also <b>121px tall against
-        3b's 76px</b>, so the bars make the thing merge 3 exists to keep short half again as
-        tall. It also adds
+        was buying and it was not worth the lie. The panel is also <b>91px tall against
+        3b's 45px</b>, so the bars double the one part of merge 3 that was meant to stay
+        small. It also adds
         two rows of bar plus the scale line to a panel whose whole purpose was to keep the
         offer short, and it re-opens the question of whether a bar should be there at all
         (see 3b).</p>
@@ -1032,12 +969,6 @@
     <div class="stages">
       <div class="stage pick phone">
         <span class="stagecap">Phone &middot; tap a card</span>
-        <div class="basestrip">
-          <span class="lbl">As you stand</span>
-          <span><b>31%</b> to beat Brazil</span>
-          <span class="sep">|</span>
-          <span><b>6%</b> to lift the cup</span>
-        </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
         <div class="cards">
           <label class="bc com">
@@ -1062,25 +993,21 @@
             <span class="grow"></span></label>
         </div>
         <div class="detail">
-            <div class="pane pane-drills com nobar">
-              <div class="dh"><span class="dn">Defensive Drills</span><span class="dr">Common</span></div>
+            <div class="pane pane-drills nobar">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
             </div>
-            <div class="pane pane-away com nobar">
-              <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
+            <div class="pane pane-away nobar">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
             </div>
-            <div class="pane pane-wind rare nobar">
-              <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
+            <div class="pane pane-wind nobar">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
             </div>
-            <div class="pane pane-sold rare nobar">
-              <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
+            <div class="pane pane-sold nobar">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
-              <div class="prow"><span class="pk">Lifting the cup</span><span class="pv flat">No real change</span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">7%</span></span></div>
             </div>
         </div>
         <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
@@ -1091,12 +1018,6 @@
       </div>
       <div class="stage pick wide">
         <span class="stagecap">Desktop &middot; tap a card</span>
-        <div class="basestrip">
-          <span class="lbl">As you stand</span>
-          <span><b>31%</b> to beat Brazil</span>
-          <span class="sep">|</span>
-          <span><b>6%</b> to lift the cup</span>
-        </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span>
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
         <div class="cards">
@@ -1122,25 +1043,21 @@
             <span class="grow"></span></label>
         </div>
         <div class="detail">
-            <div class="pane pane-drills com nobar">
-              <div class="dh"><span class="dn">Defensive Drills</span><span class="dr">Common</span></div>
+            <div class="pane pane-drills nobar">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
             </div>
-            <div class="pane pane-away com nobar">
-              <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
+            <div class="pane pane-away nobar">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
             </div>
-            <div class="pane pane-wind rare nobar">
-              <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
+            <div class="pane pane-wind nobar">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
             </div>
-            <div class="pane pane-sold rare nobar">
-              <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
+            <div class="pane pane-sold nobar">
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
-              <div class="prow"><span class="pk">Lifting the cup</span><span class="pv flat">No real change</span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">7%</span></span></div>
             </div>
         </div>
         <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
@@ -1158,8 +1075,11 @@
         without reading eight numbers, which is exactly what option 03 was built for and
         what merges 1 and 2 still do. In merge 3 only one card's figures are on screen at a
         time, so a bar has nothing to compare that card against except itself: all it says
-        is that 6% is a small slice of 100%, which the figure "6%" already said. It is also
-        the shortest panel of the three, which is the whole argument for merge 3.</p>
+        is that 6% is a small slice of 100%, which the figure "6%" already said. It is also the
+        smallest panel here by a distance: measured on the phone, the four cards come to
+        <b>396px</b> and the panel adds <b>45</b>, for 441px against 3a's 487, <b>merge 2's
+        590 and merge 1's 820</b>. Keeping the offer short is the whole argument for merge
+        3, and this is the version that actually does it.</p>
       </div>
       <div>
         <h4>What it costs</h4>
@@ -1316,8 +1236,8 @@
     true than a bare delta did, since it needs no working out. The two horizons disagreeing
     is the only thing working against it.</li>
     <li><b>Is Sold Out Stadium still shippable once the screen prices it?</b> Its known hole
-    (free if taken before the final) becomes visible the day this ships. Fix the card, or let
-    "no real change" be the warning.</li>
+    (free if taken before the final) becomes visible the day this ships. Fix the card, or let the gap between 31% to 58% on the tie
+    and 6% to 7% on the cup be the warning.</li>
   </ul>
 
   <div class="foot-note">
