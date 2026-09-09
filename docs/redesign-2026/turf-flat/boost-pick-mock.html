@@ -347,6 +347,15 @@
   .prow .pv .ar { color: var(--dim); font-weight: 500; padding: 0 2px; }
   .prow .pv .to { color: var(--pitch-ink); }
   .prow .pv.flat { font-size: 11px; color: var(--muted); font-weight: 600; }
+  /* 3b has no bar, so the label and the figures share one line instead of stacking. */
+  .pane.nobar .prow { flex-wrap: nowrap; gap: 10px; margin-bottom: 5px; }
+  .pane.nobar .pk { flex: 1 1 auto; }
+  /* 3a declares its scale, which is the fault that sank option 03's bar. */
+  .scalenote {
+    margin: 3px 0 0; font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim);
+  }
+
   /* the re-roll, so the tone question stays judgeable */
   .reroll {
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -834,8 +843,184 @@
 
   <div class="opt">
     <div class="opthead">
-      <span class="letter">3</span>
-      <span class="optname">The numbers are what the first tap buys</span>
+      <span class="letter">3a</span>
+      <span class="optname">A bar on both rows</span>
+      <span class="from">D &plus; 03, on demand</span>
+      <span class="verdict">If the bar earns it</span>
+    </div>
+    <div class="stages">
+      <div class="stage pick phone">
+        <span class="stagecap">Phone &middot; tap a card</span>
+        <div class="basestrip">
+          <span class="lbl">As you stand</span>
+          <span><b>31%</b> to beat Brazil</span>
+          <span class="sep">|</span>
+          <span><b>6%</b> to lift the cup</span>
+        </div>
+        <div class="offerhead"><span class="lbl">Pick a boost</span></div>
+        <div class="cards">
+          <label class="bc com">
+            <input type="radio" name="m3ap" value="drills">
+            <span class="rar">Common</span><span class="nm">Defensive Drills</span>
+            <span class="ds">+2 to your goalkeeper and defenders.</span>
+            <span class="grow"></span></label>
+          <label class="bc com">
+            <input type="radio" name="m3ap" value="away">
+            <span class="rar">Common</span><span class="nm">Away Days</span>
+            <span class="ds">-5 to your next opponent's defence.</span>
+            <span class="grow"></span></label>
+          <label class="bc rare">
+            <input type="radio" name="m3ap" value="wind">
+            <span class="rar">Rare</span><span class="nm">Second Wind</span>
+            <span class="ds">+4 to your entire XI, for this round only.</span>
+            <span class="grow"></span></label>
+          <label class="bc rare">
+            <input type="radio" name="m3ap" value="sold" checked>
+            <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
+            <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
+            <span class="grow"></span></label>
+        </div>
+        <div class="detail">
+            <div class="pane pane-drills com">
+              <div class="dh"><span class="dn">Defensive Drills</span><span class="dr">Common</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:5.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span>
+                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:5.7%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
+              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+            </div>
+            <div class="pane pane-away com">
+              <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:17.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span>
+                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:4.2%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
+              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+            </div>
+            <div class="pane pane-wind rare">
+              <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:29.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span>
+                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:7.2%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
+              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+            </div>
+            <div class="pane pane-sold rare">
+              <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:45.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span>
+                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:1.3%"></u></span><span class="pv flat">No real change</span></div>
+              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+            </div>
+        </div>
+        <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
+        <div class="reroll">
+          <span class="rb">Re-roll these boosts</span>
+          <span class="rh">1 re-roll left this run</span>
+        </div>
+      </div>
+      <div class="stage pick wide">
+        <span class="stagecap">Desktop &middot; tap a card</span>
+        <div class="basestrip">
+          <span class="lbl">As you stand</span>
+          <span><b>31%</b> to beat Brazil</span>
+          <span class="sep">|</span>
+          <span><b>6%</b> to lift the cup</span>
+        </div>
+        <div class="offerhead"><span class="lbl">Pick a boost</span>
+          <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
+        <div class="cards">
+          <label class="bc com">
+            <input type="radio" name="m3ad" value="drills">
+            <span class="rar">Common</span><span class="nm">Defensive Drills</span>
+            <span class="ds">+2 to your goalkeeper and defenders.</span>
+            <span class="grow"></span></label>
+          <label class="bc com">
+            <input type="radio" name="m3ad" value="away">
+            <span class="rar">Common</span><span class="nm">Away Days</span>
+            <span class="ds">-5 to your next opponent's defence.</span>
+            <span class="grow"></span></label>
+          <label class="bc rare">
+            <input type="radio" name="m3ad" value="wind">
+            <span class="rar">Rare</span><span class="nm">Second Wind</span>
+            <span class="ds">+4 to your entire XI, for this round only.</span>
+            <span class="grow"></span></label>
+          <label class="bc rare">
+            <input type="radio" name="m3ad" value="sold" checked>
+            <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
+            <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
+            <span class="grow"></span></label>
+        </div>
+        <div class="detail">
+            <div class="pane pane-drills com">
+              <div class="dh"><span class="dn">Defensive Drills</span><span class="dr">Common</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:5.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span>
+                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:5.7%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
+              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+            </div>
+            <div class="pane pane-away com">
+              <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:17.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span>
+                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:4.2%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
+              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+            </div>
+            <div class="pane pane-wind rare">
+              <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:29.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span>
+                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:7.2%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
+              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+            </div>
+            <div class="pane pane-sold rare">
+              <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:45.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span>
+                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:1.3%"></u></span><span class="pv flat">No real change</span></div>
+              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+            </div>
+        </div>
+        <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
+        <div class="reroll">
+          <span class="rb">Re-roll these boosts</span>
+          <span class="rh">1 re-roll left this run</span>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      <div>
+        <h4>What it buys</h4>
+        <p>No asymmetry to explain, and the two rows are directly comparable because they
+        share one scale. <b>The scale is declared</b>, which is the fault that sank option
+        03's version: 0 to 60% is the lowest round ceiling every figure here fits under
+        (Sold Out Stadium's 58% is the highest), and the line under the rows says so. Sold
+        Out Stadium is the card it flatters most: two bars, one long and one barely
+        started, is the fastest possible reading of "great for this tie, nothing for the
+        run".</p>
+      </div>
+      <div>
+        <h4>What it costs</h4>
+        <p>The cup bar is short at any honest scale, because the figure is genuinely small:
+        6% to 9% is a fifth of the track. Measured in the phone panel above: on one 248px
+        track, Away Days' tie run is <b>41px</b> of colour and its cup run is <b>10px</b>.
+        Legible, and not much more. It also adds
+        two rows of bar plus the scale line to a panel whose whole purpose was to keep the
+        offer short, and it re-opens the question of whether a bar should be there at all
+        (see 3b).</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <div class="opthead">
+      <span class="letter">3b</span>
+      <span class="optname">Figures only, on both rows</span>
       <span class="from">D &plus; 03, on demand</span>
       <span class="verdict pick">Recommended</span>
     </div>
@@ -851,49 +1036,45 @@
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
         <div class="cards">
           <label class="bc com">
-            <input type="radio" name="m3p" value="drills">
+            <input type="radio" name="m3bp" value="drills">
             <span class="rar">Common</span><span class="nm">Defensive Drills</span>
-            <span class="ds">+2 to your goalkeeper and defenders.</span></label>
+            <span class="ds">+2 to your goalkeeper and defenders.</span>
+            <span class="grow"></span></label>
           <label class="bc com">
-            <input type="radio" name="m3p" value="away">
+            <input type="radio" name="m3bp" value="away">
             <span class="rar">Common</span><span class="nm">Away Days</span>
-            <span class="ds">-5 to your next opponent's defence.</span></label>
+            <span class="ds">-5 to your next opponent's defence.</span>
+            <span class="grow"></span></label>
           <label class="bc rare">
-            <input type="radio" name="m3p" value="wind">
+            <input type="radio" name="m3bp" value="wind">
             <span class="rar">Rare</span><span class="nm">Second Wind</span>
-            <span class="ds">+4 to your entire XI, for this round only.</span></label>
+            <span class="ds">+4 to your entire XI, for this round only.</span>
+            <span class="grow"></span></label>
           <label class="bc rare">
-            <input type="radio" name="m3p" value="sold" checked>
+            <input type="radio" name="m3bp" value="sold" checked>
             <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
-            <span class="ds">+6 to your XI this round, then -6 in the round after it.</span></label>
+            <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
+            <span class="grow"></span></label>
         </div>
         <div class="detail">
-            <div class="pane pane-drills com">
+            <div class="pane pane-drills com nobar">
               <div class="dh"><span class="dn">Defensive Drills</span><span class="dr">Common</span></div>
-              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:3.5%"></u></span>
-                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
             </div>
-            <div class="pane pane-away com">
+            <div class="pane pane-away com nobar">
               <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
-              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:10.7%"></u></span>
-                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
             </div>
-            <div class="pane pane-wind rare">
+            <div class="pane pane-wind rare nobar">
               <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
-              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:17.8%"></u></span>
-                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
             </div>
-            <div class="pane pane-sold rare">
+            <div class="pane pane-sold rare nobar">
               <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
-              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span>
-                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv flat">No real change</span></div>
             </div>
         </div>
@@ -915,53 +1096,45 @@
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
         <div class="cards">
           <label class="bc com">
-            <input type="radio" name="m3d" value="drills">
+            <input type="radio" name="m3bd" value="drills">
             <span class="rar">Common</span><span class="nm">Defensive Drills</span>
             <span class="ds">+2 to your goalkeeper and defenders.</span>
             <span class="grow"></span></label>
           <label class="bc com">
-            <input type="radio" name="m3d" value="away">
+            <input type="radio" name="m3bd" value="away">
             <span class="rar">Common</span><span class="nm">Away Days</span>
             <span class="ds">-5 to your next opponent's defence.</span>
             <span class="grow"></span></label>
           <label class="bc rare">
-            <input type="radio" name="m3d" value="wind">
+            <input type="radio" name="m3bd" value="wind">
             <span class="rar">Rare</span><span class="nm">Second Wind</span>
             <span class="ds">+4 to your entire XI, for this round only.</span>
             <span class="grow"></span></label>
           <label class="bc rare">
-            <input type="radio" name="m3d" value="sold" checked>
+            <input type="radio" name="m3bd" value="sold" checked>
             <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
             <span class="grow"></span></label>
         </div>
         <div class="detail">
-            <div class="pane pane-drills com">
+            <div class="pane pane-drills com nobar">
               <div class="dh"><span class="dn">Defensive Drills</span><span class="dr">Common</span></div>
-              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:3.5%"></u></span>
-                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
             </div>
-            <div class="pane pane-away com">
+            <div class="pane pane-away com nobar">
               <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
-              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:10.7%"></u></span>
-                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
             </div>
-            <div class="pane pane-wind rare">
+            <div class="pane pane-wind rare nobar">
               <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
-              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:17.8%"></u></span>
-                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
             </div>
-            <div class="pane pane-sold rare">
+            <div class="pane pane-sold rare nobar">
               <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
-              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span>
-                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv flat">No real change</span></div>
             </div>
         </div>
@@ -975,24 +1148,27 @@
     <div class="note">
       <div>
         <h4>What it buys</h4>
-        <p>The first tap becomes the question and the panel is the answer, which is the
-        brief. Tap through the four in either frame: the cards stay the size they are today,
-        the phone offer is <b>about 340px instead of 570</b>, and the panel is the one place
-        with room for the bar worth drawing. It also gives the loading state a natural home,
-        since the panel opens and the numbers land in it.</p>
+        <p>No asymmetry, no scale to declare, and nothing to misread. <b>The bar had a job
+        and this option does not have it.</b> A bar exists so four cards can be compared
+        without reading eight numbers, which is exactly what option 03 was built for and
+        what merges 1 and 2 still do. In merge 3 only one card's figures are on screen at a
+        time, so a bar has nothing to compare that card against except itself: all it says
+        is that 6% is a small slice of 100%, which the figure "6%" already said. It is also
+        the shortest panel of the three, which is the whole argument for merge 3.</p>
       </div>
       <div>
         <h4>What it costs</h4>
-        <p>Comparing four cards means four taps, and that is the honest cost: option 03's own
-        case was that four cards compare at a glance. The counter is that the taps are free
-        and reversible, nothing commits until the button, and two horizons have to be
-        <em>read</em> rather than glanced at in any case.</p>
+        <p>Both figures have to be read rather than glanced at, and the card with the biggest
+        movement no longer announces itself from across the panel. If it turns out that
+        nobody reads them, that is the case for 3a. Note this is a claim about the PANEL
+        only: on merges 1 and 2, where all four cards show their numbers at once, the
+        argument for a bar is much stronger and this page does not settle it.</p>
       </div>
     </div>
   </div>
 
   <div class="callout">
-    <span class="ct">Option 3 is also what changes item 05's bill, which is the real argument for it</span>
+    <span class="ct">Both 3a and 3b change item 05's bill, which is the real argument for merge 3</span>
     <p>The readout was costed at <b>roughly 950ms for a baseline plus four cards, and a web
     worker to be honest about it</b> - 190ms a card is fine off the main thread and not fine
     on it. Computing only the card that was tapped turns that into <b>one 190ms burst per
