@@ -340,7 +340,7 @@
     <h1>Roadmap <em>open work</em></h1>
   </div>
   <div class="meta">
-    <strong>Updated:</strong> 2026-09-08<br>
+    <strong>Updated:</strong> 2026-09-09<br>
     <strong>Open:</strong> 7 items, none scheduled<br>
     <strong>Shipped:</strong> at the bottom
   </div>
@@ -359,167 +359,89 @@
 
 <details class="item">
   <summary>
-    <span class="num">62</span>
-    <span class="title">Three habits the accounts server has never had
-      <span class="sub">What item 61 turned up that is genuinely this repo's rather than the
-      NAS's, and all three are about the game's own data rather than the owner's files: the
-      sign-in endpoint runs on limits <b>nobody chose</b>, one of which is a bucket shared by
-      everybody and small enough that one address list empties it;
-      <b>nothing is backed up</b>, which was a recorded decision (NFR-6) and stops being the
-      right one the day a collection is real; and <b>five</b> public-facing images are pinned
-      with nobody watching their advisories. <b>All three have been acted on (2026-09-08).</b> The limits are set explicitly, the
-      dump is written and its restore tested, and the update habit was exercised for the first
-      time, which found <b>13 CVEs against the gateway, one of them remote and needing no
-      credentials; it is upgraded</b>. What is left needs the owner in DSM (the dump's nightly
-      schedule and its off-box copy) plus two planned upgrades, the database being the one with
-      real work in it.</span>
+    <span class="num">64</span>
+    <span class="title">Four containers are behind, and one of them properly
+      <span class="sub">What item 62's update habit turned up the first time it was exercised (2026-09-08). <b>The gateway was the urgent one and is already done</b>, so nothing here is reachable-critical. What is left is <b>the database</b>, which carries roughly 41 upstream CVEs and a trap that makes the obvious upgrade path a no-op, plus realtime, PostgREST and the auth server. <b>Deferred by the owner, deliberately.</b> An afternoon for three of them; the database is a planned job.</span>
     </span>
-    <span class="tag">Accounts</span>
+    <span class="tag">Hosting</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>1. DONE 2026-09-08, and the premise below was WRONG in a way worth keeping.</strong>
-    The runbook section is
-    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>,
-    "The sign-in rate limits". <b>The endpoint was never unlimited.</b> The
-    <code>supabase/gotrue</code> image ships three limiters and all three were live on their
-    defaults: a one minute gap per address (which is the "you can only request this after 37
-    seconds" a player sees, reported by the owner and the thing that prompted the recount), 30
-    code requests per 5 minutes <b>per IP</b>, and 30 mails an hour in <b>one bucket shared by
-    everybody</b>. So the spam story this item told could not happen: 30 an hour is not
-    thousands of strangers.
-    <br><br>
-    <b>What was actually wrong was the size of the shared bucket, and it pointed the other
-    way.</b> Not "somebody mails the world" but "anybody switches sign-in off for everybody":
-    the per-IP limiter's burst is <b>hardcoded to 30 in the image whatever the config says</b>,
-    so one IP with thirty addresses drains the whole hour's mail in one go and every real
-    player then meets D9 until it resets. The three are now set explicitly
-    (<code>EMAIL_SENT=200/1h</code>, <code>OTP=10</code>, <code>MAX_FREQUENCY=60s</code>), and
-    <code>200/1h</code> rather than <code>200</code> is a <b>different limiter</b> rather than a
-    tidier spelling: a bare number is an interval counter that resets on the hour, where
-    <code>N/duration</code> is a token bucket that refills steadily and recovers on its own. 200
-    sits above the ~120 an hour one IP can sustain, which is the point.
-    <br><br>
-    <b>It cannot be tested by exercising it</b>, and that is recorded rather than glossed:
-    proving the bucket means sending 200 real emails, which is the thing it prevents, and
-    aiming them at invented addresses would bounce and damage the reputation SES scores us on.
-    A malformed rate stops GoTrue booting, so a healthy container is the proof they parsed.
-    <b>The original reasoning, kept because the shape of it still holds:</b> It costs no data at all, which is exactly
-    why it is easy to leave: somebody hammering it sends Mondialino codes to thousands of
-    strangers, those strangers report them as spam, and <b>every signed-in player then cannot
-    log in</b> (D9, the blocking unreachable screen) while the single-player game carries on
-    perfectly. Set the send and the verify limits explicitly.
-    <br><br>
-    <b>The move to Amazon SES on 2026-09-08 raised this rather than settling it, and SES's own
-    "maximum send rate" is not the same control.</b> That 14 a second is a throughput ceiling
-    on the SENDER, there to protect Amazon; it says nothing about who may ask us to send. A
-    script working through ten thousand addresses at ten a second never approaches it, and
-    every one of those messages is delivered. What bites is the reaction: SES enforces bounce
-    and complaint rates and pauses an account that crosses them, so where Gmail would have
-    suspended a mailbox, SES pauses sending and puts the account under review. There is a
-    daily quota underneath it as well, and an account still in the SES sandbox is capped at
-    200 a day to verified addresses only, which is worth confirming before real traffic.
-    <b>Confirmed on the running container 2026-09-08: no <code>GOTRUE_RATE_LIMIT_*</code> and
-    no <code>GOTRUE_SMTP_MAX_FREQUENCY</code> is set, only <code>GOTRUE_MAILER_OTP_EXP</code>.</b>
-    Nothing needs building in the app: the limiters are in the image already and are simply
-    not switched on. <b>Two things go with it.</b> The same endpoint enumerates, so a distinct
-    answer for a known address says whether that person plays; and the limit has to be
-    handed through the compose <code>environment:</code> allowlist as well as set in
-    <code>.env</code>, or it reaches nothing, silently, which is the trap that section
-    already carries twice (the mailer templates in 2026-08-26, the OTP expiry in
-    2026-09-08).</p>
+    <p><strong>The research is done, and that is the point of this item.</strong> All five
+    images were looked up against published advisories on 2026-09-08, so picking this up
+    later does not mean starting again. The order below is by how much each matters, which
+    is not the same as how much work it is.</p>
 
-    <p><strong>2. DONE 2026-09-08, bar the schedule, which needs the owner.</strong>
-    <code>scripts/nas-pg-backup.sh</code>, runbook in
-    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>,
-    "The nightly database dump". It dumps to <code>/volume1/backup/wcsim-db/</code> and keeps
-    30 days; the database is 19 MB and a dump is <b>508 KB</b>, so a month is about 15 MB. It
-    reads back what it wrote (lists the dump's own table of contents, refuses one that cannot
-    be read or is implausibly small, renames only once that passes) and it will not prune the
-    folder to nothing.
-    <b>The restore was tested, into a scratch database rather than over the live one:</b> all
-    four game tables came back with exactly the live counts across 42 tables. <b>Two objects
-    fail and both are Supabase's own rather than the game's</b> -
-    <code>realtime.list_changes</code> and <code>vault.secrets</code>, both recreated by the
-    stack's init - so this is a complete backup of the GAME's data and not an image of the
-    cluster, which is worth knowing now rather than during a disaster.
-    <b>COMPLETE 2026-09-09, including the two parts that needed the owner:</b> the nightly
-    task is in place (03:00, as root) and <code>/volume1/backup</code> is in the Hyper Backup
-    selection. <b>It has since run unattended and been verified rather than assumed</b>: the
-    03:00 dump was read back and restored into a throwaway database, every game table matched
-    the live counts, and <code>profiles</code> and <code>auth.users</code> had both moved 8 to
-    9 since the previous dump. <b>That movement is the part that actually proves it</b>, since
-    it shows the job capturing current data rather than rewriting a stale snapshot, which
-    neither a matching row count nor a changed file size would show on its own.
-    <b>The original reasoning:</b>
-    NFR-6 in <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>
-    decided it deliberately, and it held while there were no accounts and while the accounts
-    were being wiped before launch. The day a player has a collection worth having, an album
-    is not re-earnable and a career is not re-playable. The cheap version is the one
-    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>
-    already names: a nightly <code>pg_dump</code> into a folder Hyper Backup covers. <b>Test
-    the restore once</b>, or it is a habit rather than a backup.</p>
+    <p><strong>1. The database, and it has a trap in it.</strong> The image sits on a
+    PostgreSQL <b>17.6</b> base with roughly <b>41 upstream CVEs</b> against it, about twenty
+    of them RCE-class. <b>Updating within the <code>17.6.1.x</code> line picks up NONE of
+    them</b>, because even that line's newest build is still 17.6; only the <b>17.11</b> line
+    carries the fixes, and <code>17.11.0.001</code> is a stable non-RC build. <b>And "it is
+    not internet-facing" protects less than it reads</b>: PostgREST hands anybody holding the
+    public key a live session as the <code>anon</code> role, so the "needs a logged-in
+    database user" bar that most of those CVEs sit behind is met by ordinary web traffic.
+    <b>Check the extensions first</b>, since the PG 17 images dropped timescaledb, plv8,
+    plcoffee and plls. That is what makes this a planned job rather than an afternoon's.</p>
 
-    <p><strong>3. THE HABIT WAS EXERCISED ONCE, 2026-09-08, and it was not a dry run.</strong>
-    All five were looked up against published advisories, which is the first time anybody had,
-    and the answer was not "nothing to do". <b>The gateway was on Envoy 1.39.0 with 13 CVEs
-    against it, all fixed in 1.39.1</b>, and one of those needed no configuration and no
-    credentials at all: an HTTP/2 request could make it allocate around 200 GB and be killed,
-    which is remote unauthenticated denial of service against the thing that terminates every
-    request the game makes. <b>It is on 1.39.1 now</b> (pulled, pinned, re-created, config
-    loaded clean, and the console's LAN-only rule re-verified across the upgrade), so the
-    reachable one is closed.
-    <br><br>
-    <b>The database is the bigger mass and it has a trap in it.</b> The image sits on a
-    PostgreSQL <b>17.6</b> base with roughly 41 upstream CVEs against it, about twenty of them
-    RCE-class. The trap: updating within the <code>17.6.1.x</code> line picks up <b>none</b> of
-    them, because even that line's newest build is still 17.6, and only the 17.11 line carries
-    the fixes. And <b>"it is not internet-facing" protects less than it reads</b>, which is the
-    half worth carrying: PostgREST hands anybody holding the public key a live session as the
-    <code>anon</code> role, so the "needs a logged-in database user" bar most of those CVEs sit
-    behind is met by ordinary web traffic. That one is a planned job rather than an afternoon's,
-    because the PG 17 images dropped timescaledb, plv8, plcoffee and plls.
-    <br><br>
-    <b>Realtime carries three advisories</b> (a Medium presence-RLS bypass, a Medium pre-auth
-    log injection, and a Low whose published version range is off by a patch, so 2.102.3 IS
-    affected where GitHub says it is not) and is about 130 releases behind. <b>PostgREST has no
-    published advisory and a real bug</b>: a clock-cache fault means expired tokens can be
-    accepted, fixed in 14.17 on the same branch. <b>supabase/auth has nothing applicable</b>,
-    its four advisories all predating 2.189.0, though the OAuth code-replay and
-    banned-user-token fixes since are worth having.
-    <br><br>
-    <b>Two honest limits</b>, so the answer is not read as cleaner than it is: for PostgREST and
-    the database there are <b>no advisories against those projects themselves</b>, which is not
-    the same as there being none; and one supabase/auth dependency is a confirmed-vulnerable
-    version whose reachability there could not be confirmed. Two things to know before trusting
-    a scanner on this stack: the Realtime presence advisory is repo-scoped and absent from the
-    global GitHub advisory database, and a keyword search for "postgrest" returns 19 CVEs of
-    which none are in PostgREST.
-    <b>The original reasoning, which the exercise bore out:</b> the gateway
-    (<code>envoyproxy/envoy</code>, now v1.39.1), the auth server
-    (<code>supabase/gotrue:v2.189.0</code>), PostgREST
-    (<code>postgrest/postgrest:v14.12</code>, which serves <code>/graphql/v1</code> too),
-    <b>realtime</b> (<code>supabase/realtime:v2.102.3</code>) and the referee's own base, each
-    at a fixed version, and nothing tells anybody when a hole is found in one. Realtime was
-    confirmed by probing a nonsense path through the public hostname and finding the request
-    in that container's own log, so it is its code answering rather than the gateway.
-    <b>Two are NOT on the list and it is worth knowing why</b>, since both look like they
-    should be: <code>postgres-meta</code> is behind <code>/pg/</code>, which the gateway
-    refuses to the public key outright ("RBAC: access denied"), so an attacker never reaches
-    its code; and the admin console left this set on 2026-09-08 when item 61 took it off the
-    public hostname, so the surface shrank by one that day. Over a year this is a likelier way in
-    than anything clever, and it is the one item here with no code in it: a reminder to read
-    the release notes and pull deliberately, which the runbook's "Afterwards" section already
-    says to do without saying when.</p>
+    <p><strong>2. Realtime, about 130 releases behind, three advisories.</strong> A Medium
+    presence-RLS bypass (a client explicitly denied <code>presence.read</code> still received
+    other members' presence), a Medium pre-auth log injection through the OpenTelemetry
+    <code>baggage</code> header, and a Low whose published version range is <b>off by one
+    patch</b>, so the running 2.102.3 IS affected where GitHub's range says it is not.</p>
 
-    <p><strong>Why these three are together and why they are in Later.</strong> They are what
-    was left of item 61 after its own question was answered, they are all about the game's
-    own data rather than the owner's files, and not one of them is a reason to delay
-    anything. Take the first one before real traffic if you take any.</p>
+    <p><strong>3. PostgREST, no published advisory and a real bug.</strong> A clock-cache
+    fault means <b>expired tokens can be accepted</b>, which the reverse proxy will not catch
+    because it does not check expiry either. Fixed in <b>14.17</b>, a same-branch patch bump
+    and the lowest-risk of the four.</p>
 
-    <p class="next"><strong>Next step:</strong> the rate limits, since they are one line in
-    two files and protect the one failure that takes sign-in down for everybody at once.</p>
-    <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a> ("The sign-in code's expiry" has the two-files trap, "Afterwards" has the update note), <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a> (NFR-6), <code>dkr/.env</code> and <code>dkr/docker-compose.yml</code> (both untracked, mirrors of the NAS)</p>
+    <p><strong>4. The auth server, nothing applicable.</strong> Its four advisories all
+    predate the running 2.189.0. Worth having anyway for the OAuth authorization-code replay
+    race and for access tokens still being accepted from banned users, neither of which
+    carries a CVE. Lowest priority here.</p>
+
+    <div class="callout">
+      <span class="ct">The method, and what each one costs</span>
+      <b>Envoy 1.39.0 to 1.39.1 on 2026-09-08 is the worked example</b>, and the shape is the
+      same each time: pull the new tag FIRST (it is the slow part and it disrupts nothing),
+      change the pin in the stack's compose, validate with <code>docker compose config</code>,
+      re-create only that service, then read that container's own logs for a clean start
+      before trusting any endpoint.
+      <br><br>
+      <b>Every one of these is a container operation, so every one blacks the stack out</b>
+      while the docker bridge firewall rules are gone. See
+      <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>,
+      "The container firewall rules": expect three to five minutes, and if it runs longer than
+      that go and press Run rather than waiting it out.
+      <br><br>
+      <b>Two things to re-verify after a gateway change specifically</b>, since both live in
+      its config: that the console is still LAN-only (the public root answers 404 with no
+      password prompt, while the NAS address still prompts), and that the game's own three
+      paths still answer.
+      <br><br>
+      <b>And sync <code>dkr/</code> afterwards.</b> It is a mirror, and
+      <code>deploy-referee.sh --config</code> pushes its compose and both envoy files over the
+      live ones, so a stale mirror silently reverts the upgrade at the next deploy. That
+      nearly happened with the Envoy pin.
+    </div>
+
+    <div class="callout">
+      <span class="ct">Two honest limits, and two scanner blind spots</span>
+      For PostgREST and the database there are <b>no advisories against those projects
+      themselves</b>, which is not the same as there being none; and one auth-server
+      dependency is a confirmed-vulnerable version whose reachability in that codebase could
+      not be confirmed.
+      <br><br>
+      Before trusting a scanner here: the Realtime presence advisory is <b>repo-scoped and
+      absent from the global GitHub advisory database</b>, so a scanner reading that database
+      will not flag it at all; and a keyword search for "postgrest" returns 19 CVEs of which
+      <b>none are in PostgREST</b>, every one being a third-party product misusing it.
+    </div>
+
+    <p class="next"><strong>Next step:</strong> PostgREST to 14.17 for the cheapest real gain,
+    since it is a same-branch patch that stops expired tokens being accepted. Otherwise the
+    database, which is the one with actual severity behind it and the one that needs planning
+    rather than an afternoon.</p>
+    <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a> ("The container firewall rules", and "Afterwards" for the update note), <code>dkr/docker-compose.yml</code> (untracked, a mirror of the NAS)</p>
   </div>
 </details>
 
@@ -1384,6 +1306,175 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
 <details class="history">
   <summary>Shipped &mdash; decision history &#9656;</summary>
   <div class="detail">
+    <h3>Closed 2026-09-09</h3>
+<details class="item">
+  <summary>
+    <span class="num">62</span>
+    <span class="title">Three habits the accounts server has never had
+      <span class="sub"><b>CLOSED 2026-09-09: all three habits exist now.</b> What item 61 turned
+      up that was genuinely this repo's rather than the NAS's, and all three about the game's
+      own data rather than the owner's files: the
+      sign-in endpoint runs on limits <b>nobody chose</b>, one of which is a bucket shared by
+      everybody and small enough that one address list empties it;
+      <b>nothing is backed up</b>, which was a recorded decision (NFR-6) and stops being the
+      right one the day a collection is real; and <b>five</b> public-facing images are pinned
+      with nobody watching their advisories. <b>All three have been acted on (2026-09-08).</b> The limits are set explicitly, the
+      dump is written and its restore tested, and the update habit was exercised for the first
+      time, which found <b>13 CVEs against the gateway, one of them remote and needing no
+      credentials; it is upgraded</b>. What is left needs the owner in DSM (the dump's nightly
+      schedule and its off-box copy) are both in place, and the nightly dump has run unattended
+      and been verified against live data. <b>The four container upgrades the update habit
+      turned up are item 64</b>, because they are what the habit FOUND rather than the habit
+      itself, and an item saying "keep checking for updates" can never be closed.</span>
+    </span>
+    <span class="tag">Accounts</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>1. DONE 2026-09-08, and the premise below was WRONG in a way worth keeping.</strong>
+    The runbook section is
+    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>,
+    "The sign-in rate limits". <b>The endpoint was never unlimited.</b> The
+    <code>supabase/gotrue</code> image ships three limiters and all three were live on their
+    defaults: a one minute gap per address (which is the "you can only request this after 37
+    seconds" a player sees, reported by the owner and the thing that prompted the recount), 30
+    code requests per 5 minutes <b>per IP</b>, and 30 mails an hour in <b>one bucket shared by
+    everybody</b>. So the spam story this item told could not happen: 30 an hour is not
+    thousands of strangers.
+    <br><br>
+    <b>What was actually wrong was the size of the shared bucket, and it pointed the other
+    way.</b> Not "somebody mails the world" but "anybody switches sign-in off for everybody":
+    the per-IP limiter's burst is <b>hardcoded to 30 in the image whatever the config says</b>,
+    so one IP with thirty addresses drains the whole hour's mail in one go and every real
+    player then meets D9 until it resets. The three are now set explicitly
+    (<code>EMAIL_SENT=200/1h</code>, <code>OTP=10</code>, <code>MAX_FREQUENCY=60s</code>), and
+    <code>200/1h</code> rather than <code>200</code> is a <b>different limiter</b> rather than a
+    tidier spelling: a bare number is an interval counter that resets on the hour, where
+    <code>N/duration</code> is a token bucket that refills steadily and recovers on its own. 200
+    sits above the ~120 an hour one IP can sustain, which is the point.
+    <br><br>
+    <b>It cannot be tested by exercising it</b>, and that is recorded rather than glossed:
+    proving the bucket means sending 200 real emails, which is the thing it prevents, and
+    aiming them at invented addresses would bounce and damage the reputation SES scores us on.
+    A malformed rate stops GoTrue booting, so a healthy container is the proof they parsed.
+    <b>The original reasoning, kept because the shape of it still holds:</b> It costs no data at all, which is exactly
+    why it is easy to leave: somebody hammering it sends Mondialino codes to thousands of
+    strangers, those strangers report them as spam, and <b>every signed-in player then cannot
+    log in</b> (D9, the blocking unreachable screen) while the single-player game carries on
+    perfectly. Set the send and the verify limits explicitly.
+    <br><br>
+    <b>The move to Amazon SES on 2026-09-08 raised this rather than settling it, and SES's own
+    "maximum send rate" is not the same control.</b> That 14 a second is a throughput ceiling
+    on the SENDER, there to protect Amazon; it says nothing about who may ask us to send. A
+    script working through ten thousand addresses at ten a second never approaches it, and
+    every one of those messages is delivered. What bites is the reaction: SES enforces bounce
+    and complaint rates and pauses an account that crosses them, so where Gmail would have
+    suspended a mailbox, SES pauses sending and puts the account under review. There is a
+    daily quota underneath it as well, and an account still in the SES sandbox is capped at
+    200 a day to verified addresses only, which is worth confirming before real traffic.
+    <b>Confirmed on the running container 2026-09-08: no <code>GOTRUE_RATE_LIMIT_*</code> and
+    no <code>GOTRUE_SMTP_MAX_FREQUENCY</code> is set, only <code>GOTRUE_MAILER_OTP_EXP</code>.</b>
+    Nothing needs building in the app: the limiters are in the image already and are simply
+    not switched on. <b>Two things go with it.</b> The same endpoint enumerates, so a distinct
+    answer for a known address says whether that person plays; and the limit has to be
+    handed through the compose <code>environment:</code> allowlist as well as set in
+    <code>.env</code>, or it reaches nothing, silently, which is the trap that section
+    already carries twice (the mailer templates in 2026-08-26, the OTP expiry in
+    2026-09-08).</p>
+
+    <p><strong>2. DONE 2026-09-08, bar the schedule, which needs the owner.</strong>
+    <code>scripts/nas-pg-backup.sh</code>, runbook in
+    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>,
+    "The nightly database dump". It dumps to <code>/volume1/backup/wcsim-db/</code> and keeps
+    30 days; the database is 19 MB and a dump is <b>508 KB</b>, so a month is about 15 MB. It
+    reads back what it wrote (lists the dump's own table of contents, refuses one that cannot
+    be read or is implausibly small, renames only once that passes) and it will not prune the
+    folder to nothing.
+    <b>The restore was tested, into a scratch database rather than over the live one:</b> all
+    four game tables came back with exactly the live counts across 42 tables. <b>Two objects
+    fail and both are Supabase's own rather than the game's</b> -
+    <code>realtime.list_changes</code> and <code>vault.secrets</code>, both recreated by the
+    stack's init - so this is a complete backup of the GAME's data and not an image of the
+    cluster, which is worth knowing now rather than during a disaster.
+    <b>COMPLETE 2026-09-09, including the two parts that needed the owner:</b> the nightly
+    task is in place (03:00, as root) and <code>/volume1/backup</code> is in the Hyper Backup
+    selection. <b>It has since run unattended and been verified rather than assumed</b>: the
+    03:00 dump was read back and restored into a throwaway database, every game table matched
+    the live counts, and <code>profiles</code> and <code>auth.users</code> had both moved 8 to
+    9 since the previous dump. <b>That movement is the part that actually proves it</b>, since
+    it shows the job capturing current data rather than rewriting a stale snapshot, which
+    neither a matching row count nor a changed file size would show on its own.
+    <b>The original reasoning:</b>
+    NFR-6 in <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>
+    decided it deliberately, and it held while there were no accounts and while the accounts
+    were being wiped before launch. The day a player has a collection worth having, an album
+    is not re-earnable and a career is not re-playable. The cheap version is the one
+    <a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a>
+    already names: a nightly <code>pg_dump</code> into a folder Hyper Backup covers. <b>Test
+    the restore once</b>, or it is a habit rather than a backup.</p>
+
+    <p><strong>3. THE HABIT WAS EXERCISED ONCE, 2026-09-08, and it was not a dry run.</strong>
+    All five were looked up against published advisories, which is the first time anybody had,
+    and the answer was not "nothing to do". <b>The gateway was on Envoy 1.39.0 with 13 CVEs
+    against it, all fixed in 1.39.1</b>, and one of those needed no configuration and no
+    credentials at all: an HTTP/2 request could make it allocate around 200 GB and be killed,
+    which is remote unauthenticated denial of service against the thing that terminates every
+    request the game makes. <b>It is on 1.39.1 now</b> (pulled, pinned, re-created, config
+    loaded clean, and the console's LAN-only rule re-verified across the upgrade), so the
+    reachable one is closed.
+    <br><br>
+    <b>The database is the bigger mass and it has a trap in it.</b> The image sits on a
+    PostgreSQL <b>17.6</b> base with roughly 41 upstream CVEs against it, about twenty of them
+    RCE-class. The trap: updating within the <code>17.6.1.x</code> line picks up <b>none</b> of
+    them, because even that line's newest build is still 17.6, and only the 17.11 line carries
+    the fixes. And <b>"it is not internet-facing" protects less than it reads</b>, which is the
+    half worth carrying: PostgREST hands anybody holding the public key a live session as the
+    <code>anon</code> role, so the "needs a logged-in database user" bar most of those CVEs sit
+    behind is met by ordinary web traffic. That one is a planned job rather than an afternoon's,
+    because the PG 17 images dropped timescaledb, plv8, plcoffee and plls.
+    <br><br>
+    <b>Realtime carries three advisories</b> (a Medium presence-RLS bypass, a Medium pre-auth
+    log injection, and a Low whose published version range is off by a patch, so 2.102.3 IS
+    affected where GitHub says it is not) and is about 130 releases behind. <b>PostgREST has no
+    published advisory and a real bug</b>: a clock-cache fault means expired tokens can be
+    accepted, fixed in 14.17 on the same branch. <b>supabase/auth has nothing applicable</b>,
+    its four advisories all predating 2.189.0, though the OAuth code-replay and
+    banned-user-token fixes since are worth having.
+    <br><br>
+    <b>Two honest limits</b>, so the answer is not read as cleaner than it is: for PostgREST and
+    the database there are <b>no advisories against those projects themselves</b>, which is not
+    the same as there being none; and one supabase/auth dependency is a confirmed-vulnerable
+    version whose reachability there could not be confirmed. Two things to know before trusting
+    a scanner on this stack: the Realtime presence advisory is repo-scoped and absent from the
+    global GitHub advisory database, and a keyword search for "postgrest" returns 19 CVEs of
+    which none are in PostgREST.
+    <b>The original reasoning, which the exercise bore out:</b> the gateway
+    (<code>envoyproxy/envoy</code>, now v1.39.1), the auth server
+    (<code>supabase/gotrue:v2.189.0</code>), PostgREST
+    (<code>postgrest/postgrest:v14.12</code>, which serves <code>/graphql/v1</code> too),
+    <b>realtime</b> (<code>supabase/realtime:v2.102.3</code>) and the referee's own base, each
+    at a fixed version, and nothing tells anybody when a hole is found in one. Realtime was
+    confirmed by probing a nonsense path through the public hostname and finding the request
+    in that container's own log, so it is its code answering rather than the gateway.
+    <b>Two are NOT on the list and it is worth knowing why</b>, since both look like they
+    should be: <code>postgres-meta</code> is behind <code>/pg/</code>, which the gateway
+    refuses to the public key outright ("RBAC: access denied"), so an attacker never reaches
+    its code; and the admin console left this set on 2026-09-08 when item 61 took it off the
+    public hostname, so the surface shrank by one that day. Over a year this is a likelier way in
+    than anything clever, and it is the one item here with no code in it: a reminder to read
+    the release notes and pull deliberately, which the runbook's "Afterwards" section already
+    says to do without saying when.</p>
+
+    <p><strong>Why these three are together and why they are in Later.</strong> They are what
+    was left of item 61 after its own question was answered, they are all about the game's
+    own data rather than the owner's files, and not one of them is a reason to delay
+    anything. Take the first one before real traffic if you take any.</p>
+
+    <p class="next"><strong>Next step:</strong> the rate limits, since they are one line in
+    two files and protect the one failure that takes sign-in down for everybody at once.</p>
+    <p class="files"><a class="dl" href="nas-setup.md" target="_blank" rel="noopener">docs/nas-setup.md</a> ("The sign-in code's expiry" has the two-files trap, "Afterwards" has the update note), <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a> (NFR-6), <code>dkr/.env</code> and <code>dkr/docker-compose.yml</code> (both untracked, mirrors of the NAS)</p>
+  </div>
+</details>
     <h3>Closed 2026-09-08</h3>
 <details class="item">
   <summary>
