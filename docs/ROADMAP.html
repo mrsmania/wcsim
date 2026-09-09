@@ -443,10 +443,14 @@
     <code>realtime.list_changes</code> and <code>vault.secrets</code>, both recreated by the
     stack's init - so this is a complete backup of the GAME's data and not an image of the
     cluster, which is worth knowing now rather than during a disaster.
-    <b>Two things are still owed and neither is code:</b> the nightly Task Scheduler entry
-    (the sudoers rule covers docker and nothing else, so no agent can create one), and
-    <code>/volume1/backup</code> being in the Hyper Backup selection, which is the one part
-    of this no script can check and without which it is not a backup at all.
+    <b>COMPLETE 2026-09-09, including the two parts that needed the owner:</b> the nightly
+    task is in place (03:00, as root) and <code>/volume1/backup</code> is in the Hyper Backup
+    selection. <b>It has since run unattended and been verified rather than assumed</b>: the
+    03:00 dump was read back and restored into a throwaway database, every game table matched
+    the live counts, and <code>profiles</code> and <code>auth.users</code> had both moved 8 to
+    9 since the previous dump. <b>That movement is the part that actually proves it</b>, since
+    it shows the job capturing current data rather than rewriting a stale snapshot, which
+    neither a matching row count nor a changed file size would show on its own.
     <b>The original reasoning:</b>
     NFR-6 in <a class="dl" href="cloud-sync-requirements.md" target="_blank" rel="noopener">docs/cloud-sync-requirements.md</a>
     decided it deliberately, and it held while there were no accounts and while the accounts

@@ -1393,11 +1393,21 @@ not a complete image of the cluster. Worth knowing now rather than during a disa
 docker exec -i supabase-db pg_restore -U postgres -d postgres --clean --if-exists < <dump>
 ```
 
-**The schedule is the one part that needs the owner.** The sudoers rule covers
-`/usr/local/bin/docker` and nothing else, so an agent cannot create a scheduled task: DSM,
-Control Panel, Task Scheduler, a nightly user-defined script running
-`/volume1/docker/wcsim-supabase/nas-pg-backup.sh`. It is safe to run as root or as `mario`;
-the script works out whether it needs `sudo`.
+**The schedule needed the owner, and it is IN PLACE since 2026-09-08**: a nightly
+user-defined task at `03:00`, running as root, DSM, Control Panel, Task Scheduler, calling
+`/volume1/docker/wcsim-supabase/nas-pg-backup.sh`. (An agent cannot create one: the sudoers
+rule covers `/usr/local/bin/docker` and nothing else. The script is safe as root or as
+`mario` and works out whether it needs `sudo`.) **`/volume1/backup` is in the Hyper Backup
+selection**, confirmed by the owner, which is the half no script can check and without which
+none of this is a backup.
+
+**It has run unattended and the result was verified rather than assumed** (2026-09-09). The
+03:00 dump was read back independently and restored into a throwaway database: every game
+table matched the live counts exactly, and `profiles` and `auth.users` had both moved 8 to 9
+since the previous day's dump. **That last detail is the one worth repeating whenever this is
+re-checked**, because it is the only one that proves the job is capturing CURRENT data rather
+than rewriting a stale snapshot; a matching row count on its own would not, and neither would
+a changed file size.
 
 ## Afterwards
 
