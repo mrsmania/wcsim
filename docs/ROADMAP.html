@@ -1230,7 +1230,15 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       precision.</li>
       <li><b>An "Odds on" preference</b>, persisted like <code>showFullDraw</code> (a run spans
       many navigations, so component state would reset it constantly). Its control belongs on the
-      offer, not in the settings sheet.</li>
+      offer, not in the settings sheet. <b>It hides every figure, the strip's own baseline
+      included</b> (decided 2026-09-09: if you do not want the pick solved you do not want "31%
+      to beat Brazil" either, so the strip keeps only the switch), and what stays is the names,
+      the descriptions, the rarity and the label on the four cards that pay outside the
+      simulation. In the code it is the readout being <em>absent</em> rather than blank, which is
+      also what a slow first frame looks like, so it costs no extra branch. It exists for two
+      reasons and the second is the honest one: some players want the pick to stay a guess, and a
+      solved offer may simply be duller than an unsolved one, so the switch is the hedge against
+      having built something that makes the game worse.</li>
     </ol>
 
     <p><strong>Three decisions before code.</strong></p>

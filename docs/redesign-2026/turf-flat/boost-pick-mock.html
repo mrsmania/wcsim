@@ -346,6 +346,12 @@
     font-size: 12px; line-height: 1.45; color: var(--muted);
   }
   .detail .dnote b { color: var(--ink); }
+  /* What the panel says with the odds switched off. It is the page explaining itself
+     rather than app copy: the point is that there is nothing left for it to show. */
+  .detail .offnote {
+    margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); max-width: none;
+  }
+  [hidden] { display: none !important; }
 
   /* the re-roll, so the tone question stays judgeable */
   .reroll {
@@ -780,14 +786,14 @@
       <div class="stage phone">
         <span class="stagecap">Phone &middot; tap a card</span>
         <div class="basestrip">
-          <span class="lbl">As you stand</span>
-          <span><b>31%</b> to beat Brazil</span>
-          <span class="sep">|</span>
-          <span><b>6%</b> to lift the cup</span>
+          <span class="lbl bfig">As you stand</span>
+          <span class="bfig"><b>31%</b> to beat Brazil</span>
+          <span class="sep bfig">|</span>
+          <span class="bfig"><b>6%</b> to lift the cup</span>
           <span class="sw" role="button" tabindex="0"><span class="track"><span class="knob"></span></span> Odds on</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
-        <div class="cards sel demand" data-take=".take3p" data-detail=".det3p">
+        <div class="cards sel demand" data-take=".take3p" data-detail="det3p">
           <button class="bc com" type="button" aria-pressed="false" data-nm="Defensive Drills"
             data-rar="Common" data-to="34" data-w="3.5" data-cup="6%|10%"
             data-say="Permanent and unconditional, so both horizons agree: the smallest of the four on this tie, and the second best over a whole run.">
@@ -809,7 +815,22 @@
             <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span></button>
         </div>
-        <div class="detail det3p"></div>
+        <div class="detail rare det3p">
+          <div class="dbody">
+            <div class="dh"><span class="dn">Sold Out Stadium</span>
+              <span class="dr">Rare</span></div>
+            <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+              <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span>
+              <span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
+            <div class="prow"><span class="pk">Lifting the cup</span>
+              <span class="pv flat">No real change</span></div>
+            <p class="dnote">Nearly doubles your chance in this tie, and gives all of it back
+            in the round after, so over a whole run it is worth nothing.</p>
+          </div>
+          <p class="offnote" hidden>With the odds switched off there is nothing for this panel
+          to show, so the first tap only highlights the card and the second one confirms it.
+          That is the decision at the foot of this page.</p>
+        </div>
         <button class="btn take3p" type="button">Take Sold Out Stadium</button>
         <div class="reroll">
           <span class="rb">Re-roll these boosts</span>
@@ -819,15 +840,15 @@
       <div class="stage wide">
         <span class="stagecap">Desktop &middot; tap a card</span>
         <div class="basestrip">
-          <span class="lbl">As you stand</span>
-          <span><b>31%</b> to beat Brazil</span>
-          <span class="sep">|</span>
-          <span><b>6%</b> to lift the cup</span>
+          <span class="lbl bfig">As you stand</span>
+          <span class="bfig"><b>31%</b> to beat Brazil</span>
+          <span class="sep bfig">|</span>
+          <span class="bfig"><b>6%</b> to lift the cup</span>
           <span class="sw" role="button" tabindex="0"><span class="track"><span class="knob"></span></span> Odds on</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span>
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
-        <div class="cards sel demand" data-take=".take3d" data-detail=".det3d">
+        <div class="cards sel demand" data-take=".take3d" data-detail="det3d">
           <button class="bc com" type="button" aria-pressed="false" data-nm="Defensive Drills"
             data-rar="Common" data-to="34" data-w="3.5" data-cup="6%|10%"
             data-say="Permanent and unconditional, so both horizons agree: the smallest of the four on this tie, and the second best over a whole run.">
@@ -849,7 +870,22 @@
             <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span></button>
         </div>
-        <div class="detail det3d"></div>
+        <div class="detail rare det3d">
+          <div class="dbody">
+            <div class="dh"><span class="dn">Sold Out Stadium</span>
+              <span class="dr">Rare</span></div>
+            <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+              <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span>
+              <span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
+            <div class="prow"><span class="pk">Lifting the cup</span>
+              <span class="pv flat">No real change</span></div>
+            <p class="dnote">Nearly doubles your chance in this tie, and gives all of it back
+            in the round after, so over a whole run it is worth nothing.</p>
+          </div>
+          <p class="offnote" hidden>With the odds switched off there is nothing for this panel
+          to show, so the first tap only highlights the card and the second one confirms it.
+          That is the decision at the foot of this page.</p>
+        </div>
         <button class="btn take3d" type="button">Take Sold Out Stadium</button>
         <div class="reroll">
           <span class="rb">Re-roll these boosts</span>
@@ -931,7 +967,49 @@
   In option 3 the label is the whole panel for such a card, which is the one place it is
   cheaper than the other two merges are: no simulation runs at all.</p>
 
-  <h2>The odds switch, which the merge forces a decision on</h2>
+  <h2>The odds switch: what it is, exactly</h2>
+
+  <p>It is a saved player preference, and it comes from option 03 rather than from the merge.
+  Both switches on this page are live, so it can be tried rather than read about.</p>
+
+  <div class="worked">
+    <div>
+      <h4>What it is</h4>
+      <p>A setting, remembered between runs, exactly as the bracket's "show the full draw"
+      chevron is. <b>Its control belongs on the offer</b>, in the strip above the boosts,
+      rather than buried in the settings sheet, for the same reason the bracket's chevron is
+      its own control: this is where you would want it.</p>
+      <p>It is not a difficulty option and it changes nothing about the game. It only decides
+      whether the screen tells you what it knows.</p>
+    </div>
+    <div>
+      <h4>What it hides</h4>
+      <p><b>Every figure, the baseline included.</b> If you do not want the pick solved, you
+      do not want "31% to beat Brazil" either, so the strip keeps only the switch. In the
+      code this is the whole readout being absent rather than blank, which is also what a
+      slow first frame looks like, so it costs no extra branch.</p>
+      <p>What stays: the boost names, their descriptions, their rarity, and the label on the
+      four cards that pay outside the simulation, since none of that is an odds figure.</p>
+    </div>
+  </div>
+
+  <h3>Why it exists at all</h3>
+  <p>Two reasons, and the second is the honest one. Some players will want the pick to stay a
+  guess. And <b>a solved offer may simply be less interesting</b>: four cards with numbers on
+  them is an arithmetic problem rather than a gamble, and the from-to form makes that more
+  true than a bare delta did, because it needs no working out. The switch is the hedge
+  against having built something that makes the game duller.</p>
+
+  <h3>What it does in each of the three merges</h3>
+  <ul>
+    <li><b>In 1 and 2</b> the cards lose their two rows and go back to being what ships
+    today, plus the button. One tap still takes a boost in 1, two in 2. Nothing else
+    changes.</li>
+    <li><b>In 3 the panel has nothing to show</b>, which is the whole problem. Turn either
+    switch off above and read what the panel says: the first tap only highlights the card and
+    the second confirms it. That is not broken, but it is the second tap charging for
+    something it is no longer delivering.</li>
+  </ul>
 
   <div class="callout warn">
     <span class="ct">Two taps with the odds turned off is friction with nothing behind it</span>
@@ -1085,22 +1163,25 @@
 
     var BASE_TIE = 30.5;
 
-    /* Merge 3's panel, rendered from the card's own data so the page cannot drift from the
-       figures the cards carry. The tie row gets the one bar worth drawing, on a plain 0 to
-       100% scale: grey is where you stand, green is what this boost adds. */
+    /* Merge 3's panel. The resting content is IN THE PAGE, so the panel is correct
+       before any of this runs and with the script removed entirely; this only swaps it
+       when another card is tapped, and it leaves the panel alone rather than blanking it
+       if a card is ever missing its figures. The tie row gets the one bar worth drawing,
+       on a plain 0 to 100% scale: grey is where you stand, green is what this boost adds. */
     function paint(row) {
-      var det = row.dataset.detail && document.querySelector(row.dataset.detail);
+      var det = row.dataset.detail && document.querySelector('.' + row.dataset.detail);
       var take = row.dataset.take && document.querySelector(row.dataset.take);
       var on = row.querySelector('.bc[aria-pressed="true"]');
-      if (take) { take.textContent = on ? 'Take ' + on.dataset.nm : 'Choose a boost'; }
-      if (!det) { return; }
-      if (!on) { det.innerHTML = ''; return; }
+      if (take && on) { take.textContent = 'Take ' + on.dataset.nm; }
+      if (!det || !on || !on.dataset.to) { return; }
+      var body = det.querySelector('.dbody');
+      if (!body) { return; }
       var cup = on.dataset.cup === 'flat'
         ? '<span class="pv flat">No real change</span>'
         : '<span class="pv">' + on.dataset.cup.split('|')[0] +
           '<span class="ar">&rarr;</span><span class="to">' +
           on.dataset.cup.split('|')[1] + '</span></span>';
-      det.innerHTML =
+      body.innerHTML =
         '<div class="dh"><span class="dn">' + on.dataset.nm + '</span>' +
         '<span class="dr">' + on.dataset.rar + '</span></div>' +
         '<div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>' +
@@ -1110,7 +1191,9 @@
         '<span class="to">' + on.dataset.to + '%</span></span></div>' +
         '<div class="prow"><span class="pk">Lifting the cup</span>' + cup + '</div>' +
         '<p class="dnote">' + on.dataset.say + '</p>';
-      det.style.setProperty('--rar', getComputedStyle(on).getPropertyValue('--rar'));
+      /* the rarity accent the panel's own label reads */
+      det.className = det.className.replace(/\b(com|rare|leg)\b/, '') + ' ' +
+        (/\bcom\b/.test(on.className) ? 'com' : /\bleg\b/.test(on.className) ? 'leg' : 'rare');
     }
 
     Array.prototype.forEach.call(document.querySelectorAll('.cards.sel'), function (row) {
@@ -1126,19 +1209,25 @@
     });
 
     /* The Odds on switch, so the preference is a real thing on the page rather than a
-       drawing of one: off hides every figure, which is exactly what the prop being absent
-       does, and leaves the two taps in place - the decision the merge forces. */
+       drawing of one. Off hides EVERY figure, the strip's own baseline included - if you
+       do not want the pick solved you do not want the baseline either - and leaves the two
+       taps in place, which is the decision the merge forces. The panel says so rather than
+       vanishing, so the consequence is on screen instead of being described. */
     Array.prototype.forEach.call(document.querySelectorAll('.sw'), function (sw) {
       function flip() {
         sw.classList.toggle('off');
         var off = sw.classList.contains('off');
         sw.lastChild.textContent = off ? ' Odds off' : ' Odds on';
         var stage = sw.closest('.stage');
-        var row = stage.querySelector('.cards.sel');
-        var det = row && row.dataset.detail && document.querySelector(row.dataset.detail);
-        if (det) { det.style.display = off ? 'none' : ''; }
-        Array.prototype.forEach.call(stage.querySelectorAll('.odds'), function (o) {
-          o.style.display = off ? 'none' : '';
+        Array.prototype.forEach.call(
+          stage.querySelectorAll('.odds, .bfig'), function (o) {
+            o.style.display = off ? 'none' : '';
+          });
+        Array.prototype.forEach.call(stage.querySelectorAll('.dbody'), function (o) {
+          o.hidden = off;
+        });
+        Array.prototype.forEach.call(stage.querySelectorAll('.offnote'), function (o) {
+          o.hidden = !off;
         });
       }
       sw.addEventListener('click', flip);
