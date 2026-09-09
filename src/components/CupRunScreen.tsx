@@ -35,7 +35,7 @@ import { useToast } from '../hooks/useToast';
 import { useRoundReview } from '../hooks/useRoundReview';
 import { useCupRun } from '../hooks/useCupRun';
 import { scrollIntoViewRespectingMotion } from '../hooks/motion';
-import { CARD, PAGE_TOP, SpeedControl, StageCrumb, StageHeader } from './matchUi';
+import { CARD, PAGE_TOP, StageCrumb, StageHeader } from './matchUi';
 import RunBracket from './cupRun/RunBracket';
 import Confetti from './Confetti';
 import LiveCupMatch from './cupRun/LiveCupMatch';
@@ -59,7 +59,6 @@ export default function CupRunScreen({
   draftedBuild,
   onReDraft,
   speed,
-  onSetSpeed,
   difficulty,
   pool,
   onRunEnd,
@@ -86,9 +85,9 @@ export default function CupRunScreen({
   draftedBuild: RunBuild | null;
   /** Reset the draft and go draft a fresh XI (each run is a new team). */
   onReDraft: () => void;
-  /** Match playback speed (shared with the main game, so the preference persists). */
+  /** Match playback speed. Set in the settings sheet, which is the one place it
+   *  lives now: a second control on this screen said the same thing twice. */
   speed: MatchSpeed;
-  onSetSpeed: (s: MatchSpeed) => void;
   /** Difficulty handicap applied to the user's matches + the odds readout. */
   difficulty: Difficulty;
   /** The squad pool (squad-pool setting): opponents + the odds sim draw from these. */
@@ -552,7 +551,6 @@ export default function CupRunScreen({
             {/* Your XI + active boosts */}
             <RunXiPanel
               xi={run.xi}
-              score={run.score}
               activeBoons={run.activeBoons}
               boostedIds={boostedIds}
               odds={odds}
@@ -565,16 +563,6 @@ export default function CupRunScreen({
                 <RoundReview record={reviewRecord} onBack={() => setReviewIndex(null)} />
               ) : (
                 <>
-                  {/* No speed control on the group screen: the group is one continuous
-                      reveal you sit through, and the table plus three cards below already
-                      fill it. It returns for the knockouts, where each round is its own
-                      screen and its own decision to start. */}
-                  {run.phase !== 'ended' && run.phase !== 'group' && (
-                    <div className="flex items-center justify-end gap-2">
-                      <SpeedControl speed={speed} onSetSpeed={onSetSpeed} />
-                    </div>
-                  )}
-
                   {reveal ? (
                     <div>
                       {reveal.kind === 'group' ? (

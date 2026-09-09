@@ -10,14 +10,12 @@ import { CARD } from '../matchUi';
  *  Ovr/Att/Def), and the active-boost chips, with roster-boost players tagged. */
 export default function RunXiPanel({
   xi,
-  score,
   activeBoons,
   boostedIds,
   odds,
   str,
 }: {
   xi: Player[];
-  score: number;
   activeBoons: string[];
   boostedIds: Set<string>;
   odds: number;
@@ -25,12 +23,9 @@ export default function RunXiPanel({
 }) {
   return (
     <section className={`self-start overflow-hidden ${CARD}`}>
-      <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3">
+      <div className="flex items-center border-b-2 border-ink px-4 py-3">
         <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
           Your XI
-        </span>
-        <span className="font-mono text-[11px] font-semibold text-muted">
-          Score <span className="text-ink">{score}</span>
         </span>
       </div>
       <div className="grid grid-cols-4 gap-px border-b border-line bg-line text-center">

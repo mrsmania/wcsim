@@ -400,7 +400,6 @@ export default function App({
                             draftedBuild={draftedBuild}
                             onReDraft={handleReset}
                             speed={speed}
-                            onSetSpeed={build.setSpeed}
                             difficulty={settings.settings.difficulty}
                             pool={poolSquads}
                             showFullDraw={settings.settings.showFullDraw}

@@ -48,7 +48,7 @@ export default function PreRunPanel({
   }
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_minmax(0,1fr)]">
-      <RunXiPanel xi={xi} score={0} activeBoons={[]} boostedIds={new Set()} odds={odds} str={str} />
+      <RunXiPanel xi={xi} activeBoons={[]} boostedIds={new Set()} odds={odds} str={str} />
       <section className="flex min-w-0 flex-col gap-4">
         <div className={`${CARD} p-5`}>
           <AscensionPicker
