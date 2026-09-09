@@ -326,9 +326,17 @@
     text-transform: uppercase; letter-spacing: 0.12em; color: var(--rar);
   }
   .prow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 9px; margin-bottom: 7px; }
+  /* The row label is a SENTENCE, not a data label, so it is set in the body face at
+     11.5px, the same as a boost's own description (owner, 2026-09-09). The uppercase and
+     the letter-spacing go with the mono: both exist to make a small mono caption read, and
+     on a body-face sentence they make it worse. Applied to 3a AND 3b, even though only 3a
+     was named: it is the same label doing the same job in both, and leaving them different
+     would mean the two options differ in two ways just as the choice between them is being
+     made. The terse labels on the cards in merges 1 and 2 ("vs Brazil", "Cup") stay mono,
+     because those really are data labels. */
   .prow .pk {
-    font-family: var(--mono); font-size: 9px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim);
+    font-family: var(--body); font-size: 11.5px; font-weight: 600;
+    color: var(--muted);
     flex: 1 1 100%;
   }
   /* The bar is on the TIE row only, on a plain 0 to 100% scale, so there is no crop to
@@ -351,12 +359,6 @@
      14px, so without this the panel gets shorter when Sold Out Stadium is chosen and the
      button under it jumps: the owner reported exactly that. */
   .prow .pv { line-height: 20px; }
-  /* 3a prints its figures in the body face at the owner's request (2026-09-09). The house
-     convention is that a numeral is mono (--font-mono is described as the data face in
-     index.css), so this deliberately breaks it here and 3b is left on mono, which makes the
-     two readable against each other. If the body face is the improvement rather than a 3a
-     detail, 3b wants the same change. */
-  .pane:not(.nobar) .pv { font-family: var(--body); }
   .pane.nobar .prow { min-height: 20px; align-items: center; }
   /* 3b has no bar, so the label and the figures share one line instead of stacking. */
   .pane.nobar .prow { flex-wrap: nowrap; gap: 10px; margin-bottom: 5px; }
@@ -1010,9 +1012,9 @@
         way round it: 6% to 9% is three points of a hundred. Measured in the phone panel
         above, on a 231px track, Away Days' tie run is <b>25px</b> of colour and its cup run
         is <b>6px</b>. The old 60% crop made that 10px, which is the whole of what the crop
-        was buying and it was not worth the lie. The panel is also <b>114px tall against
-        3b's 84px</b>, so the bars add a third to the height of the thing merge 3 exists to
-        keep short. It also adds
+        was buying and it was not worth the lie. The panel is also <b>121px tall against
+        3b's 76px</b>, so the bars make the thing merge 3 exists to keep short half again as
+        tall. It also adds
         two rows of bar plus the scale line to a panel whose whole purpose was to keep the
         offer short, and it re-opens the question of whether a bar should be there at all
         (see 3b).</p>
