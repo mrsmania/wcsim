@@ -361,105 +361,33 @@
   <summary>
     <span class="num">65</span>
     <span class="title">The boost cards do not look pressable
-      <span class="sub">Reported 2026-09-09: the three boosts you pick between "don't appear like real buttons". <b>Two passes.</b> The first dressed the card up and was rejected on the ground that decides it - on a phone you still would not see there is a button. The second starts from the premise that <b>the card cannot be the button</b> and puts a real one in each; four options drawn at phone width in <a class="dl" href="redesign-2026/turf-flat/boost-buttons-mock.html" target="_blank" rel="noopener"><code>docs/redesign-2026/turf-flat/boost-buttons-mock.html</code></a>. <b>Needs one decision from the owner</b>, then about an hour.</span>
+      <span class="sub"><b>MERGED INTO ITEM 05 on 2026-09-09</b> and tracked there. Reported
+      2026-09-09: the three boosts you pick between "don't appear like real buttons". Two
+      passes of options were drawn before the merge; the record is
+      <a class="dl" href="redesign-2026/turf-flat/boost-buttons-mock.html" target="_blank" rel="noopener"><code>docs/redesign-2026/turf-flat/boost-buttons-mock.html</code></a>.</span>
     </span>
     <span class="tag">Cup Run</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
+    <p><strong>This item is not open. Item 05 carries it</strong>, along with the odds
+    readout it was merged with, and
+    <a class="dl" href="redesign-2026/turf-flat/boost-pick-mock.html" target="_blank" rel="noopener"><code>boost-pick-mock.html</code></a> is the comp. Kept as an entry so references to 65
+    resolve, and because two findings in its own comp are worth reaching directly.</p>
+
     <p><strong>The problem.</strong> At rest a boost card is <code>CARD_FLAT</code>, the
     app's shadowless card, and the only two things that say "control" are a 2px hover lift
     and the border turning green. There is no hover on a phone, so on touch the most
     consequential choice in a run offers three passive-looking panels and no affordance at
-    all. Below 640px the offer stacks to one card wide, so what the player actually sees is
-    three full-width panels, each with a faint label, a title and a line of grey text.</p>
+    all.</p>
 
-    <div class="callout">
-      <span class="ct">The first pass was wrong about the premise, not the details</span>
-      It offered the card raised on the hard shadow (recommended), a chalk foot, a filled
-      rarity cap, pick-then-confirm, and a green fill on hover. The owner rejected the lot:
-      <em>"I don't like either of them, especially not on mobile where you wouldn't see
-      that there's a button in the first place."</em> He is right, and the shadow one was
-      the worst of the five: <b>the hard shadow is this game's signature for a CARD</b> -
-      the standings, the XI sheet, the perk tiles, the trophy shelf all wear it - so
-      putting it on the boost cards makes them look more like every other card, not less.
-      It would have made the problem worse while looking like progress. The general form is
-      the lesson: <b>a full-width panel with a heading and a line of grey text is what
-      CONTENT looks like in this app</b>, and no treatment applied to that shape turns it
-      into something a thumb reads as pressable.
-    </div>
+    <p><strong>Two findings that outlive the item.</strong> A treatment applied to the card
+    cannot fix it: <b>the hard shadow is this game's signature for a CARD</b>, so wearing it
+    makes the boost cards look more like every other card. And <b>the rarity word misses
+    AA</b> in both themes, at 2.57 / 2.49 / 4.00 on the light panel against the 4.5 a 9px
+    bold label needs. Both are carried in item 05.</p>
 
-    <p><strong>And the objection that ruled green out was factually wrong.</strong> The
-    first pass rejected a green fill because it is the primary button and the screen
-    "already has one". It does not: the picker and the screen's primary button are mutually
-    exclusive branches. <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/cupRun/GroupRevealPanel.tsx" target="_blank" rel="noopener"><code>GroupRevealPanel</code></a> renders the picker
-    <em>or</em> a Continue button in one ternary, and in <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/cupRun/RunPhasePanel.tsx" target="_blank" rel="noopener"><code>RunPhasePanel</code></a> the picker is the
-    <code>boon</code> phase while both <code>PRIMARY_BTN</code> uses belong to
-    <code>group</code> and <code>match</code>. When the offer is up the only other control
-    is the re-roll, which is the quiet tone. <b>The green is free on this screen.</b></p>
-
-    <p><strong>The four options, all of which contain an object that is a button</strong>,
-    each drawn at phone width and desktop width with the real re-roll underneath:</p>
-    <ul>
-      <li><b>A. Every card ends in a green button.</b> A full-width
-      <code>btn('primary')</code> bar reading "Take it", measured at 46px so it clears the
-      44px tap target without anything growing for it. Costs about 45px a card, which on a
-      phone is the offer growing by half a screen. <b>Recommended in the comp.</b></li>
-      <li><b>B. The same, in the quiet tone.</b> Drawn and then argued against on evidence
-      rather than taste: with the re-roll on screen, <b>the three choices end up looking
-      exactly like the utility button below them</b>, since the quiet tone is what Back,
-      Cancel and Refresh wear. That is the argument for A over B.</li>
-      <li><b>C. The button is the card's bottom edge</b>, full bleed, with the rarity as a
-      filled cap on top, so the card is bracketed by the rarity above and the action below
-      and the two are one object. Solidest of the four on a phone; biggest change to the
-      card's construction, and it forces the common rarity cap to deepen (see below).</li>
-      <li><b>D. Three choices, one button.</b> The cards become a selector, the chosen one
-      fills <code>pitch-dark</code>, and one full-width primary below names what it will
-      take. Adds the least height and makes an irreversible pick deliberate; costs a tap at
-      every stop, and on a phone the button can be off screen while the third card is being
-      read.</li>
-    </ul>
-
-    <p><strong>Three things the four share, each deliberate.</strong> The bar is a
-    <code>&lt;span&gt;</code> wearing <code>btn()</code> and marked
-    <code>aria-hidden</code>, <b>not a nested button</b>: a button inside a button is
-    invalid HTML and undefined for keyboard and assistive technology, which is the scar
-    <code>PlayerBadge</code> already carries. The happy side effect is that the hit area
-    stays the whole card, so the bar is a signpost and the card is the target. Using
-    <code>btn()</code> also satisfies the class sweep rather than dodging it: the first pass
-    warned that <code>npm run checks</code> fails on the app's button voice inside a padded
-    box, which is aimed at a <em>hand-written</em> button, and a bar composed from the
-    shared constant is what that sweep exists to encourage. And <b>nothing depends on hover
-    or on motion</b>, which was the whole failure of the first pass.</p>
-
-    <div class="callout">
-      <span class="ct">A separate finding: the rarity word misses AA as shipped</span>
-      Printed at 9px bold in the rarity accent, and those hexes are SURFACE colours
-      borrowed from the sticker tier ramp. Against the panel they sit on: <b>Legendary
-      <code>#c99a3a</code> 2.57 light / 6.49 dark, Rare <code>#e4922b</code> 2.49 / 6.71,
-      Common <code>#15924c</code> 4.00 / 4.17</b>, against the 4.5 a label that size needs.
-      Two are badly under on paper and the common green is under in both themes. The
-      relaxed 3:1 does not apply, being for 18.66px bold and larger.
-    </div>
-
-    <p><strong>That fix has a precedent, twice over.</strong>
-    <code>--color-amber-ink</code> and <code>--color-pitch-ink</code> exist precisely
-    because amber and green <em>as text</em> are separate values from amber and green <em>as
-    a surface</em>. The strip is a surface and keeps the accent; the word needs the ink.
-    Rare takes <code>amber-ink</code> (5.92 on panel), common takes <code>pitch-ink</code>
-    (8.08), and legendary needs one new gold value: <code>#7d5f10</code> measures 5.97
-    panel / 5.14 chalk / 5.33 ground. Option C avoids the new token by reversing the word
-    out of the cap instead: the existing foil ink <code>#3a2a06</code> reads 5.40 against
-    the dark end of the gold foil and 5.58 out of the amber band, but the bright common
-    green carries neither that ink (3.47) nor white (4.00), so that cap has to deepen to
-    <code>#0e5c34</code> where white reads 8.08.</p>
-
-    <p><strong>Worth doing whichever is picked:</strong> the shipped card sets no focus
-    style at all, so keyboard focus lands on it invisibly; and the rarity contrast belongs
-    in the tone sweep <code>scripts/checks/ui.ts</code> already runs, which computes every
-    button tone from the real tokens and fails under 4.5 but does not read this element.</p>
-
-    <p class="files"><a class="dl" href="redesign-2026/turf-flat/boost-buttons-mock.html" target="_blank" rel="noopener">docs/redesign-2026/turf-flat/boost-buttons-mock.html</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/cupRun/BoostOffer.tsx" target="_blank" rel="noopener">src/components/cupRun/BoostOffer.tsx</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/cupRun/types.ts" target="_blank" rel="noopener">src/components/cupRun/types.ts</a>, <a class="dl" href="../src/index.css" target="_blank" rel="noopener">src/index.css</a>, <a class="dl" href="../scripts/checks/ui.ts" target="_blank" rel="noopener">scripts/checks/ui.ts</a></p>
+    <p class="files"><a class="dl" href="redesign-2026/turf-flat/boost-buttons-mock.html" target="_blank" rel="noopener">docs/redesign-2026/turf-flat/boost-buttons-mock.html</a>, <a class="dl" href="redesign-2026/turf-flat/boost-pick-mock.html" target="_blank" rel="noopener">docs/redesign-2026/turf-flat/boost-pick-mock.html</a></p>
   </div>
 </details>
 
@@ -1036,16 +964,107 @@
 <details class="item">
   <summary>
     <span class="num">05</span>
-    <span class="title">Career depth F - odds at each decision
-      <span class="sub">Show what a choice is worth, at the moment the choice is made.
-      MOCKED UP 2026-08-25, and the measurements changed the item: the literal version
-      (one cup-odds delta per card) misprices a third of the catalogue, so what is left to
-      build is a position-aware odds pass showing two figures.</span>
+    <span class="title">The boost pick: a real button, and what each boost is worth
+      <span class="sub"><b>MERGED WITH ITEM 65 on 2026-09-09</b>, at the owner's call: the
+      numbers are what makes a second tap worth taking, so the two are one job. Comp:
+      <a class="dl" href="redesign-2026/turf-flat/boost-pick-mock.html" target="_blank" rel="noopener"><code>docs/redesign-2026/turf-flat/boost-pick-mock.html</code></a>, which draws the merge
+      three ways and recommends the third. Both halves are mocked and measured; <b>needs one
+      decision from the owner</b>, and the odds half needs a new sim path.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
+    <div class="callout">
+      <span class="ct">Merged with item 65 on 2026-09-09, and each half pays the other's bill</span>
+      Item 65 (reported: the boosts "don't appear like real buttons") landed on
+      select-then-confirm as its best remaining shape, and on its own that second tap is
+      friction bought with nothing but safety. This item's own recommended readout puts two
+      rows of bar on every card, which is height on the screen that can least afford it and
+      about a second of simulation for an offer a player may take in two seconds. The owner's
+      call: <em>"displaying that additional information would justify a 2 click process to
+      select the boost."</em> So the first tap is not ceremony, it is the request for the
+      numbers, and the numbers no longer all have to be on the cards.
+    </div>
+
+    <p><strong>The building blocks, decided.</strong> From item 65: treatments <b>B</b> (a
+    quiet button in every card) and <b>D</b> (choose, then confirm) survive; <b>A</b> (the
+    card raised on the hard shadow) and <b>C</b> (a full-bleed bar as the card's bottom edge)
+    are discarded. From this item: <b>option 03</b>, two horizons, position-aware, with a
+    label rather than a zero for the cards a number cannot price. Option 01 stays rejected
+    and option 02 is still its cheap first half.</p>
+
+    <p><strong>Three ways the merge can go</strong>, all drawn at phone width first in
+    <a class="dl" href="redesign-2026/turf-flat/boost-pick-mock.html" target="_blank" rel="noopener"><code>boost-pick-mock.html</code></a> on the offer the odds were measured on:</p>
+    <ul>
+      <li><b>1. Numbers on every card, one tap</b> (B + 03). Four cards compare at a glance,
+      and it is the two items shipped side by side rather than merged: it pays both bills in
+      full, <b>about 640px of phone</b> and a baseline plus four simulations before anything
+      shows.</li>
+      <li><b>2. Numbers on every card, choose then confirm</b> (D + 03). Everything 1 buys
+      plus one bar of button instead of four and a pick a mis-tap cannot spend, but the
+      second tap is still buying nothing: the numbers were on the table before it. Safer than
+      1, not cheaper.</li>
+      <li><b>3. The numbers are what the first tap buys</b> (D + 03, on demand).
+      <b>Recommended.</b> The cards stay the size they are today, the phone offer is about
+      <b>340px instead of 640</b>, and a panel between the offer and the button carries the
+      two figures plus a sentence saying what they mean. The loading state gets a natural
+      home: the panel opens and the numbers land in it.</li>
+    </ul>
+
+    <div class="callout">
+      <span class="ct">Option 3 is the one that changes this item's cost, which is the real argument for it</span>
+      The readout was costed at <b>roughly 950ms for a baseline plus four cards, and a web
+      worker to be honest about it</b> - 190ms a card is fine off the main thread and not fine
+      on it. Computing only the card that was tapped turns that into <b>one 190ms burst per
+      tap</b>, into a panel that has just opened and can hold a spinner without looking stuck.
+      That is the difference between needing a worker and probably not needing one, and it
+      wants measuring on a real phone before the worker is called off. Two smaller bills go
+      the same way: <b>the Physio Table re-roll becomes free again</b> (a fresh offer computes
+      nothing until something is tapped, where option 03 re-ran three simulations), and the
+      baseline is the only figure that has to be ready before the screen is.
+    </div>
+
+    <p><strong>The merge forces a decision on the odds switch, and it is the one to make
+    first.</strong> Option 03 keeps an "Odds on" preference, on the reasoning that some
+    players want the guess and a solved offer is less interesting than an unsolved one. That
+    is right on its own and it collides with this merge: <b>if the numbers are what the
+    second tap buys, turning them off leaves the tap and takes the payment.</b> Three
+    answers. Drop the switch, and lose a preference the owner may want. Fall back to one tap
+    when the odds are off, which means two interaction models for one screen depending on a
+    setting - the kind of thing this codebase deletes rather than adds. Or <b>keep both
+    unchanged</b>, on the ground that the second tap was already justified without the odds:
+    a boost cannot be given back, and today a mis-tap spends the whole round's choice. That
+    third one is the recommendation - the odds make the tap pay, they were never the only
+    reason for it.</p>
+
+    <p><strong>The button half is small, and two things come with it from item 65.</strong>
+    The chosen card fills <code>pitch-dark</code>, the app's one chosen-cell green, and one
+    <code>btn('primary')</code> below names what it will take; where a bar sits inside a card
+    (merge 1) it is a <code>&lt;span&gt;</code> wearing <code>btn()</code> and marked
+    <code>aria-hidden</code> rather than a nested button, for the reason
+    <code>PlayerBadge</code> already carries, which also keeps the hit area at the whole card.
+    Carried over: <b>the shipped card has no focus style at all</b>, so keyboard focus lands
+    on it invisibly; and <b>the rarity word misses AA</b> - at 9px bold in the tier accents it
+    reads 2.57 / 2.49 / 4.00 on the light panel and the common green misses in the dark theme
+    too, against the 4.5 a label that size needs. The fix has a precedent twice over, since
+    <code>amber-ink</code> and <code>pitch-ink</code> exist because a colour as text is a
+    separate value from the same colour as a surface.</p>
+
+    <p><strong>What item 65 established and is worth not re-learning.</strong> The first pass
+    at the button tried to dress the card up and was rejected on the phone. <b>The hard
+    shadow is this game's signature for a CARD</b> - the standings, the XI sheet, the perk
+    tiles, the trophy shelf all wear it - so putting it on the boost cards makes them look
+    more like every other card, not less. The general form: a full-width panel with a heading
+    and a line of grey text is what CONTENT looks like in this app, and below 640px the offer
+    stacks to exactly that shape, so no treatment applied to the card turns it into something
+    a thumb reads as pressable. Also corrected there: the objection that a green fill would
+    clash with the screen's primary button is <b>factually wrong</b>, because the picker and
+    that button are mutually exclusive branches - when the offer is up the only other control
+    is the re-roll.</p>
+
+    <h3>The odds half, as researched on 2026-08-25</h3>
+
     <p>Surface the title odds at each boost choice, so a pick is informed rather than a
     guess. The machinery already exists: <a class="dl" href="../src/domain/odds.ts" target="_blank" rel="noopener"><code>domain/odds.ts</code></a>
     (<code>simulateTitleOdds</code>) Monte-Carlos an XI's cup-win percentage over many
