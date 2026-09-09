@@ -278,22 +278,44 @@
   }
   .bc:hover .bar { border-color: var(--pitch); color: var(--pitch-ink); }
 
-  /* ---- D: chosen fills, one button below ---------------------------------- */
-  .sel .bc[aria-pressed="true"] {
+  /* ---- D: choose, then confirm. NO SCRIPT ANYWHERE IN THE GESTURE. ------- */
+  /* Each card is a <label> around a visually hidden radio, and :has() shows the matching
+     panel and the matching word in the button. It is written this way deliberately: the
+     first draft filled the panel from script on load, and in the owner's view the script
+     did not run, so the recommended option rendered as an empty box with a green edge and
+     nothing changed on a tap. A specimen that depends on script is a specimen that can
+     look broken for the person it was drawn for. A radio group is also the honest
+     semantics for "choose one of four", which the old buttons were only imitating. */
+  .bc > input {
+    position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; padding: 0;
+    pointer-events: none;
+  }
+  .bc:has(> input:checked) {
     background: var(--pitch-deep); border-color: var(--pitch-deep); color: #fff;
   }
-  .sel .bc[aria-pressed="true"] .ds { color: rgba(255,255,255,0.85); }
-  .sel .bc[aria-pressed="true"] .rar { color: #fff; }
-  .sel .bc[aria-pressed="true"] .odds,
-  .sel .bc[aria-pressed="true"] .olabel { border-top-color: rgba(255,255,255,0.25); }
-  .sel .bc[aria-pressed="true"] .k,
-  .sel .bc[aria-pressed="true"] .olabel { color: rgba(255,255,255,0.8); }
-  .sel .bc[aria-pressed="true"] .v,
-  .sel .bc[aria-pressed="true"] .v .to { color: #fff; }
-  .sel .bc[aria-pressed="true"] .v .ar { color: rgba(255,255,255,0.6); }
-  .sel .bc[aria-pressed="true"] .v.flat { color: rgba(255,255,255,0.8); }
+  .bc:has(> input:checked) .ds { color: rgba(255,255,255,0.85); }
+  .bc:has(> input:checked) .rar { color: #fff; }
+  .bc:has(> input:checked) .odds { border-top-color: rgba(255,255,255,0.25); }
+  .bc:has(> input:checked) .k { color: rgba(255,255,255,0.8); }
+  .bc:has(> input:checked) .v,
+  .bc:has(> input:checked) .v .to { color: #fff; }
+  .bc:has(> input:checked) .v .ar { color: rgba(255,255,255,0.6); }
+  .bc:has(> input:checked) .v.flat { color: rgba(255,255,255,0.8); }
+  .bc:has(> input:focus-visible) { outline: 2px solid var(--pitch); outline-offset: 2px; }
+
+  /* the panel and the button label follow the checked radio */
+  .pick .pane, .pick .tk { display: none; }
+  .pick:has(input[value="drills"]:checked) .pane-drills { display: block; }
+  .pick:has(input[value="drills"]:checked) .tk-drills { display: inline; }
+  .pick:has(input[value="away"]:checked) .pane-away { display: block; }
+  .pick:has(input[value="away"]:checked) .tk-away { display: inline; }
+  .pick:has(input[value="wind"]:checked) .pane-wind { display: block; }
+  .pick:has(input[value="wind"]:checked) .tk-wind { display: inline; }
+  .pick:has(input[value="sold"]:checked) .pane-sold { display: block; }
+  .pick:has(input[value="sold"]:checked) .tk-sold { display: inline; }
+
   .btn {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
     width: 100%; margin-top: 11px;
     font-family: var(--disp); font-weight: 800; font-size: 13px;
     text-transform: uppercase; letter-spacing: 0.04em;
@@ -303,6 +325,25 @@
   }
   .btn:hover { background: var(--pitch-hover); }
   .btn:focus-visible { outline: 2px solid var(--pitch); outline-offset: 2px; }
+
+  /* ---- the odds switch, also a plain checkbox ----------------------------- */
+  /* Checked means OFF, so an untouched page shows the odds. */
+  .sw input { position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; }
+  .sw .swoff { display: none; }
+  .sw:has(input:checked) { color: var(--muted); }
+  .sw:has(input:checked) .track { background: var(--bar-base); }
+  .sw:has(input:checked) .knob { left: 2px; }
+  .sw:has(input:checked) .swon { display: none; }
+  .sw:has(input:checked) .swoff { display: inline; }
+  .sw:has(input:focus-visible) .track { outline: 2px solid var(--pitch); outline-offset: 2px; }
+  /* Off hides every figure, the strip's own baseline included: if you do not want the pick
+     solved you do not want "31% to beat Brazil" either. The extra .detail in the pane
+     selector is what puts it above the reveal rules on specificity. */
+  .pick:has(.oddsw:checked) .bfig,
+  .pick:has(.oddsw:checked) .odds { display: none; }
+  .pick:has(.oddsw:checked) .detail .pane { display: none; }
+  .pick .offnote { display: none; }
+  .pick:has(.oddsw:checked) .detail .offnote { display: block; }
 
   /* ---- the panel: what the first tap buys, in merge 3 --------------------- */
   .detail {
@@ -341,17 +382,11 @@
   .prow .pv .ar { color: var(--dim); font-weight: 500; padding: 0 2px; }
   .prow .pv .to { color: var(--pitch-ink); }
   .prow .pv.flat { font-size: 11px; color: var(--muted); font-weight: 600; }
-  .detail .dnote {
-    margin-top: 9px; border-top: 1px solid var(--hair); padding-top: 8px;
-    font-size: 12px; line-height: 1.45; color: var(--muted);
-  }
-  .detail .dnote b { color: var(--ink); }
   /* What the panel says with the odds switched off. It is the page explaining itself
      rather than app copy: the point is that there is nothing left for it to show. */
   .detail .offnote {
     margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); max-width: none;
   }
-  [hidden] { display: none !important; }
 
   /* the re-roll, so the tone question stays judgeable */
   .reroll {
@@ -679,78 +714,85 @@
       <span class="verdict">Safer, not cheaper</span>
     </div>
     <div class="stages">
-      <div class="stage phone">
+      <div class="stage pick phone">
         <span class="stagecap">Phone &middot; tap a card</span>
         <div class="basestrip">
-          <span class="lbl">As you stand</span>
-          <span><b>31%</b> to beat Brazil</span>
-          <span class="sep">|</span>
-          <span><b>6%</b> to lift the cup</span>
+          <span class="lbl bfig">As you stand</span>
+          <span class="bfig"><b>31%</b> to beat Brazil</span>
+          <span class="sep bfig">|</span>
+          <span class="bfig"><b>6%</b> to lift the cup</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
-        <div class="cards sel" data-take=".take2p">
-          <button class="bc com" type="button" aria-pressed="false" data-nm="Away Days">
+        <div class="cards">
+          <label class="bc com">
+            <input type="radio" name="m2p" value="away">
             <span class="rar">Common</span><span class="nm">Away Days</span>
             <span class="ds">-5 to your next opponent's defence.</span>
             <span class="odds">
               <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></span>
               <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></span>
-            </span></button>
-          <button class="bc rare" type="button" aria-pressed="true" data-nm="Sold Out Stadium">
+            </span></label>
+          <label class="bc rare">
+            <input type="radio" name="m2p" value="sold" checked>
             <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
             <span class="odds">
               <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></span>
               <span class="orow"><span class="k">Cup</span><span class="v flat">no real change</span></span>
-            </span></button>
+            </span></label>
         </div>
-        <button class="btn take2p" type="button">Take Sold Out Stadium</button>
+        <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
+        <p class="stagecap" style="margin: 9px 0 0">Two of the four shown; the offer runs to about 570px of phone</p>
       </div>
-      <div class="stage wide">
+      <div class="stage pick wide">
         <span class="stagecap">Desktop &middot; tap a card</span>
         <div class="basestrip">
-          <span class="lbl">As you stand</span>
-          <span><b>31%</b> to beat Brazil</span>
-          <span class="sep">|</span>
-          <span><b>6%</b> to lift the cup</span>
+          <span class="lbl bfig">As you stand</span>
+          <span class="bfig"><b>31%</b> to beat Brazil</span>
+          <span class="sep bfig">|</span>
+          <span class="bfig"><b>6%</b> to lift the cup</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span>
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
-        <div class="cards sel" data-take=".take2d">
-          <button class="bc com" type="button" aria-pressed="false" data-nm="Defensive Drills">
+        <div class="cards">
+          <label class="bc com">
+            <input type="radio" name="m2d" value="drills">
             <span class="rar">Common</span><span class="nm">Defensive Drills</span>
             <span class="ds">+2 to your goalkeeper and defenders.</span>
             <span class="grow"></span>
             <span class="odds">
               <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></span>
               <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></span>
-            </span></button>
-          <button class="bc com" type="button" aria-pressed="false" data-nm="Away Days">
+            </span></label>
+          <label class="bc com">
+            <input type="radio" name="m2d" value="away">
             <span class="rar">Common</span><span class="nm">Away Days</span>
             <span class="ds">-5 to your next opponent's defence.</span>
             <span class="grow"></span>
             <span class="odds">
               <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></span>
               <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></span>
-            </span></button>
-          <button class="bc rare" type="button" aria-pressed="false" data-nm="Second Wind">
+            </span></label>
+          <label class="bc rare">
+            <input type="radio" name="m2d" value="wind">
             <span class="rar">Rare</span><span class="nm">Second Wind</span>
             <span class="ds">+4 to your entire XI, for this round only.</span>
             <span class="grow"></span>
             <span class="odds">
               <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></span>
               <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></span>
-            </span></button>
-          <button class="bc rare" type="button" aria-pressed="true" data-nm="Sold Out Stadium">
+            </span></label>
+          <label class="bc rare">
+            <input type="radio" name="m2d" value="sold" checked>
             <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
             <span class="grow"></span>
             <span class="odds">
               <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></span>
               <span class="orow"><span class="k">Cup</span><span class="v flat">no real change</span></span>
-            </span></button>
+            </span></label>
         </div>
-        <button class="btn take2d" type="button">Take Sold Out Stadium</button>
+        <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
         <div class="reroll">
           <span class="rb">Re-roll these boosts</span>
           <span class="rh">1 re-roll left this run</span>
@@ -783,110 +825,136 @@
       <span class="verdict pick">Recommended</span>
     </div>
     <div class="stages">
-      <div class="stage phone">
+      <div class="stage pick phone">
         <span class="stagecap">Phone &middot; tap a card</span>
         <div class="basestrip">
           <span class="lbl bfig">As you stand</span>
           <span class="bfig"><b>31%</b> to beat Brazil</span>
           <span class="sep bfig">|</span>
           <span class="bfig"><b>6%</b> to lift the cup</span>
-          <span class="sw" role="button" tabindex="0"><span class="track"><span class="knob"></span></span> Odds on</span>
+          <label class="sw"><input type="checkbox" class="oddsw"><span class="track"><span class="knob"></span></span><span class="swon">Odds on</span><span class="swoff">Odds off</span></label>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
-        <div class="cards sel demand" data-take=".take3p" data-detail="det3p">
-          <button class="bc com" type="button" aria-pressed="false" data-nm="Defensive Drills"
-            data-rar="Common" data-to="34" data-w="3.5" data-cup="6%|10%"
-            data-say="Permanent and unconditional, so both horizons agree: the smallest of the four on this tie, and the second best over a whole run.">
+        <div class="cards">
+          <label class="bc com">
+            <input type="radio" name="m3p" value="drills">
             <span class="rar">Common</span><span class="nm">Defensive Drills</span>
-            <span class="ds">+2 to your goalkeeper and defenders.</span></button>
-          <button class="bc com" type="button" aria-pressed="false" data-nm="Away Days"
-            data-rar="Common" data-to="41" data-w="10.7" data-cup="6%|9%"
-            data-say="Aimed at Brazil and nobody else, so it is worth three times as much on this tie as it is over the run.">
+            <span class="ds">+2 to your goalkeeper and defenders.</span></label>
+          <label class="bc com">
+            <input type="radio" name="m3p" value="away">
             <span class="rar">Common</span><span class="nm">Away Days</span>
-            <span class="ds">-5 to your next opponent's defence.</span></button>
-          <button class="bc rare" type="button" aria-pressed="false" data-nm="Second Wind"
-            data-rar="Rare" data-to="48" data-w="17.8" data-cup="6%|11%"
-            data-say="One round of a big lift. The best cup figure of the four, because the round it buys is the one you are most likely to go out in.">
+            <span class="ds">-5 to your next opponent's defence.</span></label>
+          <label class="bc rare">
+            <input type="radio" name="m3p" value="wind">
             <span class="rar">Rare</span><span class="nm">Second Wind</span>
-            <span class="ds">+4 to your entire XI, for this round only.</span></button>
-          <button class="bc rare" type="button" aria-pressed="true" data-nm="Sold Out Stadium"
-            data-rar="Rare" data-to="58" data-w="27.4" data-cup="flat"
-            data-say="Nearly doubles your chance in this tie, and gives all of it back in the round after, so over a whole run it is worth nothing.">
+            <span class="ds">+4 to your entire XI, for this round only.</span></label>
+          <label class="bc rare">
+            <input type="radio" name="m3p" value="sold" checked>
             <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
-            <span class="ds">+6 to your XI this round, then -6 in the round after it.</span></button>
+            <span class="ds">+6 to your XI this round, then -6 in the round after it.</span></label>
         </div>
-        <div class="detail rare det3p">
-          <div class="dbody">
-            <div class="dh"><span class="dn">Sold Out Stadium</span>
-              <span class="dr">Rare</span></div>
-            <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-              <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span>
-              <span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
-            <div class="prow"><span class="pk">Lifting the cup</span>
-              <span class="pv flat">No real change</span></div>
-            <p class="dnote">Nearly doubles your chance in this tie, and gives all of it back
-            in the round after, so over a whole run it is worth nothing.</p>
-          </div>
-          <p class="offnote" hidden>With the odds switched off there is nothing for this panel
-          to show, so the first tap only highlights the card and the second one confirms it.
-          That is the decision at the foot of this page.</p>
+        <div class="detail">
+            <div class="pane pane-drills com">
+              <div class="dh"><span class="dn">Defensive Drills</span><span class="dr">Common</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:3.5%"></u></span>
+                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
+            </div>
+            <div class="pane pane-away com">
+              <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:10.7%"></u></span>
+                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
+            </div>
+            <div class="pane pane-wind rare">
+              <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:17.8%"></u></span>
+                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
+            </div>
+            <div class="pane pane-sold rare">
+              <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span>
+                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span><span class="pv flat">No real change</span></div>
+            </div>
+            <p class="offnote">With the odds switched off there is nothing for this panel to show, so the first tap only highlights the card and the second one confirms it. That is the decision at the foot of this page.</p>
         </div>
-        <button class="btn take3p" type="button">Take Sold Out Stadium</button>
+        <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
         <div class="reroll">
           <span class="rb">Re-roll these boosts</span>
           <span class="rh">1 re-roll left this run</span>
         </div>
       </div>
-      <div class="stage wide">
+      <div class="stage pick wide">
         <span class="stagecap">Desktop &middot; tap a card</span>
         <div class="basestrip">
           <span class="lbl bfig">As you stand</span>
           <span class="bfig"><b>31%</b> to beat Brazil</span>
           <span class="sep bfig">|</span>
           <span class="bfig"><b>6%</b> to lift the cup</span>
-          <span class="sw" role="button" tabindex="0"><span class="track"><span class="knob"></span></span> Odds on</span>
+          <label class="sw"><input type="checkbox" class="oddsw"><span class="track"><span class="knob"></span></span><span class="swon">Odds on</span><span class="swoff">Odds off</span></label>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span>
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
-        <div class="cards sel demand" data-take=".take3d" data-detail="det3d">
-          <button class="bc com" type="button" aria-pressed="false" data-nm="Defensive Drills"
-            data-rar="Common" data-to="34" data-w="3.5" data-cup="6%|10%"
-            data-say="Permanent and unconditional, so both horizons agree: the smallest of the four on this tie, and the second best over a whole run.">
+        <div class="cards">
+          <label class="bc com">
+            <input type="radio" name="m3d" value="drills">
             <span class="rar">Common</span><span class="nm">Defensive Drills</span>
-            <span class="ds">+2 to your goalkeeper and defenders.</span></button>
-          <button class="bc com" type="button" aria-pressed="false" data-nm="Away Days"
-            data-rar="Common" data-to="41" data-w="10.7" data-cup="6%|9%"
-            data-say="Aimed at Brazil and nobody else, so it is worth three times as much on this tie as it is over the run.">
+            <span class="ds">+2 to your goalkeeper and defenders.</span>
+            <span class="grow"></span></label>
+          <label class="bc com">
+            <input type="radio" name="m3d" value="away">
             <span class="rar">Common</span><span class="nm">Away Days</span>
-            <span class="ds">-5 to your next opponent's defence.</span></button>
-          <button class="bc rare" type="button" aria-pressed="false" data-nm="Second Wind"
-            data-rar="Rare" data-to="48" data-w="17.8" data-cup="6%|11%"
-            data-say="One round of a big lift. The best cup figure of the four, because the round it buys is the one you are most likely to go out in.">
+            <span class="ds">-5 to your next opponent's defence.</span>
+            <span class="grow"></span></label>
+          <label class="bc rare">
+            <input type="radio" name="m3d" value="wind">
             <span class="rar">Rare</span><span class="nm">Second Wind</span>
-            <span class="ds">+4 to your entire XI, for this round only.</span></button>
-          <button class="bc rare" type="button" aria-pressed="true" data-nm="Sold Out Stadium"
-            data-rar="Rare" data-to="58" data-w="27.4" data-cup="flat"
-            data-say="Nearly doubles your chance in this tie, and gives all of it back in the round after, so over a whole run it is worth nothing.">
+            <span class="ds">+4 to your entire XI, for this round only.</span>
+            <span class="grow"></span></label>
+          <label class="bc rare">
+            <input type="radio" name="m3d" value="sold" checked>
             <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
-            <span class="ds">+6 to your XI this round, then -6 in the round after it.</span></button>
+            <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
+            <span class="grow"></span></label>
         </div>
-        <div class="detail rare det3d">
-          <div class="dbody">
-            <div class="dh"><span class="dn">Sold Out Stadium</span>
-              <span class="dr">Rare</span></div>
-            <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-              <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span>
-              <span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
-            <div class="prow"><span class="pk">Lifting the cup</span>
-              <span class="pv flat">No real change</span></div>
-            <p class="dnote">Nearly doubles your chance in this tie, and gives all of it back
-            in the round after, so over a whole run it is worth nothing.</p>
-          </div>
-          <p class="offnote" hidden>With the odds switched off there is nothing for this panel
-          to show, so the first tap only highlights the card and the second one confirms it.
-          That is the decision at the foot of this page.</p>
+        <div class="detail">
+            <div class="pane pane-drills com">
+              <div class="dh"><span class="dn">Defensive Drills</span><span class="dr">Common</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:3.5%"></u></span>
+                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
+            </div>
+            <div class="pane pane-away com">
+              <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:10.7%"></u></span>
+                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
+            </div>
+            <div class="pane pane-wind rare">
+              <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:17.8%"></u></span>
+                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
+            </div>
+            <div class="pane pane-sold rare">
+              <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
+              <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span>
+                <span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
+              <div class="prow"><span class="pk">Lifting the cup</span><span class="pv flat">No real change</span></div>
+            </div>
+            <p class="offnote">With the odds switched off there is nothing for this panel to show, so the first tap only highlights the card and the second one confirms it. That is the decision at the foot of this page.</p>
         </div>
-        <button class="btn take3d" type="button">Take Sold Out Stadium</button>
+        <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
         <div class="reroll">
           <span class="rb">Re-roll these boosts</span>
           <span class="rh">1 re-roll left this run</span>
@@ -898,10 +966,9 @@
         <h4>What it buys</h4>
         <p>The first tap becomes the question and the panel is the answer, which is the
         brief. Tap through the four in either frame: the cards stay the size they are today,
-        the phone offer is <b>about 340px instead of 590</b>, and the panel has room for the
-        one bar worth drawing plus a sentence saying what the two figures mean - which is
-        where "58% and nothing" stops being a riddle. It also gives the loading state a
-        natural home: the panel opens and the numbers land in it.</p>
+        the phone offer is <b>about 340px instead of 570</b>, and the panel is the one place
+        with room for the bar worth drawing. It also gives the loading state a natural home,
+        since the panel opens and the numbers land in it.</p>
       </div>
       <div>
         <h4>What it costs</h4>
@@ -1161,79 +1228,8 @@
     });
     label();
 
-    var BASE_TIE = 30.5;
-
-    /* Merge 3's panel. The resting content is IN THE PAGE, so the panel is correct
-       before any of this runs and with the script removed entirely; this only swaps it
-       when another card is tapped, and it leaves the panel alone rather than blanking it
-       if a card is ever missing its figures. The tie row gets the one bar worth drawing,
-       on a plain 0 to 100% scale: grey is where you stand, green is what this boost adds. */
-    function paint(row) {
-      var det = row.dataset.detail && document.querySelector('.' + row.dataset.detail);
-      var take = row.dataset.take && document.querySelector(row.dataset.take);
-      var on = row.querySelector('.bc[aria-pressed="true"]');
-      if (take && on) { take.textContent = 'Take ' + on.dataset.nm; }
-      if (!det || !on || !on.dataset.to) { return; }
-      var body = det.querySelector('.dbody');
-      if (!body) { return; }
-      var cup = on.dataset.cup === 'flat'
-        ? '<span class="pv flat">No real change</span>'
-        : '<span class="pv">' + on.dataset.cup.split('|')[0] +
-          '<span class="ar">&rarr;</span><span class="to">' +
-          on.dataset.cup.split('|')[1] + '</span></span>';
-      body.innerHTML =
-        '<div class="dh"><span class="dn">' + on.dataset.nm + '</span>' +
-        '<span class="dr">' + on.dataset.rar + '</span></div>' +
-        '<div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>' +
-        '<span class="pbar"><i style="width:' + BASE_TIE + '%"></i>' +
-        '<u style="left:' + BASE_TIE + '%;width:' + on.dataset.w + '%"></u></span>' +
-        '<span class="pv">' + Math.round(BASE_TIE) + '%<span class="ar">&rarr;</span>' +
-        '<span class="to">' + on.dataset.to + '%</span></span></div>' +
-        '<div class="prow"><span class="pk">Lifting the cup</span>' + cup + '</div>' +
-        '<p class="dnote">' + on.dataset.say + '</p>';
-      /* the rarity accent the panel's own label reads */
-      det.className = det.className.replace(/\b(com|rare|leg)\b/, '') + ' ' +
-        (/\bcom\b/.test(on.className) ? 'com' : /\bleg\b/.test(on.className) ? 'leg' : 'rare');
-    }
-
-    Array.prototype.forEach.call(document.querySelectorAll('.cards.sel'), function (row) {
-      row.addEventListener('click', function (ev) {
-        var b = ev.target.closest('.bc');
-        if (!b || !row.contains(b)) { return; }
-        Array.prototype.forEach.call(row.querySelectorAll('.bc'), function (o) {
-          o.setAttribute('aria-pressed', String(o === b));
-        });
-        paint(row);
-      });
-      paint(row);
-    });
-
-    /* The Odds on switch, so the preference is a real thing on the page rather than a
-       drawing of one. Off hides EVERY figure, the strip's own baseline included - if you
-       do not want the pick solved you do not want the baseline either - and leaves the two
-       taps in place, which is the decision the merge forces. The panel says so rather than
-       vanishing, so the consequence is on screen instead of being described. */
-    Array.prototype.forEach.call(document.querySelectorAll('.sw'), function (sw) {
-      function flip() {
-        sw.classList.toggle('off');
-        var off = sw.classList.contains('off');
-        sw.lastChild.textContent = off ? ' Odds off' : ' Odds on';
-        var stage = sw.closest('.stage');
-        Array.prototype.forEach.call(
-          stage.querySelectorAll('.odds, .bfig'), function (o) {
-            o.style.display = off ? 'none' : '';
-          });
-        Array.prototype.forEach.call(stage.querySelectorAll('.dbody'), function (o) {
-          o.hidden = off;
-        });
-        Array.prototype.forEach.call(stage.querySelectorAll('.offnote'), function (o) {
-          o.hidden = !off;
-        });
-      }
-      sw.addEventListener('click', flip);
-      sw.addEventListener('keydown', function (ev) {
-        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); flip(); }
-      });
-    });
+    /* Nothing else on this page needs script. The two specimens that respond to a tap
+       (merges 2 and 3) are CSS-only radio groups, so they work in a static snapshot, with
+       scripting off, and in any viewer that does not run this block. */
   })();
 </script>
