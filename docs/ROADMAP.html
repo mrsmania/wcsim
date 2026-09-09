@@ -361,80 +361,103 @@
   <summary>
     <span class="num">65</span>
     <span class="title">The boost cards do not look pressable
-      <span class="sub">Reported 2026-09-09: the three boosts you pick between "don't appear like real buttons". They are buttons, and the reason is measurable rather than a matter of taste - <b>every signal that they are pressable fires on hover, and there is no hover on a phone.</b> Five options drawn live in <a class="dl" href="redesign-2026/turf-flat/boost-buttons-mock.html" target="_blank" rel="noopener"><code>docs/redesign-2026/turf-flat/boost-buttons-mock.html</code></a>. <b>Needs one decision from the owner</b>, then about an hour.</span>
+      <span class="sub">Reported 2026-09-09: the three boosts you pick between "don't appear like real buttons". <b>Two passes.</b> The first dressed the card up and was rejected on the ground that decides it - on a phone you still would not see there is a button. The second starts from the premise that <b>the card cannot be the button</b> and puts a real one in each; four options drawn at phone width in <a class="dl" href="redesign-2026/turf-flat/boost-buttons-mock.html" target="_blank" rel="noopener"><code>docs/redesign-2026/turf-flat/boost-buttons-mock.html</code></a>. <b>Needs one decision from the owner</b>, then about an hour.</span>
     </span>
     <span class="tag">Cup Run</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>The finding.</strong> At rest a boost card is <code>CARD_FLAT</code>, which is
-    the app's <em>shadowless</em> card: the one the modal sheets use and the one a panel
-    nested inside another card uses. So the thing the player is meant to tap is dressed in
-    the app's own idiom for a passive surface, on a screen where every real card carries the
-    hard shadow. The two things that do say "control" are a 2px lift and the border turning
-    green, and <b>both are hover states</b>. Whatever is chosen, the fix has to be visible at
-    rest.</p>
-
-    <p><strong>The five options</strong>, each drawn on one real offer in the comp so it can
-    be hovered and pressed rather than read about:</p>
-    <ul>
-      <li><b>A. It is raised, and pressing it presses it down.</b> <code>CARD_FLAT</code>
-      becomes <code>CARD_SM</code> (the 4px hard shadow the cabinet already uses), hover
-      lifts to the full 6px and the press drops it flat into its own shadow. One token, no
-      new element, no new copy, no height, and it works on touch. <b>Recommended in the
-      comp.</b></li>
-      <li><b>B. The card gets a foot.</b> A chalk strip reading "Take this boost" with an
-      arrow, in the mono caption. The precedent is <code>CardDisclosure</code>. Costs about
-      28px a card and says the same thing three times.</li>
-      <li><b>C. Pick, then confirm.</b> The three become a selector (chosen fills
-      <code>pitch-dark</code>, the app's one chosen-cell green) with one real
-      <code>btn('primary')</code> below. Ends the tension completely and makes an
-      irreversible pick deliberate; costs a tap at every stop, so it is a gameplay decision
-      as much as a visual one.</li>
-      <li><b>D. The rarity becomes a filled cap</b> with the word reversed out, plus a corner
-      arrow. Cheapest change, weakest affordance on its own, and the only one that fixes the
-      contrast miss below on the way past. Pairs with A.</li>
-      <li><b>E. It fills green on hover.</b> Drawn so the ceiling is visible, not as a
-      candidate: it is the primary button three times on a screen that also has one, and it
-      is still hover-only.</li>
-    </ul>
+    <p><strong>The problem.</strong> At rest a boost card is <code>CARD_FLAT</code>, the
+    app's shadowless card, and the only two things that say "control" are a 2px hover lift
+    and the border turning green. There is no hover on a phone, so on touch the most
+    consequential choice in a run offers three passive-looking panels and no affordance at
+    all. Below 640px the offer stacks to one card wide, so what the player actually sees is
+    three full-width panels, each with a faint label, a title and a line of grey text.</p>
 
     <div class="callout">
-      <span class="ct">A second finding on the same element: the rarity word misses AA</span>
-      The rarity is printed at 9px bold in the rarity accent, and those hexes are SURFACE
-      colours borrowed from the sticker tier ramp. Against the panel they sit on:
-      <b>Legendary <code>#c99a3a</code> 2.57 light / 6.49 dark, Rare <code>#e4922b</code>
-      2.49 / 6.71, Common <code>#15924c</code> 4.00 / 4.17</b>, against the 4.5 a 9px label
-      needs. Two are badly under on paper and the common green is under in both themes. The
-      relaxed 3:1 does not apply, which is for 18.66px bold and larger.
+      <span class="ct">The first pass was wrong about the premise, not the details</span>
+      It offered the card raised on the hard shadow (recommended), a chalk foot, a filled
+      rarity cap, pick-then-confirm, and a green fill on hover. The owner rejected the lot:
+      <em>"I don't like either of them, especially not on mobile where you wouldn't see
+      that there's a button in the first place."</em> He is right, and the shadow one was
+      the worst of the five: <b>the hard shadow is this game's signature for a CARD</b> -
+      the standings, the XI sheet, the perk tiles, the trophy shelf all wear it - so
+      putting it on the boost cards makes them look more like every other card, not less.
+      It would have made the problem worse while looking like progress. The general form is
+      the lesson: <b>a full-width panel with a heading and a line of grey text is what
+      CONTENT looks like in this app</b>, and no treatment applied to that shape turns it
+      into something a thumb reads as pressable.
     </div>
 
-    <p><strong>The fix has a precedent, twice over.</strong>
-    <code>--color-amber-ink</code> and <code>--color-pitch-ink</code> exist precisely because
-    amber and green <em>as text</em> are separate values from amber and green <em>as a
-    surface</em>. The 3px strip is a surface and keeps the accent; the word needs the ink.
+    <p><strong>And the objection that ruled green out was factually wrong.</strong> The
+    first pass rejected a green fill because it is the primary button and the screen
+    "already has one". It does not: the picker and the screen's primary button are mutually
+    exclusive branches. <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/cupRun/GroupRevealPanel.tsx" target="_blank" rel="noopener"><code>GroupRevealPanel</code></a> renders the picker
+    <em>or</em> a Continue button in one ternary, and in <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/cupRun/RunPhasePanel.tsx" target="_blank" rel="noopener"><code>RunPhasePanel</code></a> the picker is the
+    <code>boon</code> phase while both <code>PRIMARY_BTN</code> uses belong to
+    <code>group</code> and <code>match</code>. When the offer is up the only other control
+    is the re-roll, which is the quiet tone. <b>The green is free on this screen.</b></p>
+
+    <p><strong>The four options, all of which contain an object that is a button</strong>,
+    each drawn at phone width and desktop width with the real re-roll underneath:</p>
+    <ul>
+      <li><b>A. Every card ends in a green button.</b> A full-width
+      <code>btn('primary')</code> bar reading "Take it", measured at 46px so it clears the
+      44px tap target without anything growing for it. Costs about 45px a card, which on a
+      phone is the offer growing by half a screen. <b>Recommended in the comp.</b></li>
+      <li><b>B. The same, in the quiet tone.</b> Drawn and then argued against on evidence
+      rather than taste: with the re-roll on screen, <b>the three choices end up looking
+      exactly like the utility button below them</b>, since the quiet tone is what Back,
+      Cancel and Refresh wear. That is the argument for A over B.</li>
+      <li><b>C. The button is the card's bottom edge</b>, full bleed, with the rarity as a
+      filled cap on top, so the card is bracketed by the rarity above and the action below
+      and the two are one object. Solidest of the four on a phone; biggest change to the
+      card's construction, and it forces the common rarity cap to deepen (see below).</li>
+      <li><b>D. Three choices, one button.</b> The cards become a selector, the chosen one
+      fills <code>pitch-dark</code>, and one full-width primary below names what it will
+      take. Adds the least height and makes an irreversible pick deliberate; costs a tap at
+      every stop, and on a phone the button can be off screen while the third card is being
+      read.</li>
+    </ul>
+
+    <p><strong>Three things the four share, each deliberate.</strong> The bar is a
+    <code>&lt;span&gt;</code> wearing <code>btn()</code> and marked
+    <code>aria-hidden</code>, <b>not a nested button</b>: a button inside a button is
+    invalid HTML and undefined for keyboard and assistive technology, which is the scar
+    <code>PlayerBadge</code> already carries. The happy side effect is that the hit area
+    stays the whole card, so the bar is a signpost and the card is the target. Using
+    <code>btn()</code> also satisfies the class sweep rather than dodging it: the first pass
+    warned that <code>npm run checks</code> fails on the app's button voice inside a padded
+    box, which is aimed at a <em>hand-written</em> button, and a bar composed from the
+    shared constant is what that sweep exists to encourage. And <b>nothing depends on hover
+    or on motion</b>, which was the whole failure of the first pass.</p>
+
+    <div class="callout">
+      <span class="ct">A separate finding: the rarity word misses AA as shipped</span>
+      Printed at 9px bold in the rarity accent, and those hexes are SURFACE colours
+      borrowed from the sticker tier ramp. Against the panel they sit on: <b>Legendary
+      <code>#c99a3a</code> 2.57 light / 6.49 dark, Rare <code>#e4922b</code> 2.49 / 6.71,
+      Common <code>#15924c</code> 4.00 / 4.17</b>, against the 4.5 a label that size needs.
+      Two are badly under on paper and the common green is under in both themes. The
+      relaxed 3:1 does not apply, being for 18.66px bold and larger.
+    </div>
+
+    <p><strong>That fix has a precedent, twice over.</strong>
+    <code>--color-amber-ink</code> and <code>--color-pitch-ink</code> exist precisely
+    because amber and green <em>as text</em> are separate values from amber and green <em>as
+    a surface</em>. The strip is a surface and keeps the accent; the word needs the ink.
     Rare takes <code>amber-ink</code> (5.92 on panel), common takes <code>pitch-ink</code>
-    (8.08), and legendary needs one new gold ink token - <code>#7d5f10</code> measures 5.97
-    panel / 5.14 chalk / 5.33 ground. Option D avoids the new token but is not free either:
-    the bright common green carries neither the foil ink (3.47) nor white (4.00), so that cap
-    has to deepen to <code>#0e5c34</code>, where white reads 8.08.</p>
+    (8.08), and legendary needs one new gold value: <code>#7d5f10</code> measures 5.97
+    panel / 5.14 chalk / 5.33 ground. Option C avoids the new token by reversing the word
+    out of the cap instead: the existing foil ink <code>#3a2a06</code> reads 5.40 against
+    the dark end of the gold foil and 5.58 out of the amber band, but the bright common
+    green carries neither that ink (3.47) nor white (4.00), so that cap has to deepen to
+    <code>#0e5c34</code> where white reads 8.08.</p>
 
-    <p><strong>Three constraints, all of which a first attempt would trip over.</strong>
-    The description STAYS - "no descriptions inside a button" is a house rule and the boost
-    offer is its one written exception, because here the description is the choice. There is
-    no fourth button design, so every option above either reuses something that exists (the
-    hard shadow, the chalk foot, the chosen-cell green) or is a selector, which the rules
-    already hold apart from buttons. And <code>npm run checks</code> reads every class-list
-    string in <code>src/</code> and <b>fails on the app's button voice</b>
-    (<code>font-display</code> plus <code>uppercase</code>) inside a box with its own
-    padding, so a "TAKE THIS" set in Archivo inside the card is a build failure; the mono
-    caption is fine, which is what B uses.</p>
-
-    <p><strong>Two things worth doing whichever is picked.</strong> The shipped card sets no
-    focus style at all, so keyboard focus lands on it invisibly. And the rarity contrast
-    belongs in the tone sweep <code>scripts/checks/ui.ts</code> already runs, which computes
-    every button tone from the real tokens and fails under 4.5 but does not read this
-    element.</p>
+    <p><strong>Worth doing whichever is picked:</strong> the shipped card sets no focus
+    style at all, so keyboard focus lands on it invisibly; and the rarity contrast belongs
+    in the tone sweep <code>scripts/checks/ui.ts</code> already runs, which computes every
+    button tone from the real tokens and fails under 4.5 but does not read this element.</p>
 
     <p class="files"><a class="dl" href="redesign-2026/turf-flat/boost-buttons-mock.html" target="_blank" rel="noopener">docs/redesign-2026/turf-flat/boost-buttons-mock.html</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/cupRun/BoostOffer.tsx" target="_blank" rel="noopener">src/components/cupRun/BoostOffer.tsx</a>, <a class="dl ext" href="https://github.com/mrsmania/wcsim/blob/main/src/components/cupRun/types.ts" target="_blank" rel="noopener">src/components/cupRun/types.ts</a>, <a class="dl" href="../src/index.css" target="_blank" rel="noopener">src/index.css</a>, <a class="dl" href="../scripts/checks/ui.ts" target="_blank" rel="noopener">scripts/checks/ui.ts</a></p>
   </div>

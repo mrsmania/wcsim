@@ -11,19 +11,21 @@
   if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
 <style>
-  /* THE BOOST PICK DOES NOT LOOK PRESSABLE. Five ways to fix that without breaking the
-     three-button ceiling, drawn on one real offer so each can be hovered and pressed
-     rather than described.
+  /* THE BOOST PICK DOES NOT LOOK PRESSABLE, AND THE CARD CANNOT BE WHAT FIXES IT.
+     Second pass, 2026-09-09. The first pass dressed the card up (a hard shadow, a chalk
+     foot, a filled rarity cap) and the owner rejected the lot on the ground that decides
+     it: on a phone you would still not see that there is a button. He is right, and the
+     reason is structural rather than a matter of degree - see the premise callout. So
+     every option here contains an object that IS a button, and every one is drawn at
+     PHONE width first.
 
-     Every contrast figure on this page is COMPUTED from the shipped tokens in
-     src/index.css and the shipped rarity hexes in src/components/stickerTheme.ts, at the
-     sizes BoostOffer.tsx actually renders. Re-derive them rather than trusting them if
-     the palette moves.
+     Every contrast figure is COMPUTED from the shipped tokens in src/index.css and the
+     shipped rarity hexes in src/components/stickerTheme.ts, at the sizes BoostOffer.tsx
+     actually renders. Re-derive them rather than trusting them if the palette moves.
 
      Self-contained on purpose, like boost-odds-mock.html: it opens standalone in a
      browser AND publishes as an Artifact, hence the doctype, the own reset and the theme
-     button (the two hosts source the theme differently). Tokens are copied from
-     src/index.css so both themes match the app. */
+     button (the two hosts source the theme differently). */
 
   /* ---- tokens: light (turf-flat "pitch") ------------------------------------ */
   :root {
@@ -101,7 +103,7 @@
   }
   h3 { font-family: var(--disp); font-weight: 800; font-size: 15px; margin: 22px 0 8px; }
 
-  /* ---- the finding callout ------------------------------------------------- */
+  /* ---- callouts ------------------------------------------------------------ */
   .callout {
     background: var(--chalk); border: 1px solid var(--line);
     border-left: 4px solid var(--loss); border-radius: 6px;
@@ -136,7 +138,6 @@
   .verdict.pick { background: var(--pitch-deep); border-color: var(--pitch-deep); color: #fff; }
   .verdict.no { border-color: var(--loss); color: var(--loss); }
 
-  /* the two-column note under each specimen */
   .note { display: grid; gap: 14px; margin-top: 16px; }
   @media (min-width: 720px) { .note { grid-template-columns: 1fr 1fr; } }
   .note > div { border-top: 1px solid var(--hair); padding-top: 8px; }
@@ -146,35 +147,46 @@
   }
   .note p { font-size: 14px; margin: 0; max-width: none; }
 
-  /* ---- the specimen stage -------------------------------------------------- */
-  /* The offer as CupRunScreen frames it, so each option is judged on the real screen
-     and not on a swatch: paper ground, the heading row above, the cards below. */
+  /* ---- the two stages: PHONE first, then desktop -------------------------- */
+  /* The complaint was about the phone, so the phone frame leads and is a real 360px
+     viewport rather than a squeezed column: the app stacks the offer to one card wide
+     below 640px, which is the shape being judged. */
+  .stages { display: grid; gap: 16px; align-items: start; }
+  @media (min-width: 860px) { .stages { grid-template-columns: 360px 1fr; } }
   .stage {
     background: var(--paper); border: 1px dashed var(--line); border-radius: 8px;
-    padding: 16px;
+    padding: 14px; min-width: 0;
   }
+  .stagecap {
+    display: block; font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--dim);
+    margin-bottom: 9px;
+  }
+  .phone { width: 100%; max-width: 360px; }
   .offerhead {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-    gap: 8px; margin-bottom: 12px;
+    gap: 6px; margin-bottom: 11px;
   }
   .offerhead .lbl {
     font-family: var(--mono); font-size: 11px; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted);
   }
-  .offerhead .next { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .offerhead .next { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
   .offerhead .next b { color: var(--ink); }
   .flag {
-    display: inline-block; width: 18px; height: 12px; vertical-align: -1px;
+    display: inline-block; width: 17px; height: 11px; vertical-align: -1px;
     border-radius: 1px; margin: 0 2px;
     background: linear-gradient(180deg,#009c3b 0 34%,#ffdf00 34% 66%,#002776 66%);
   }
+  /* One card wide by default (the phone frame keeps this at every reader width);
+     the desktop stage goes three across once there is room for it. */
   .cards { display: grid; gap: 10px; grid-template-columns: 1fr; }
-  @media (min-width: 560px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 560px) { .wide .cards { grid-template-columns: repeat(3, 1fr); } }
 
   /* ---- the boost card, AS SHIPPED ------------------------------------------ */
   /* CARD_FLAT + p-3 + a 3px rarity strip, left aligned, hover lifts 2px and turns the
      border green. Reproduced class for class from BoostOffer.tsx, with one addition:
-     the focus ring, which the shipped card does not have. */
+     the focus ring, which the shipped card does not have at all. */
   .bc {
     display: flex; flex-direction: column; gap: 6px; align-items: stretch;
     font: inherit; text-align: left; cursor: pointer;
@@ -196,40 +208,70 @@
   .rare { --rar: var(--rar-rare); }
   .com { --rar: var(--rar-com); }
 
-  /* ---- A: raised, and it presses ------------------------------------------- */
-  .a .bc { box-shadow: var(--hard-sm); }
-  .a .bc:hover { box-shadow: var(--hard); transform: translateY(-1px); }
-  .a .bc:active { box-shadow: none; transform: translate(4px, 4px); }
-
-  /* ---- B: the card gets a foot --------------------------------------------- */
-  .b .bc { padding: 0; overflow: hidden; gap: 0; }
-  .b .bc .body { display: flex; flex-direction: column; gap: 6px; padding: 12px; }
-  .b .bc .foot {
-    display: flex; align-items: center; justify-content: space-between; gap: 6px;
-    background: var(--chalk); border-top: 1px solid var(--line);
-    padding: 7px 12px;
-    font-family: var(--mono); font-size: 10px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted);
-    transition: color 0.15s, background 0.15s;
+  /* ---- the button bar, which is what all four options have in common ------ */
+  /* btn(tone) as the app writes it: 5px corners, Archivo 800 uppercase at 13px, the
+     px-5 py-3 page size. Full width, because in a card there is nothing to sit beside.
+     It is a SPAN, not a button: the card stays the single control (see the note in the
+     page about nested interactive elements). */
+  .bar {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: var(--disp); font-weight: 800; font-size: 13px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    border-radius: 5px; border: 1px solid var(--pitch-deep);
+    background: var(--pitch-deep); color: #fff;
+    padding: 12px 20px; transition: background 0.15s;
   }
-  .b .bc .foot .arw { transition: transform 0.15s; }
-  .b .bc:hover .foot { color: var(--pitch-ink); background: var(--panel); }
-  .b .bc:hover .foot .arw { transform: translateX(3px); }
-  .b .bc:active { transform: translateY(0); }
+  .bc:hover .bar { background: var(--pitch-hover); }
+  .bc:active .bar { background: var(--pitch-deep); }
+  .bar.quiet {
+    background: var(--panel); border-color: var(--ink); color: var(--ink);
+  }
+  .bc:hover .bar.quiet { background: var(--panel); border-color: var(--pitch); color: var(--pitch-ink); }
 
-  /* ---- C: pick, then confirm ----------------------------------------------- */
-  .c .bc[aria-pressed="true"] {
+  /* A: the bar sits inside the card's padding, with a rule above it. */
+  .a .bc { gap: 0; }
+  .a .bc .body { display: flex; flex-direction: column; gap: 6px; padding-bottom: 11px; }
+  .a .bc:hover { transform: none; }
+
+  /* B: identical, quiet tone. */
+  .b .bc { gap: 0; }
+  .b .bc .body { display: flex; flex-direction: column; gap: 6px; padding-bottom: 11px; }
+  .b .bc:hover { transform: none; }
+
+  /* C: the bar IS the card's bottom edge, full bleed, with the rarity as a cap on top. */
+  .c .bc {
+    padding: 0; gap: 0; overflow: hidden;
+    border-top-width: 1px; border-top-color: var(--line);
+  }
+  .c .bc:hover { transform: none; }
+  .c .bc .cap2 {
+    display: block; background: var(--rar-fill); color: var(--rar-cap-ink);
+    font-family: var(--mono); font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.14em; padding: 4px 12px;
+  }
+  .c .bc .body { display: flex; flex-direction: column; gap: 6px; padding: 12px; }
+  .c .bc .bar { border-radius: 0; border-width: 1px 0 0 0; }
+  .c .leg { --rar-fill: var(--rar-leg-foil); }
+  .c .rare { --rar-fill: var(--rar-rare); }
+  /* The bright green carries neither white (4.00) nor the foil ink (3.47), so the
+     common cap deepens to the fixed #0e5c34 and reverses white out at 8.08. */
+  .c .com { --rar-fill: #0e5c34; }
+  .c .com .cap2 { color: #fff; }
+
+  /* D: three choices, one button under them. */
+  .d .bc:hover { transform: none; }
+  .d .bc[aria-pressed="true"] {
     background: var(--pitch-deep); border-color: var(--pitch-deep); color: #fff;
   }
-  .c .bc[aria-pressed="true"] .ds { color: rgba(255,255,255,0.85); }
-  .c .bc[aria-pressed="true"] .rar { color: #fff; }
-  .c .bc:hover { transform: none; }
-  .confirm {
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px;
+  .d .bc[aria-pressed="true"] .ds { color: rgba(255,255,255,0.85); }
+  .d .bc[aria-pressed="true"] .rar { color: #fff; }
+  .d .bc .tick { display: none; }
+  .d .bc[aria-pressed="true"] .tick {
+    display: inline; float: right; font-family: var(--mono); font-size: 11px;
   }
   .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; margin-top: 11px;
     font-family: var(--disp); font-weight: 800; font-size: 13px;
     text-transform: uppercase; letter-spacing: 0.04em;
     border-radius: 5px; border: 1px solid var(--pitch-deep);
@@ -238,40 +280,22 @@
   }
   .btn:hover { background: var(--pitch-hover); }
   .btn:focus-visible { outline: 2px solid var(--pitch); outline-offset: 2px; }
-  .confirm .hint { font-family: var(--mono); font-size: 11px; color: var(--muted); }
 
-  /* ---- D: the rarity cap, and a corner arrow ------------------------------- */
-  .d .bc {
-    border-top-width: 1px; border-top-color: var(--line);
-    padding: 0; gap: 0; position: relative; overflow: hidden;
+  /* the re-roll, shown so the tone question can actually be judged */
+  .reroll {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-top: 11px; border-top: 1px solid var(--line); padding-top: 11px;
   }
-  .d .bc .cap2 {
-    display: block; background: var(--rar-fill); color: var(--rar-cap-ink);
-    font-family: var(--mono); font-size: 9px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.14em;
-    padding: 4px 12px;
+  .reroll .rb {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: var(--disp); font-weight: 800; font-size: 13px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    border-radius: 5px; border: 1px solid var(--ink);
+    background: var(--panel); color: var(--ink);
+    padding: 12px 20px; cursor: pointer;
   }
-  .d .bc .body { display: flex; flex-direction: column; gap: 6px; padding: 12px; }
-  .d .bc .corner {
-    position: absolute; right: 10px; top: 28px;
-    color: var(--muted); transition: transform 0.15s, color 0.15s;
-  }
-  .d .bc:hover .corner { transform: translateX(3px); color: var(--pitch-ink); }
-  .d .leg { --rar-fill: var(--rar-leg-foil); }
-  .d .rare { --rar-fill: var(--rar-rare); }
-  /* The bright green carries neither white (4.00) nor the foil ink (3.47), so the
-     common cap deepens to the fixed #0e5c34 and reverses white out at 8.08. */
-  .d .com { --rar-fill: #0e5c34; }
-  .d .com .cap2 { color: #fff; }
-
-  /* ---- E: it fills green --------------------------------------------------- */
-  .e .bc:hover, .e .bc:focus-visible {
-    background: var(--pitch-deep); border-color: var(--pitch-deep); color: #fff;
-    transform: translateY(-2px);
-  }
-  .e .bc:hover .ds, .e .bc:focus-visible .ds { color: rgba(255,255,255,0.85); }
-  .e .bc:hover .rar, .e .bc:focus-visible .rar { color: #fff; }
-  .e .bc:active { transform: translateY(0); }
+  .reroll .rb:hover { border-color: var(--pitch); color: var(--pitch-ink); }
+  .reroll .rh { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
 
   /* ---- tables -------------------------------------------------------------- */
   .tw { overflow-x: auto; margin: 14px 0 8px; }
@@ -293,6 +317,9 @@
   ul { margin: 0 0 12px; padding-left: 20px; max-width: 68ch; }
   li { margin-bottom: 7px; }
 
+  .rejected { border-top: 1px solid var(--hair); padding-top: 10px; margin-top: 12px; }
+  .rejected p { font-size: 14px; }
+
   .foot-note {
     margin-top: 44px; padding-top: 14px; border-top: 2px solid var(--line);
     font-family: var(--mono); font-size: 11px; color: var(--dim); max-width: 74ch;
@@ -300,8 +327,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     * { transition: none; }
-    .bc:hover, .a .bc:hover, .a .bc:active, .e .bc:hover,
-    .b .bc:hover .foot .arw, .d .bc:hover .corner { transform: none; }
+    .bc:hover { transform: none; }
   }
 </style>
 
@@ -309,71 +335,42 @@
 
   <div class="top">
     <div>
-      <span class="cap">Cup Run &middot; the boost stop</span>
+      <span class="cap">Cup Run &middot; the boost stop &middot; second pass</span>
       <h1>Pressable Boost Cards</h1>
-      <p class="lede">The three boosts you choose between are already buttons. Nothing about
-      them says so, and on a phone nothing about them ever will. Five ways to fix that,
-      drawn on one real offer.</p>
+      <p class="lede">The card cannot be the button. Four ways to put a real one in front
+      of the player, each drawn at phone width first, because that is where the problem
+      actually is.</p>
     </div>
     <button class="themebtn" id="tb" type="button">Theme</button>
   </div>
 
   <h2>What ships today</h2>
 
-  <p>This is the offer exactly as the game draws it: the first boost of a run, through the
-  group, Brazil 2002 drawn in the Round of 16. Hover it, tap it, and note how little
-  happens.</p>
+  <p>The first boost of a run, through the group, Brazil 2002 drawn in the Round of 16.
+  Read the phone frame on the left and ignore the mouse: three stacked panels, each with a
+  faint label, a title and a line of grey text. There is nothing in that shape a thumb
+  would recognise.</p>
 
-  <div class="stage">
-    <div class="offerhead">
-      <span class="lbl">Pick a boost</span>
-      <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span>
+  <div class="stages">
+    <div class="stage phone">
+      <span class="stagecap">Phone, one card wide</span>
+      <div class="offerhead">
+        <span class="lbl">Pick a boost</span>
+      </div>
+      <div class="cards">
+        <button class="bc com" type="button"><span class="rar">Common</span>
+          <span class="nm">Veteran Core</span>
+          <span class="ds">+3 to your three lowest-rated players.</span></button>
+        <button class="bc rare" type="button"><span class="rar">Rare</span>
+          <span class="nm">Catenaccio</span>
+          <span class="ds">+4 to your defence, -2 to your attack.</span></button>
+        <button class="bc leg" type="button"><span class="rar">Legendary</span>
+          <span class="nm">Galacticos</span>
+          <span class="ds">+6 to your three best players.</span></button>
+      </div>
     </div>
-    <div class="cards">
-      <button class="bc com" type="button">
-        <span class="rar">Common</span>
-        <span class="nm">Veteran Core</span>
-        <span class="ds">+3 to your three lowest-rated players.</span>
-      </button>
-      <button class="bc rare" type="button">
-        <span class="rar">Rare</span>
-        <span class="nm">Catenaccio</span>
-        <span class="ds">+4 to your defence, -2 to your attack.</span>
-      </button>
-      <button class="bc leg" type="button">
-        <span class="rar">Legendary</span>
-        <span class="nm">Galacticos</span>
-        <span class="ds">+6 to your three best players.</span>
-      </button>
-    </div>
-  </div>
-
-  <div class="callout">
-    <span class="ct">The finding: every signal it is pressable is a hover signal</span>
-    <p>At rest a boost card is <code>CARD_FLAT</code>, which is the app's <b>shadowless</b>
-    card: the one the modal sheets use, and the one a panel nested inside another card uses.
-    So the thing you are meant to tap is dressed in the app's own idiom for a passive
-    surface, on a screen where every real card carries the hard shadow.</p>
-    <p>The two things that do say "control" are a 2px lift and the border turning green, and
-    <b>both fire on hover only</b>. There is no hover on a phone. So on touch, which is
-    where most of a Cup Run gets played, the boost stop offers three passive-looking panels
-    and no affordance whatsoever. Whatever else is chosen below, the fix has to be visible
-    at rest.</p>
-  </div>
-
-  <h2>Five options</h2>
-
-  <p>Each is drawn on the same offer, live, so it can be hovered and pressed rather than
-  read about. They are lettered for reference, not ranked; the chips say where each one
-  landed.</p>
-
-  <div class="opt a">
-    <div class="opthead">
-      <span class="letter">A</span>
-      <span class="optname">It is raised, and pressing it presses it down</span>
-      <span class="verdict pick">Recommended</span>
-    </div>
-    <div class="stage">
+    <div class="stage wide">
+      <span class="stagecap">Desktop, three across</span>
       <div class="offerhead"><span class="lbl">Pick a boost</span>
         <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
       <div class="cards">
@@ -388,21 +385,112 @@
           <span class="ds">+6 to your three best players.</span></button>
       </div>
     </div>
+  </div>
+
+  <div class="callout">
+    <span class="ct">The premise, corrected: dressing the card up cannot work</span>
+    <p>The first pass tried a hard shadow, a chalk foot and a filled rarity cap. <b>The
+    shadow one was the worst idea of the three</b>, and for a reason worth writing down: the
+    hard shadow is this game's signature for a <em>card</em>. It is on the standings, the
+    XI sheet, the perk tiles, the trophy shelf, every panel in the app. Putting it on the
+    boost cards makes them look more like all the other cards, not less. It would have made
+    the problem worse while looking like progress.</p>
+    <p>The general form is the point: <b>a full-width panel with a heading and a line of
+    grey text is what content looks like in this app</b>, and on a phone that is exactly
+    the shape the offer takes. No border, shadow, cap or hover state turns that shape into
+    something a thumb reads as pressable. So the affordance cannot be a treatment applied
+    to the card. It has to be an object that is a button, sitting where the eye already
+    ends up.</p>
+  </div>
+
+  <div class="callout ok">
+    <span class="ct">And the objection that ruled green out was wrong</span>
+    <p>The first pass rejected a green fill on the grounds that it is the primary button
+    and the screen already has one. <b>It does not.</b> The picker and the screen's primary
+    button are mutually exclusive: the group screen shows the picker <em>or</em> a Continue
+    button, and in a run the picker is the boost phase while "Play the round" belongs to
+    the phase after it. When the offer is on screen the only other control is the re-roll,
+    which is the quiet tone. So the green is free here, and it is drawn in the stages below
+    with the re-roll underneath so the pair can be judged together.</p>
+  </div>
+
+  <h2>Four options, all of which contain a real button</h2>
+
+  <div class="opt a">
+    <div class="opthead">
+      <span class="letter">A</span>
+      <span class="optname">Every card ends in a green button</span>
+      <span class="verdict pick">Recommended</span>
+    </div>
+    <div class="stages">
+      <div class="stage phone">
+        <span class="stagecap">Phone, one card wide</span>
+        <div class="offerhead"><span class="lbl">Pick a boost</span></div>
+        <div class="cards">
+          <button class="bc com" type="button">
+            <span class="body"><span class="rar">Common</span>
+              <span class="nm">Veteran Core</span>
+              <span class="ds">+3 to your three lowest-rated players.</span></span>
+            <span class="bar" aria-hidden="true">Take it</span></button>
+          <button class="bc rare" type="button">
+            <span class="body"><span class="rar">Rare</span>
+              <span class="nm">Catenaccio</span>
+              <span class="ds">+4 to your defence, -2 to your attack.</span></span>
+            <span class="bar" aria-hidden="true">Take it</span></button>
+          <button class="bc leg" type="button">
+            <span class="body"><span class="rar">Legendary</span>
+              <span class="nm">Galacticos</span>
+              <span class="ds">+6 to your three best players.</span></span>
+            <span class="bar" aria-hidden="true">Take it</span></button>
+        </div>
+        <div class="reroll">
+          <span class="rb">Re-roll these boosts</span>
+          <span class="rh">1 re-roll left this run</span>
+        </div>
+      </div>
+      <div class="stage wide">
+        <span class="stagecap">Desktop, three across</span>
+        <div class="offerhead"><span class="lbl">Pick a boost</span>
+          <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
+        <div class="cards">
+          <button class="bc com" type="button">
+            <span class="body"><span class="rar">Common</span>
+              <span class="nm">Veteran Core</span>
+              <span class="ds">+3 to your three lowest-rated players.</span></span>
+            <span class="bar" aria-hidden="true">Take it</span></button>
+          <button class="bc rare" type="button">
+            <span class="body"><span class="rar">Rare</span>
+              <span class="nm">Catenaccio</span>
+              <span class="ds">+4 to your defence, -2 to your attack.</span></span>
+            <span class="bar" aria-hidden="true">Take it</span></button>
+          <button class="bc leg" type="button">
+            <span class="body"><span class="rar">Legendary</span>
+              <span class="nm">Galacticos</span>
+              <span class="ds">+6 to your three best players.</span></span>
+            <span class="bar" aria-hidden="true">Take it</span></button>
+        </div>
+        <div class="reroll">
+          <span class="rb">Re-roll these boosts</span>
+          <span class="rh">1 re-roll left this run</span>
+        </div>
+      </div>
+    </div>
     <div class="note">
       <div>
         <h4>What it buys</h4>
-        <p>One token: <code>CARD_FLAT</code> becomes <code>CARD_SM</code>, the 4px hard
-        shadow the trophy cabinet already uses for cards stacked many to a page. It rests
-        raised, so the affordance is there before anybody touches anything. Hover lifts it
-        to the full 6px shadow and pressing drops it flat, moving the card into the space
-        its own shadow was in. That press is the app's own material behaving like a button,
-        and it introduces no new look at all.</p>
+        <p>On the phone the answer to "where do I tap" is now the only green thing on the
+        screen, three times, and it measures <b>46px tall</b>, so it clears the 44px tap
+        target a thumb needs without anything having to grow for it. It is
+        <code>btn('primary')</code> exactly as the rest of the app writes it, so it is not a
+        new design, it is the app's one button turning up where a button was missing. The
+        description keeps its own space above the bar and goes on doing its job.</p>
       </div>
       <div>
         <h4>What it costs</h4>
-        <p>Three hard shadows in a row is the loudest the boost stop has ever been, and the
-        shadow is pitch-dark green, so the row reads greener than it did. Nothing else: no
-        new element, no new copy, no extra height, and the rarity strip is untouched.</p>
+        <p>About 45px a card, which on the phone is the whole offer growing by half a
+        screen. Three primary buttons at once is also a first for this app. And it is the
+        loudest of the four: the boost stop becomes the greenest screen in the game, which
+        is arguably right for the most consequential choice in a run.</p>
       </div>
     </div>
   </div>
@@ -410,46 +498,76 @@
   <div class="opt b">
     <div class="opthead">
       <span class="letter">B</span>
-      <span class="optname">The card gets a foot</span>
-      <span class="verdict">Strong second</span>
+      <span class="optname">The same, in the quiet tone</span>
+      <span class="verdict">Loses to the re-roll</span>
     </div>
-    <div class="stage">
-      <div class="offerhead"><span class="lbl">Pick a boost</span>
-        <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
-      <div class="cards">
-        <button class="bc com" type="button">
-          <span class="body"><span class="rar">Common</span>
-            <span class="nm">Veteran Core</span>
-            <span class="ds">+3 to your three lowest-rated players.</span></span>
-          <span class="foot">Take this boost <span class="arw">&rarr;</span></span></button>
-        <button class="bc rare" type="button">
-          <span class="body"><span class="rar">Rare</span>
-            <span class="nm">Catenaccio</span>
-            <span class="ds">+4 to your defence, -2 to your attack.</span></span>
-          <span class="foot">Take this boost <span class="arw">&rarr;</span></span></button>
-        <button class="bc leg" type="button">
-          <span class="body"><span class="rar">Legendary</span>
-            <span class="nm">Galacticos</span>
-            <span class="ds">+6 to your three best players.</span></span>
-          <span class="foot">Take this boost <span class="arw">&rarr;</span></span></button>
+    <div class="stages">
+      <div class="stage phone">
+        <span class="stagecap">Phone, one card wide</span>
+        <div class="offerhead"><span class="lbl">Pick a boost</span></div>
+        <div class="cards">
+          <button class="bc com" type="button">
+            <span class="body"><span class="rar">Common</span>
+              <span class="nm">Veteran Core</span>
+              <span class="ds">+3 to your three lowest-rated players.</span></span>
+            <span class="bar quiet" aria-hidden="true">Take it</span></button>
+          <button class="bc rare" type="button">
+            <span class="body"><span class="rar">Rare</span>
+              <span class="nm">Catenaccio</span>
+              <span class="ds">+4 to your defence, -2 to your attack.</span></span>
+            <span class="bar quiet" aria-hidden="true">Take it</span></button>
+          <button class="bc leg" type="button">
+            <span class="body"><span class="rar">Legendary</span>
+              <span class="nm">Galacticos</span>
+              <span class="ds">+6 to your three best players.</span></span>
+            <span class="bar quiet" aria-hidden="true">Take it</span></button>
+        </div>
+        <div class="reroll">
+          <span class="rb">Re-roll these boosts</span>
+          <span class="rh">1 re-roll left this run</span>
+        </div>
+      </div>
+      <div class="stage wide">
+        <span class="stagecap">Desktop, three across</span>
+        <div class="offerhead"><span class="lbl">Pick a boost</span>
+          <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
+        <div class="cards">
+          <button class="bc com" type="button">
+            <span class="body"><span class="rar">Common</span>
+              <span class="nm">Veteran Core</span>
+              <span class="ds">+3 to your three lowest-rated players.</span></span>
+            <span class="bar quiet" aria-hidden="true">Take it</span></button>
+          <button class="bc rare" type="button">
+            <span class="body"><span class="rar">Rare</span>
+              <span class="nm">Catenaccio</span>
+              <span class="ds">+4 to your defence, -2 to your attack.</span></span>
+            <span class="bar quiet" aria-hidden="true">Take it</span></button>
+          <button class="bc leg" type="button">
+            <span class="body"><span class="rar">Legendary</span>
+              <span class="nm">Galacticos</span>
+              <span class="ds">+6 to your three best players.</span></span>
+            <span class="bar quiet" aria-hidden="true">Take it</span></button>
+        </div>
+        <div class="reroll">
+          <span class="rb">Re-roll these boosts</span>
+          <span class="rh">1 re-roll left this run</span>
+        </div>
       </div>
     </div>
     <div class="note">
       <div>
         <h4>What it buys</h4>
-        <p>The card stays a card and the foot is the button, which settles the tension
-        rather than arguing with it: the description goes on describing, and a named action
-        in a chalk strip says what tapping does. The pattern already exists in the app,
-        which is the argument for it. <code>CardDisclosure</code> is a chalk footer set in
-        the mono caption that turns green on hover, so this is a shape the player has met
-        elsewhere.</p>
+        <p>Still unmistakably a button on a phone, and it spends no green, so the offer
+        stays as quiet as the rest of the screen. Same height as A, same structure, one
+        token different.</p>
       </div>
       <div>
         <h4>What it costs</h4>
-        <p>About 28px per card, on a screen a phone already scrolls. And it says the same
-        thing three times: three feet reading "Take this boost" is a lot of chrome for a row
-        whose whole job is to be three choices. Best read as A's understudy rather than as
-        something to run alongside it.</p>
+        <p>Look at the re-roll underneath: <b>the three choices now look exactly like the
+        utility button below them.</b> The quiet tone is what Back, Cancel and Refresh
+        wear, so this says the three most important controls on the screen are secondary
+        to nothing. That is the argument for A over B, and it is a real one rather than a
+        matter of taste.</p>
       </div>
     </div>
   </div>
@@ -457,45 +575,73 @@
   <div class="opt c">
     <div class="opthead">
       <span class="letter">C</span>
-      <span class="optname">Pick, then confirm</span>
-      <span class="verdict">Costs a tap</span>
+      <span class="optname">The button is the card's bottom edge</span>
+      <span class="verdict">Strong second</span>
     </div>
-    <div class="stage">
-      <div class="offerhead"><span class="lbl">Pick a boost</span>
-        <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
-      <div class="cards" id="csel">
-        <button class="bc com" type="button" aria-pressed="false" data-nm="Veteran Core">
-          <span class="rar">Common</span><span class="nm">Veteran Core</span>
-          <span class="ds">+3 to your three lowest-rated players.</span></button>
-        <button class="bc rare" type="button" aria-pressed="true" data-nm="Catenaccio">
-          <span class="rar">Rare</span><span class="nm">Catenaccio</span>
-          <span class="ds">+4 to your defence, -2 to your attack.</span></button>
-        <button class="bc leg" type="button" aria-pressed="false" data-nm="Galacticos">
-          <span class="rar">Legendary</span><span class="nm">Galacticos</span>
-          <span class="ds">+6 to your three best players.</span></button>
+    <div class="stages">
+      <div class="stage phone">
+        <span class="stagecap">Phone, one card wide</span>
+        <div class="offerhead"><span class="lbl">Pick a boost</span></div>
+        <div class="cards">
+          <button class="bc com" type="button"><span class="cap2">Common</span>
+            <span class="body"><span class="nm">Veteran Core</span>
+              <span class="ds">+3 to your three lowest-rated players.</span></span>
+            <span class="bar" aria-hidden="true">Take it</span></button>
+          <button class="bc rare" type="button"><span class="cap2">Rare</span>
+            <span class="body"><span class="nm">Catenaccio</span>
+              <span class="ds">+4 to your defence, -2 to your attack.</span></span>
+            <span class="bar" aria-hidden="true">Take it</span></button>
+          <button class="bc leg" type="button"><span class="cap2">Legendary</span>
+            <span class="body"><span class="nm">Galacticos</span>
+              <span class="ds">+6 to your three best players.</span></span>
+            <span class="bar" aria-hidden="true">Take it</span></button>
+        </div>
+        <div class="reroll">
+          <span class="rb">Re-roll these boosts</span>
+          <span class="rh">1 re-roll left this run</span>
+        </div>
       </div>
-      <div class="confirm">
-        <button class="btn" id="cbtn" type="button">Take Catenaccio</button>
-        <span class="hint">A boost cannot be given back</span>
+      <div class="stage wide">
+        <span class="stagecap">Desktop, three across</span>
+        <div class="offerhead"><span class="lbl">Pick a boost</span>
+          <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
+        <div class="cards">
+          <button class="bc com" type="button"><span class="cap2">Common</span>
+            <span class="body"><span class="nm">Veteran Core</span>
+              <span class="ds">+3 to your three lowest-rated players.</span></span>
+            <span class="bar" aria-hidden="true">Take it</span></button>
+          <button class="bc rare" type="button"><span class="cap2">Rare</span>
+            <span class="body"><span class="nm">Catenaccio</span>
+              <span class="ds">+4 to your defence, -2 to your attack.</span></span>
+            <span class="bar" aria-hidden="true">Take it</span></button>
+          <button class="bc leg" type="button"><span class="cap2">Legendary</span>
+            <span class="body"><span class="nm">Galacticos</span>
+              <span class="ds">+6 to your three best players.</span></span>
+            <span class="bar" aria-hidden="true">Take it</span></button>
+        </div>
+        <div class="reroll">
+          <span class="rb">Re-roll these boosts</span>
+          <span class="rh">1 re-roll left this run</span>
+        </div>
       </div>
     </div>
     <div class="note">
       <div>
         <h4>What it buys</h4>
-        <p>It ends the argument instead of settling it. The three become a selector, which
-        the house rules already hold apart from the button system ("selectors are not
-        buttons and keep their own shapes"), and the chosen one fills
-        <code>pitch-dark</code>, the one green every chosen cell in the app uses. Then a
-        real <code>btn('primary')</code> does the pressing. It also makes an irreversible
-        pick deliberate, which this screen arguably wants: a mis-tap currently spends the
-        whole round's choice with no way back.</p>
+        <p>The card and its button are one object rather than a button parked inside a
+        panel, and the card is bracketed by the two things that matter: the rarity across
+        the top, the action across the bottom. It is the most solid of the four on a phone,
+        because the green runs the full width of the card with no paper either side of it.
+        The gold cap is the sticker album's own foil, so the top rarity finally looks like
+        the top tier, and it fixes the contrast miss below on the way past.</p>
       </div>
       <div>
         <h4>What it costs</h4>
-        <p>A tap, at every one of up to five stops in a run, on the screen's main action.
-        Plus a row of height for the button. It is the only option that changes what
-        choosing <em>is</em> rather than how it looks, so it is a gameplay decision as much
-        as a visual one.</p>
+        <p>It is the biggest change to the card's construction here, and the card loses its
+        6px bottom corners to the bar unless the bar is clipped to them. The common rarity
+        cap also has to deepen to the dark green, which is the one figure in it that is not
+        free (see below), so the ramp's bright green stops appearing on these cards at
+        all.</p>
       </div>
     </div>
   </div>
@@ -503,92 +649,83 @@
   <div class="opt d">
     <div class="opthead">
       <span class="letter">D</span>
-      <span class="optname">The rarity becomes a cap, and a corner arrow points out</span>
-      <span class="verdict">Pairs with A</span>
+      <span class="optname">Three choices, one button</span>
+      <span class="verdict">Costs a tap</span>
     </div>
-    <div class="stage">
-      <div class="offerhead"><span class="lbl">Pick a boost</span>
-        <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
-      <div class="cards">
-        <button class="bc com" type="button"><span class="cap2">Common</span>
-          <span class="corner" aria-hidden="true">&rarr;</span>
-          <span class="body"><span class="nm">Veteran Core</span>
-            <span class="ds">+3 to your three lowest-rated players.</span></span></button>
-        <button class="bc rare" type="button"><span class="cap2">Rare</span>
-          <span class="corner" aria-hidden="true">&rarr;</span>
-          <span class="body"><span class="nm">Catenaccio</span>
-            <span class="ds">+4 to your defence, -2 to your attack.</span></span></button>
-        <button class="bc leg" type="button"><span class="cap2">Legendary</span>
-          <span class="corner" aria-hidden="true">&rarr;</span>
-          <span class="body"><span class="nm">Galacticos</span>
-            <span class="ds">+6 to your three best players.</span></span></button>
+    <div class="stages">
+      <div class="stage phone">
+        <span class="stagecap">Phone, one card wide &middot; tap a card</span>
+        <div class="offerhead"><span class="lbl">Pick a boost</span></div>
+        <div class="cards sel">
+          <button class="bc com" type="button" aria-pressed="false" data-nm="Veteran Core">
+            <span class="rar">Common <span class="tick">Chosen</span></span>
+            <span class="nm">Veteran Core</span>
+            <span class="ds">+3 to your three lowest-rated players.</span></button>
+          <button class="bc rare" type="button" aria-pressed="true" data-nm="Catenaccio">
+            <span class="rar">Rare <span class="tick">Chosen</span></span>
+            <span class="nm">Catenaccio</span>
+            <span class="ds">+4 to your defence, -2 to your attack.</span></button>
+          <button class="bc leg" type="button" aria-pressed="false" data-nm="Galacticos">
+            <span class="rar">Legendary <span class="tick">Chosen</span></span>
+            <span class="nm">Galacticos</span>
+            <span class="ds">+6 to your three best players.</span></button>
+        </div>
+        <button class="btn take" type="button">Take Catenaccio</button>
+        <div class="reroll">
+          <span class="rb">Re-roll these boosts</span>
+          <span class="rh">1 re-roll left this run</span>
+        </div>
+      </div>
+      <div class="stage wide">
+        <span class="stagecap">Desktop, three across &middot; tap a card</span>
+        <div class="offerhead"><span class="lbl">Pick a boost</span>
+          <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
+        <div class="cards sel">
+          <button class="bc com" type="button" aria-pressed="false" data-nm="Veteran Core">
+            <span class="rar">Common <span class="tick">Chosen</span></span>
+            <span class="nm">Veteran Core</span>
+            <span class="ds">+3 to your three lowest-rated players.</span></button>
+          <button class="bc rare" type="button" aria-pressed="true" data-nm="Catenaccio">
+            <span class="rar">Rare <span class="tick">Chosen</span></span>
+            <span class="nm">Catenaccio</span>
+            <span class="ds">+4 to your defence, -2 to your attack.</span></button>
+          <button class="bc leg" type="button" aria-pressed="false" data-nm="Galacticos">
+            <span class="rar">Legendary <span class="tick">Chosen</span></span>
+            <span class="nm">Galacticos</span>
+            <span class="ds">+6 to your three best players.</span></button>
+        </div>
+        <button class="btn take" type="button">Take Catenaccio</button>
+        <div class="reroll">
+          <span class="rb">Re-roll these boosts</span>
+          <span class="rh">1 re-roll left this run</span>
+        </div>
       </div>
     </div>
     <div class="note">
       <div>
         <h4>What it buys</h4>
-        <p>The 3px rarity line becomes a filled band with the rarity reversed out of it, and
-        a small arrow sits in the corner. It is the cheapest visual change on this page and
-        the only one that <b>fixes a live contrast miss on the way past</b>: the rarity word
-        currently fails AA in both themes, and reversing it out of the fill clears it. See
-        the measurements below. The gold band is the sticker album's own foil, so the top
-        rarity finally looks like the top tier.</p>
+        <p>The most conventional mobile shape there is: a list, then one button. It adds the
+        least height of the four (one bar instead of three), the button names what it will
+        take so it can never be pressed blind, and the cards become a selector, which the
+        house rules already hold apart from the button system. It also makes an
+        irreversible pick deliberate: a mis-tap on the current screen spends the whole
+        round's choice with no way back.</p>
       </div>
       <div>
         <h4>What it costs</h4>
-        <p>On its own it is the weakest affordance here: a cap and an arrow are still a flat
-        surface, and the arrow is decoration until something moves. It is a card that looks
-        more deliberate rather than a card that looks pressable, which is why it belongs on
-        top of A rather than instead of it.</p>
+        <p>A tap, at every one of up to five stops in a run. And on a phone the button can
+        be off the bottom of the screen while you are reading the third card, so choosing
+        and confirming happen in two different places. It is the only option that changes
+        what choosing <em>is</em> rather than how it looks.</p>
       </div>
     </div>
   </div>
 
-  <div class="opt e">
-    <div class="opthead">
-      <span class="letter">E</span>
-      <span class="optname">It fills green</span>
-      <span class="verdict no">Not recommended</span>
-    </div>
-    <div class="stage">
-      <div class="offerhead"><span class="lbl">Pick a boost</span>
-        <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
-      <div class="cards">
-        <button class="bc com" type="button"><span class="rar">Common</span>
-          <span class="nm">Veteran Core</span>
-          <span class="ds">+3 to your three lowest-rated players.</span></button>
-        <button class="bc rare" type="button"><span class="rar">Rare</span>
-          <span class="nm">Catenaccio</span>
-          <span class="ds">+4 to your defence, -2 to your attack.</span></button>
-        <button class="bc leg" type="button"><span class="rar">Legendary</span>
-          <span class="nm">Galacticos</span>
-          <span class="ds">+6 to your three best players.</span></button>
-      </div>
-    </div>
-    <div class="note">
-      <div>
-        <h4>What it buys</h4>
-        <p>Unmissable. The whole card becomes the primary button's own fill, with a white
-        label and the description at 6.36 against it. Nobody could look at this row and
-        wonder what to do.</p>
-      </div>
-      <div>
-        <h4>What it costs</h4>
-        <p>It is the primary button, three times, on a screen that also has one. The app has
-        exactly one solid green fill and it means "this is the action here"; spending it on
-        each of three alternatives says all three are. It is also still hover-driven, so it
-        does nothing at all on a phone. Drawn here so the ceiling is visible, not as a
-        candidate.</p>
-      </div>
-    </div>
-  </div>
+  <h2>The contrast miss, which is independent of all four</h2>
 
-  <h2>A second finding, on the same element</h2>
-
-  <p>While measuring the cards: <b>the rarity word misses AA in both themes as shipped.</b>
-  It is set at 9px bold in the rarity accent, and those three hexes are surface colours
-  borrowed from the sticker tier ramp, deliberately fixed rather than theme-swapped.
-  Computed against the panel they sit on:</p>
+  <p>Found while measuring: <b>the rarity word misses AA in both themes as shipped.</b> It
+  is set at 9px bold in the rarity accent, and those three hexes are surface colours
+  borrowed from the sticker tier ramp. Against the panel they sit on:</p>
 
   <div class="tw">
     <table>
@@ -606,67 +743,77 @@
     </table>
   </div>
 
-  <p>The relaxed 3:1 does not apply: that is for text at 18.66px bold or larger, and this is
-  9px. So two of the three are badly under on paper and the common green is under in both
-  themes.</p>
+  <p>The relaxed 3:1 does not apply: that is for text at 18.66px bold or larger, and this
+  is 9px. So two of the three are badly under on paper and the common green is under in
+  both themes.</p>
 
   <div class="callout ok">
     <span class="ct">There is already a precedent for the fix, twice over</span>
     <p><code>--color-amber-ink</code> and <code>--color-pitch-ink</code> exist because amber
     and green <em>as text</em> are separate values from amber and green <em>as a
-    surface</em>. This is exactly that case: the 3px strip is a surface and keeps the
+    surface</em>. This is that case exactly: the 3px strip is a surface and keeps the
     accent, while the word needs the ink. Rare takes <code>amber-ink</code> at <b>5.92</b>
-    on panel, common takes <code>pitch-ink</code> at <b>8.08</b>. Legendary has no gold ink
-    token yet; <code>#7d5f10</code> measures <b>5.97</b> on panel, <b>5.14</b> on chalk and
-    <b>5.33</b> on ground, so one new token clears all three light surfaces.</p>
-    <p>Or take option D and it needs no new token, but it does need one deliberate change to
-    the ramp. The existing foil ink <code>#3a2a06</code> reversed out of the gold band
-    measures <b>5.40</b> against the dark end of the foil and <b>5.58</b> out of the amber
-    band. The bright common green carries neither that ink (3.47) nor white (4.00), so the
-    common cap has to deepen to <code>#0e5c34</code>, where white reads <b>8.08</b>. That is
-    the one figure in option D that is not free, and it is the reason the green cap in the
-    specimen above is darker than the strip it replaces.</p>
+    on panel, common takes <code>pitch-ink</code> at <b>8.08</b>, and legendary needs one
+    new gold ink value: <code>#7d5f10</code> measures <b>5.97</b> on panel, <b>5.14</b> on
+    chalk and <b>5.33</b> on ground.</p>
+    <p>Option C avoids the new token by reversing the word out of a filled cap instead. The
+    existing foil ink <code>#3a2a06</code> reads <b>5.40</b> against the dark end of the
+    gold foil and <b>5.58</b> out of the amber band. The bright common green carries
+    neither that ink (3.47) nor white (4.00), so that one cap has to deepen to
+    <code>#0e5c34</code>, where white reads <b>8.08</b>.</p>
   </div>
 
-  <h2>What any of these has to respect</h2>
+  <h2>Three things every option here gets right on purpose</h2>
 
   <ul>
-    <li><b>The description stays.</b> "No descriptions inside a button" is a house rule and
-    the boost offer is its one written exception, because here the description <em>is</em>
-    the choice. Any option that shortens a card to a label is out before it is drawn.</li>
-    <li><b>There is no fourth button design.</b> <code>btn(tone, size)</code> is the whole
-    system and the three tones are a stated ceiling. Every option above either reuses
-    something that already exists (the hard shadow, the chalk foot, the chosen-cell green)
-    or is a selector, which the rules already hold apart from buttons.</li>
-    <li><b>The class sweep will fail a display-face label in a padded box.</b>
-    <code>npm run checks</code> reads every class-list string in <code>src/</code> and fails
-    on the app's button voice, <code>font-display</code> plus <code>uppercase</code>, inside
-    a box with its own padding, and on any <code>!</code> override. So a "TAKE THIS" set in
-    Archivo inside the card is a build failure. The mono caption is uppercase mono and is
-    fine, which is what B's foot uses.</li>
-    <li><b>The resting state carries the affordance, never the motion.</b> Every transform
-    here is gated on <code>prefers-reduced-motion</code>, so the press and the arrow slide
-    can go away entirely. A raised card at rest and a filled cap at rest both survive that;
-    a hover lift does not, which is the same reason the phone matters.</li>
-    <li><b>Focus has to be visible.</b> The shipped card sets no focus style at all, so
-    keyboard focus currently lands on it invisibly. Every specimen above has a green outline
-    offset 2px; tab through this page to see it.</li>
+    <li><b>The bar is not a nested button.</b> The card stays the single control and the
+    bar is a <code>&lt;span&gt;</code> wearing <code>btn()</code>, marked
+    <code>aria-hidden</code>. A button inside a button is invalid HTML and undefined for
+    keyboard and assistive technology, which this app has already been bitten by once: it
+    is why <code>PlayerBadge</code> owns its own gesture rather than being wrapped. The
+    happy side effect is that on a phone the hit area stays the entire card rather than
+    shrinking to the bar, so the button is a signpost and the whole card is the target.</li>
+    <li><b>It is <code>btn()</code>, so the class sweep is satisfied rather than dodged.</b>
+    The first pass warned that <code>npm run checks</code> fails on the app's button voice
+    inside a padded box. That is aimed at a <em>hand-written</em> button; a bar composed
+    from the shared constant is exactly what the sweep exists to encourage, and it does not
+    read composed strings.</li>
+    <li><b>Nothing here depends on hover or on motion.</b> Every option is complete in its
+    resting state, which was the whole failure of the first pass. Tab through this page as
+    well: the shipped card has no focus style at all, so keyboard focus currently lands on
+    it invisibly, and every specimen above has a green outline offset 2px.</li>
   </ul>
 
   <h3>What it would touch</h3>
-  <p><code>src/components/cupRun/BoostOffer.tsx</code> for all five.
+  <p><code>src/components/cupRun/BoostOffer.tsx</code> for all four.
   <code>src/components/cupRun/types.ts</code> if the rarity ink is split from the rarity
-  accent. <code>src/index.css</code> only if a gold ink token is added.
+  accent. <code>src/index.css</code> only if the gold ink token is added.
   <code>scripts/checks/ui.ts</code> if the rarity contrast joins the tone sweep it already
-  runs, which is where it belongs: that sweep computes every button tone from the real
-  tokens and fails under 4.5, and it does not read this element today.</p>
+  runs, which computes every button tone from the real tokens and fails under 4.5 but does
+  not read this element today.</p>
+
+  <div class="rejected">
+    <h3>What the first pass drew, and why it is not here</h3>
+    <p>Kept as a negative result rather than deleted. <b>The card raised on the hard
+    shadow</b>, which was recommended and was the worst of them: the hard shadow is the
+    app's card signature, so it made the boost cards look more like every other card.
+    <b>A chalk foot with the action in the mono caption</b>, which is a button-shaped hole
+    rather than a button, and on a phone reads as a table row. <b>The rarity strip as a
+    filled cap with a corner arrow</b>, which survives as half of option C but was never an
+    affordance on its own. <b>The card filling green on hover</b>, rejected then for
+    colliding with a primary button that turns out not to be on the screen, and rejected now
+    for the reason that actually matters: it is a hover state, so on a phone it does
+    nothing at all.</p>
+  </div>
 
   <div class="foot-note">
-    Drawn 2026-09-09. Nothing here is built. The offer is real (Veteran Core, Catenaccio and
-    Galacticos, with their shipped descriptions); every contrast figure is computed from
-    src/index.css and src/components/stickerTheme.ts at the sizes BoostOffer.tsx renders.
-    Companion to boost-odds-mock.html, which draws the same three cards for a different
-    question.
+    Second pass, 2026-09-09, after the first was rejected on the phone. Nothing here is
+    built. The offer is real (Veteran Core, Catenaccio and Galacticos, with their shipped
+    descriptions) and the re-roll below each stage is the real Physio Table control, drawn
+    so the tone question in option B can be judged rather than argued. Every contrast
+    figure is computed from src/index.css and src/components/stickerTheme.ts at the sizes
+    BoostOffer.tsx renders. Companion to boost-odds-mock.html, which draws the same three
+    cards for a different question.
   </div>
 
 </div>
@@ -695,18 +842,19 @@
     });
     label();
 
-    /* Option C is a live selector, so the confirm button can name what it will take. It
-       opens with a boost already chosen, which is how the screen would be met after one
-       tap, rather than as an empty shell. */
-    var row = document.getElementById('csel');
-    var cbtn = document.getElementById('cbtn');
-    row.addEventListener('click', function (ev) {
-      var b = ev.target.closest('.bc');
-      if (!b) { return; }
-      Array.prototype.forEach.call(row.querySelectorAll('.bc'), function (o) {
-        o.setAttribute('aria-pressed', String(o === b));
+    /* Option D is a live selector in both frames, so the button can name what it will
+       take. Each frame opens with a boost already chosen, which is how the screen would
+       be met after one tap rather than as an empty shell. */
+    Array.prototype.forEach.call(document.querySelectorAll('.cards.sel'), function (row) {
+      var take = row.parentNode.querySelector('.take');
+      row.addEventListener('click', function (ev) {
+        var b = ev.target.closest('.bc');
+        if (!b) { return; }
+        Array.prototype.forEach.call(row.querySelectorAll('.bc'), function (o) {
+          o.setAttribute('aria-pressed', String(o === b));
+        });
+        take.textContent = 'Take ' + b.getAttribute('data-nm');
       });
-      cbtn.textContent = 'Take ' + b.getAttribute('data-nm');
     });
   })();
 </script>
