@@ -351,16 +351,16 @@
      14px, so without this the panel gets shorter when Sold Out Stadium is chosen and the
      button under it jumps: the owner reported exactly that. */
   .prow .pv { line-height: 20px; }
+  /* 3a prints its figures in the body face at the owner's request (2026-09-09). The house
+     convention is that a numeral is mono (--font-mono is described as the data face in
+     index.css), so this deliberately breaks it here and 3b is left on mono, which makes the
+     two readable against each other. If the body face is the improvement rather than a 3a
+     detail, 3b wants the same change. */
+  .pane:not(.nobar) .pv { font-family: var(--body); }
   .pane.nobar .prow { min-height: 20px; align-items: center; }
   /* 3b has no bar, so the label and the figures share one line instead of stacking. */
   .pane.nobar .prow { flex-wrap: nowrap; gap: 10px; margin-bottom: 5px; }
   .pane.nobar .pk { flex: 1 1 auto; }
-  /* 3a declares its scale, which is the fault that sank option 03's bar. */
-  .scalenote {
-    margin: 3px 0 0; font-family: var(--mono); font-size: 8.5px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim);
-  }
-
   /* the re-roll, so the tone question stays judgeable */
   .reroll {
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -892,7 +892,6 @@
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:3.5%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:3.4%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
-              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
             <div class="pane pane-away com">
               <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
@@ -900,7 +899,6 @@
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:10.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:2.5%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
-              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
             <div class="pane pane-wind rare">
               <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
@@ -908,7 +906,6 @@
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:17.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:4.3%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
-              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
             <div class="pane pane-sold rare">
               <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
@@ -916,7 +913,6 @@
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i></span><span class="pv flat">No real change</span></div>
-              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
         </div>
         <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
@@ -964,7 +960,6 @@
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:3.5%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:3.4%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
-              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
             <div class="pane pane-away com">
               <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
@@ -972,7 +967,6 @@
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:10.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:2.5%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
-              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
             <div class="pane pane-wind rare">
               <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
@@ -980,7 +974,6 @@
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:17.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:4.3%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
-              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
             <div class="pane pane-sold rare">
               <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
@@ -988,7 +981,6 @@
                 <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
                 <span class="pbar"><i style="width:6.3%"></i></span><span class="pv flat">No real change</span></div>
-              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
         </div>
         <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
@@ -1018,8 +1010,9 @@
         way round it: 6% to 9% is three points of a hundred. Measured in the phone panel
         above, on a 231px track, Away Days' tie run is <b>25px</b> of colour and its cup run
         is <b>6px</b>. The old 60% crop made that 10px, which is the whole of what the crop
-        was buying and it was not worth the lie. The panel is also <b>147px tall against
-        3b's 84px</b>, so the bars nearly double the thing merge 3 exists to keep short. It also adds
+        was buying and it was not worth the lie. The panel is also <b>114px tall against
+        3b's 84px</b>, so the bars add a third to the height of the thing merge 3 exists to
+        keep short. It also adds
         two rows of bar plus the scale line to a panel whose whole purpose was to keep the
         offer short, and it re-opens the question of whether a bar should be there at all
         (see 3b).</p>
