@@ -994,6 +994,46 @@
     label rather than a zero for the cards a number cannot price. Option 01 stays rejected
     and option 02 is still its cheap first half.</p>
 
+    <div class="callout">
+      <span class="ct">The readout is NOT option 03's any more, and the owner's question is why</span>
+      Drawn option 03's way first (a bar with a cropped scale, and a percentage-point delta)
+      and it could not be read: <em>"what exactly do the bars say?"</em> and <em>"is +3 = +3%
+      change if this boost is chosen?"</em> Both questions have answers and <b>neither answer
+      was on the screen</b>. The bar's grey run was your chance as you stand, its coloured run
+      was what the boost adds, and the scale was cropped at 60% - stated nowhere. The figure
+      was percentage points - stated nowhere - added to a base that was in a strip at the top
+      rather than on the card. It prints <b>your chance now and your chance with the boost</b>
+      now: <code>31% &rarr; 41%</code> and <code>6% &rarr; 9%</code>. Two figures, both plainly
+      percentages, both on the card, the size of the move being the gap between them.
+    </div>
+
+    <p><strong>Three measurements decided that, and the first one is decisive.</strong></p>
+    <ul>
+      <li><b>A delta and a from-to cannot both be printed at whole precision.</b> Option 03
+      ruled out decimals correctly (at 6,000 sims the standard error is about 0.6pp, so a
+      decimal invents precision), but at whole points the two figures <b>contradict each
+      other</b>: Away Days is +2 by the measurement and +3 by the printed figures (6% to 9%),
+      Second Wind is +4 and +5, Sold Out Stadium +27 and +28. So the delta figure goes and the
+      from-to stays, since the from-to needs no unit explained.</li>
+      <li><b>The cup row's bar measured about 5 pixels.</b> At four cards across the bar track
+      is near 113px and Away Days' cup run is 4.2% of it. It was implying a comparison it could
+      not draw, on the row where the comparison matters most. Gone from the cards; the panel
+      keeps <b>one</b> bar, for the tie, on a plain 0 to 100% scale with no crop to declare.</li>
+      <li><b>A percentage-point figure on a 6% base makes every good boost look feeble.</b>
+      The cup row's "+3" for Away Days is a <b>40% improvement</b>; Defensive Drills' "+3" is
+      54% and Second Wind's "+4" is 68%. None of that is legible as a percentage-point delta
+      and all of it is obvious as <code>6% &rarr; 9%</code>.</li>
+    </ul>
+
+    <p><strong>What survives from option 03 unchanged:</strong> two horizons rather than one,
+    because the catalogue lives in both and their disagreement is the feature; position-aware
+    figures, which is the whole finding of this item; whole points, never decimals; <b>"no real
+    change"</b> rather than a fake zero when the movement is inside the noise; and a <b>label
+    rather than a number</b> for the four cards that pay outside the simulation. One knock-on
+    for whoever builds it: <b>the base is 30.5%, exactly on a rounding boundary</b>, so the
+    screens print 31% throughout on standard half-up rounding. Rounding it down in one place
+    and up in another is the bug that turned up while drawing this.</p>
+
     <p><strong>Three ways the merge can go</strong>, all drawn at phone width first in
     <a class="dl" href="redesign-2026/turf-flat/boost-pick-mock.html" target="_blank" rel="noopener"><code>boost-pick-mock.html</code></a> on the offer the odds were measured on:</p>
     <ul>
@@ -1184,7 +1224,10 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       One line per card, and it is what stops a payout card reading as worthless.</li>
       <li><b><code>BoostOffer</code> takes an optional <code>odds</code> map</b> keyed by boon id,
       so the component stays presentational and renders identically with the prop absent - which
-      is what the preference switches and what a slow first frame shows.</li>
+      is what the preference switches and what a slow first frame shows. <b>It carries two
+      figures per horizon, not a delta</b> (the chance now and the chance with the boost); see
+      the readout note above for why printing a delta as well is not possible at whole
+      precision.</li>
       <li><b>An "Odds on" preference</b>, persisted like <code>showFullDraw</code> (a run spans
       many navigations, so component state would reset it constantly). Its control belongs on the
       offer, not in the settings sheet.</li>

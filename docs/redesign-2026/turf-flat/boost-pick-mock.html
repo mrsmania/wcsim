@@ -10,22 +10,27 @@
 </script>
 <style>
   /* TWO ROADMAP ITEMS, ONE SCREEN. Item 65 says the boost pick needs a real button; item
-     05 says it needs to show what each boost is worth. Merged here at the owner's call
+     05 says it needs to show what each boost is worth. Merged at the owner's call
      (2026-09-09): "displaying that additional information would justify a 2 click process
-     to select the boost." That sentence is the whole design brief - the numbers are what
-     the second tap buys.
+     to select the boost." The numbers are what the second tap buys.
 
-     Building blocks, as instructed: options B and D from boost-buttons-mock.html (the
-     quiet bar in each card, and select-then-confirm), and option 03 from
-     boost-odds-mock.html (both horizons, position-aware, with a label for the cards a
-     number cannot price). Options A and C of the button set are discarded.
+     Building blocks: options B and D from boost-buttons-mock.html (the quiet button in
+     every card, and choose-then-confirm), and option 03 from boost-odds-mock.html (two
+     horizons, position-aware, with a label for the cards a number cannot price). Options A
+     and C of the button set are discarded.
 
-     Every percentage here is MEASURED. The baseline and the four deltas come from the
+     THE READOUT IS NOT OPTION 03'S. It was drawn that way first and the owner could not
+     read it: "what exactly do the bars say?" and "is +3 = +3% change?". Both questions have
+     answers and neither answer was on the screen, so the readout is from-to figures now
+     rather than a cropped bar and a bare delta. The reasons are measured and are in the
+     "How to read it" section - one of them is that a delta and a from-to CANNOT both be
+     printed at whole-point precision without contradicting each other.
+
+     Every percentage here is MEASURED. The baseline and the four movements come from the
      probes behind boost-odds-mock.html, run against src/domain/ at bd59522 on 2026-08-25:
      an 81-rated budget XI, Base Ascension, through the group, Brazil 2002 drawn in the
      Round of 16, 6,000 simulated brackets a row, standard error about 0.6pp. Contrast
-     figures are computed from src/index.css and src/components/stickerTheme.ts. Re-derive
-     both rather than trusting them if the dataset or the palette moves. */
+     figures are computed from src/index.css and src/components/stickerTheme.ts. */
 
   /* ---- tokens: light (turf-flat "pitch") ------------------------------------ */
   :root {
@@ -38,8 +43,7 @@
     --disp: "Archivo", system-ui, "Segoe UI", sans-serif;
     --body: "Schibsted Grotesk", system-ui, "Segoe UI", sans-serif;
     --mono: "Spline Sans Mono", ui-monospace, Consolas, monospace;
-    /* the odds bar's two runs: where you stand, and what the card adds */
-    --bar-base: #c3cec6; --bar-add: var(--pitch);
+    --bar-base: #c3cec6;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -159,7 +163,7 @@
   }
   .phone { width: 100%; max-width: 360px; }
 
-  /* the baseline strip, option 03's "As you stand" */
+  /* the baseline strip: it names the unit, which is half of what was missing */
   .basestrip {
     display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
     background: var(--chalk); border: 1px solid var(--line); border-radius: 5px;
@@ -232,27 +236,27 @@
   .rare { --rar: var(--rar-rare); }
   .com { --rar: var(--rar-com); }
 
-  /* ---- option 03's odds strip on a card ----------------------------------- */
-  /* Both rows share ONE scale, 0 to 60%, which is what lets them sit above each other. */
-  .odds { display: flex; flex-direction: column; gap: 4px; margin-top: 9px;
-          border-top: 1px solid var(--hair); padding-top: 8px; }
-  .orow { display: flex; align-items: center; gap: 6px; }
+  /* ---- the readout on a card: two rows, from and to, no bar and no delta --- */
+  .odds {
+    display: flex; flex-direction: column; gap: 3px; margin-top: 9px;
+    border-top: 1px solid var(--hair); padding-top: 8px;
+  }
+  .orow { display: flex; align-items: baseline; gap: 6px; }
   .orow .k {
     font-family: var(--mono); font-size: 8.5px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim);
-    width: 22px; flex: none;
+    flex: 1 1 auto; min-width: 0;
   }
-  .obar {
-    position: relative; flex: 1 1 auto; height: 7px; border-radius: 2px;
-    background: var(--faint); overflow: hidden; min-width: 30px;
+  .orow .v {
+    font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--ink);
+    flex: none; font-variant-numeric: tabular-nums; white-space: nowrap;
   }
-  .obar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--bar-base); }
-  .obar u { position: absolute; top: 0; bottom: 0; background: var(--bar-add); }
-  .orow .d {
-    font-family: var(--mono); font-size: 10.5px; font-weight: 700; color: var(--pitch-ink);
-    width: 34px; flex: none; text-align: right; font-variant-numeric: tabular-nums;
+  .orow .v .ar { color: var(--dim); font-weight: 500; padding: 0 1px; }
+  .orow .v .to { color: var(--pitch-ink); }
+  .orow .v.flat {
+    color: var(--muted); font-weight: 600; font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.06em;
   }
-  .orow .d.level { color: var(--muted); font-weight: 600; font-size: 9px; }
   /* a card a number cannot price gets a label, never a zero */
   .olabel {
     display: flex; align-items: center; gap: 5px; margin-top: 9px;
@@ -261,11 +265,6 @@
     text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim);
   }
   .olabel svg { width: 12px; height: 12px; flex: none; }
-  .opending .sk {
-    flex: 1 1 auto; height: 7px; border-radius: 2px; background: var(--faint);
-    min-width: 30px;
-  }
-  .opending .d { color: var(--muted); }
 
   /* ---- B: the quiet bar in every card ------------------------------------- */
   .bar {
@@ -289,10 +288,10 @@
   .sel .bc[aria-pressed="true"] .olabel { border-top-color: rgba(255,255,255,0.25); }
   .sel .bc[aria-pressed="true"] .k,
   .sel .bc[aria-pressed="true"] .olabel { color: rgba(255,255,255,0.8); }
-  .sel .bc[aria-pressed="true"] .d { color: #fff; }
-  .sel .bc[aria-pressed="true"] .obar { background: rgba(255,255,255,0.14); }
-  .sel .bc[aria-pressed="true"] .obar i { background: rgba(255,255,255,0.4); }
-  .sel .bc[aria-pressed="true"] .obar u { background: #fff; }
+  .sel .bc[aria-pressed="true"] .v,
+  .sel .bc[aria-pressed="true"] .v .to { color: #fff; }
+  .sel .bc[aria-pressed="true"] .v .ar { color: rgba(255,255,255,0.6); }
+  .sel .bc[aria-pressed="true"] .v.flat { color: rgba(255,255,255,0.8); }
   .btn {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     width: 100%; margin-top: 11px;
@@ -305,7 +304,7 @@
   .btn:hover { background: var(--pitch-hover); }
   .btn:focus-visible { outline: 2px solid var(--pitch); outline-offset: 2px; }
 
-  /* ---- the detail panel: what the first tap buys, in option 3 ------------- */
+  /* ---- the panel: what the first tap buys, in merge 3 --------------------- */
   .detail {
     margin-top: 11px; background: var(--panel);
     border: 1px solid var(--line); border-left: 3px solid var(--pitch);
@@ -313,19 +312,38 @@
   }
   .detail .dh {
     display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-    flex-wrap: wrap; margin-bottom: 8px;
+    flex-wrap: wrap; margin-bottom: 9px;
   }
   .detail .dn { font-family: var(--disp); font-weight: 800; font-size: 14px; }
   .detail .dr {
     font-family: var(--mono); font-size: 9px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.12em; color: var(--rar);
   }
-  .detail .odds { margin-top: 0; border-top: 0; padding-top: 0; gap: 6px; }
-  .detail .orow .k { width: 26px; font-size: 9px; }
-  .detail .obar { height: 9px; }
-  .detail .orow .d { font-size: 12px; width: 40px; }
+  .prow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 9px; margin-bottom: 7px; }
+  .prow .pk {
+    font-family: var(--mono); font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim);
+    flex: 1 1 100%;
+  }
+  /* The bar is on the TIE row only, on a plain 0 to 100% scale, so there is no crop to
+     declare. The cup row has no bar: at four cards across its coloured run measured about
+     5px, so the bar was implying a comparison it could not draw. */
+  .pbar {
+    position: relative; flex: 1 1 90px; height: 9px; border-radius: 2px;
+    background: var(--faint); overflow: hidden; min-width: 70px;
+  }
+  .pbar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--bar-base); }
+  .pbar u { position: absolute; top: 0; bottom: 0; background: var(--pitch); }
+  .prow .pv {
+    font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--ink);
+    flex: none; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .prow .pv .ar { color: var(--dim); font-weight: 500; padding: 0 2px; }
+  .prow .pv .to { color: var(--pitch-ink); }
+  .prow .pv.flat { font-size: 11px; color: var(--muted); font-weight: 600; }
   .detail .dnote {
-    margin-top: 8px; font-size: 11.5px; line-height: 1.4; color: var(--muted);
+    margin-top: 9px; border-top: 1px solid var(--hair); padding-top: 8px;
+    font-size: 12px; line-height: 1.45; color: var(--muted);
   }
   .detail .dnote b { color: var(--ink); }
 
@@ -344,6 +362,33 @@
   .reroll .rb:hover { border-color: var(--pitch); color: var(--pitch-ink); }
   .reroll .rh { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
 
+  /* ---- the worked example -------------------------------------------------- */
+  .worked {
+    display: grid; gap: 0; margin: 16px 0 8px;
+    border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+  }
+  @media (min-width: 760px) { .worked { grid-template-columns: 1fr 1fr; } }
+  .worked > div { padding: 13px 15px; background: var(--panel); }
+  .worked > div + div { border-top: 1px solid var(--line); }
+  @media (min-width: 760px) {
+    .worked > div + div { border-top: 0; border-left: 1px solid var(--line); }
+  }
+  .worked h4 {
+    font-family: var(--mono); font-size: 10px; font-weight: 700; margin: 0 0 8px;
+    text-transform: uppercase; letter-spacing: 0.14em;
+  }
+  .worked .bad h4 { color: var(--loss); }
+  .worked .good h4 { color: var(--pitch-ink); }
+  .worked p { font-size: 13.5px; margin: 8px 0 0; max-width: none; }
+  .spec {
+    font-family: var(--mono); font-size: 12px; background: var(--faint);
+    border: 1px solid var(--hair); border-radius: 4px; padding: 9px 11px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .spec span { display: flex; justify-content: space-between; gap: 12px; }
+  .spec .lb { color: var(--dim); }
+  .spec .rb2 { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+
   /* ---- tables -------------------------------------------------------------- */
   .tw { overflow-x: auto; margin: 14px 0 8px; }
   table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 13.5px; }
@@ -355,8 +400,8 @@
   }
   td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
   td.k { font-weight: 600; }
-  .good { color: var(--pitch-ink); font-weight: 700; }
-  .bad { color: var(--loss); font-weight: 700; }
+  .good2 { color: var(--pitch-ink); font-weight: 700; }
+  .bad2 { color: var(--loss); font-weight: 700; }
   .meh { color: var(--muted); }
   caption {
     caption-side: bottom; text-align: left; padding-top: 9px;
@@ -387,6 +432,94 @@
     <button class="themebtn" id="tb" type="button">Theme</button>
   </div>
 
+  <h2>How to read it</h2>
+
+  <p>This section exists because the readout was drawn option 03's way first, and the owner
+  could not read it: <em>"what exactly do the bars say?"</em> and <em>"is +3 = +3% change if
+  this boost is chosen?"</em> Both questions have answers. Neither answer was on the screen,
+  which is a fault in the readout rather than in the reading, so it has changed. Here is the
+  old form, the new one, and the three measurements that decide between them.</p>
+
+  <div class="worked">
+    <div class="bad">
+      <h4>What option 03 printed</h4>
+      <div class="spec">
+        <span><span class="lb">R16</span><span class="rb2">[bar] +11</span></span>
+        <span><span class="lb">Cup</span><span class="rb2">[bar] &plus;3</span></span>
+      </div>
+      <p>The grey run of the bar was your chance as you stand, the coloured run was what the
+      boost adds, and the scale was <b>cropped at 60%</b>, which was stated nowhere. The
+      figure was the added part in <b>percentage points</b>, also stated nowhere, and the
+      thing it was added to was in a strip at the top of the screen rather than on the
+      card.</p>
+    </div>
+    <div class="good">
+      <h4>What it prints now</h4>
+      <div class="spec">
+        <span><span class="lb">vs Brazil</span><span class="rb2">31% &rarr; 41%</span></span>
+        <span><span class="lb">Cup</span><span class="rb2">6% &rarr; 9%</span></span>
+      </div>
+      <p>Your chance now, and your chance if you take this boost. Two figures, both plainly
+      percentages, both on the card, and the size of the move is the gap between them.
+      Nothing has to be explained and nothing has to be added up.</p>
+    </div>
+  </div>
+
+  <p><b>So to answer the question directly:</b> the old "+3" meant three percentage points,
+  not three per cent better. And that is exactly where it misleads. Away Days' cup row read
+  "+3" against a base of 6.3%, so it took you from 6.3% to 8.8% - a <b>40% improvement</b>
+  wearing a "+3". Every card's cup row had the same problem, because a percentage-point
+  figure on a 6% base makes a good boost look feeble:</p>
+
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>Card, cup row</th><th class="n">Printed as</th><th class="n">Really is</th>
+          <th class="n">Prints now</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="k">Defensive Drills</td><td class="n">+3</td>
+          <td class="n good2">54% better</td><td class="n">6% &rarr; 10%</td></tr>
+        <tr><td class="k">Away Days</td><td class="n">+3</td>
+          <td class="n good2">40% better</td><td class="n">6% &rarr; 9%</td></tr>
+        <tr><td class="k">Second Wind</td><td class="n">+4</td>
+          <td class="n good2">68% better</td><td class="n">6% &rarr; 11%</td></tr>
+        <tr><td class="k">Sold Out Stadium</td><td class="n">level</td>
+          <td class="n meh">13%, inside the noise</td><td class="n meh">no real change</td></tr>
+      </tbody>
+      <caption>Base 6.3% to lift the cup. The middle column is the movement as a share of
+      that base, which is the sense in which a boost "improves your chances" and is not what
+      a percentage-point figure says.</caption>
+    </table>
+  </div>
+
+  <h3>Three measurements behind the change</h3>
+  <ul>
+    <li><b>A delta and a from-to cannot both be printed at whole precision.</b> This is the
+    one that settles it. Option 03 ruled out decimals, correctly: at 6,000 simulations the
+    standard error is about 0.6pp, so a decimal invents precision. But at whole points the
+    two figures disagree - Away Days is <b>+2 by the measurement and +3 by the printed
+    figures</b> (6% to 9%), Second Wind is +4 and +5, Sold Out Stadium +27 and +28. A screen
+    that prints both is a screen that contradicts itself. So the delta figure goes and the
+    from-to stays, because the from-to is the one that needs no unit explained.</li>
+    <li><b>The cup row's bar measured about 5 pixels.</b> On a four-across card the bar track
+    comes out near 113px, and the cup row's coloured run is 4.2% of it for Away Days. It was
+    implying a comparison it could not draw, on the row where the comparison matters most. It
+    is gone from the cards, and in the panel there is one bar for the tie only, on a plain 0
+    to 100% scale with no crop to declare.</li>
+    <li><b>Both rows on one cropped scale was the reason the bars existed</b>, and the crop
+    was never on screen. It let the two rows stack, which was the stated point; what it also
+    did was put every cup figure in the left sixth of the track. Numbers in a right-aligned
+    column compare perfectly well and cost no height, so the four cards still read against
+    each other at a glance.</li>
+  </ul>
+
+  <p><b>What survives from option 03 unchanged:</b> two horizons rather than one, because the
+  catalogue lives in both and their disagreement is the feature; position-aware figures, which
+  is the whole finding of item 05; whole points, never decimals; <b>no real change</b> rather
+  than a fake zero when the movement is inside the noise; and a <b>label rather than a
+  number</b> for the four cards that pay outside the simulation.</p>
+
   <h2>What is being merged, and why it is one job</h2>
 
   <p><b>Item 65</b> says the three boosts do not look pressable: on a phone they stack into
@@ -397,23 +530,21 @@
 
   <p>Item 65's best remaining option asks the player to tap twice: once to choose, once to
   confirm. On its own that is friction bought with nothing but safety. And item 05 has the
-  mirror problem: its recommended readout puts two rows of bar on every card, which is
-  height on the screen that can least afford it, and roughly a second of simulation for an
-  offer the player may take in two seconds. <b>Put them together and each pays the other's
-  bill.</b></p>
+  mirror problem: its readout puts numbers on every card, which is height on the screen that
+  can least afford it, and roughly a second of simulation for an offer the player may take in
+  two seconds. <b>Put them together and each pays the other's bill.</b></p>
 
   <div class="callout">
     <span class="ct">The brief, in the owner's words</span>
     <p>"Displaying that additional information would justify a 2 click process to select the
     boost." That is the whole design: the first tap is not ceremony, it is the request for
-    the numbers. Which also settles what happens on the cards themselves, because the
-    numbers no longer all have to be on them.</p>
+    the numbers. Which also settles what happens on the cards themselves, because the numbers
+    no longer all have to be on them.</p>
   </div>
 
-  <p><b>What is being built on.</b> Button treatments <b>B</b> (a quiet button in every
-  card) and <b>D</b> (choose, then confirm) from the button comp; options A and C are
-  discarded. Readout <b>option 03</b> from the odds comp: two horizons, position-aware, with
-  a label rather than a zero for the cards a number cannot price.</p>
+  <p><b>What is being built on.</b> Button treatments <b>B</b> (a quiet button in every card)
+  and <b>D</b> (choose, then confirm) from the button comp; options A and C are discarded.
+  Readout <b>option 03</b> from the odds comp, with the presentation corrected above.</p>
 
   <p><b>The offer drawn throughout</b> is the one the odds were measured on: the first boost
   of a run, through the group, Brazil 2002 drawn in the Round of 16, at four cards because
@@ -433,9 +564,9 @@
         <span class="stagecap">Phone, one card wide</span>
         <div class="basestrip">
           <span class="lbl">As you stand</span>
-          <span><b>30.5%</b> vs Brazil</span>
+          <span><b>31%</b> to beat Brazil</span>
           <span class="sep">|</span>
-          <span><b>6.3%</b> for the cup</span>
+          <span><b>6%</b> to lift the cup</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
         <div class="cards">
@@ -444,8 +575,8 @@
             <span class="nm">Away Days</span>
             <span class="ds">-5 to your next opponent's defence.</span>
             <span class="odds">
-              <span class="orow"><span class="k">R16</span><span class="obar"><i style="width:50.8%"></i><u style="left:50.8%;width:17.8%"></u></span><span class="d">+11</span></span>
-              <span class="orow"><span class="k">Cup</span><span class="obar"><i style="width:10.5%"></i><u style="left:10.5%;width:4.2%"></u></span><span class="d">+3</span></span>
+              <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></span>
             </span>
             <span class="bar" aria-hidden="true">Take it</span></button>
           <button class="bc rare" type="button">
@@ -453,21 +584,21 @@
             <span class="nm">Sold Out Stadium</span>
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
             <span class="odds">
-              <span class="orow"><span class="k">R16</span><span class="obar"><i style="width:50.8%"></i><u style="left:50.8%;width:45.7%"></u></span><span class="d">+27</span></span>
-              <span class="orow"><span class="k">Cup</span><span class="obar"><i style="width:10.5%"></i><u style="left:10.5%;width:1.3%"></u></span><span class="d level">level</span></span>
+              <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v flat">no real change</span></span>
             </span>
             <span class="bar" aria-hidden="true">Take it</span></button>
         </div>
         <p class="stagecap" style="margin: 9px 0 0">Two of the four shown; the offer runs to
-        about 640px of phone</p>
+        about 590px of phone</p>
       </div>
       <div class="stage wide">
         <span class="stagecap">Desktop, four across</span>
         <div class="basestrip">
           <span class="lbl">As you stand</span>
-          <span><b>30.5%</b> to beat Brazil</span>
+          <span><b>31%</b> to beat Brazil</span>
           <span class="sep">|</span>
-          <span><b>6.3%</b> to lift the cup</span>
+          <span><b>6%</b> to lift the cup</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span>
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
@@ -477,8 +608,8 @@
             <span class="ds">+2 to your goalkeeper and defenders.</span>
             <span class="grow"></span>
             <span class="odds">
-              <span class="orow"><span class="k">R16</span><span class="obar"><i style="width:50.8%"></i><u style="left:50.8%;width:5.8%"></u></span><span class="d">+4</span></span>
-              <span class="orow"><span class="k">Cup</span><span class="obar"><i style="width:10.5%"></i><u style="left:10.5%;width:5.7%"></u></span><span class="d">+3</span></span>
+              <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></span>
             </span>
             <span class="bar" aria-hidden="true">Take it</span></button>
           <button class="bc com" type="button">
@@ -486,8 +617,8 @@
             <span class="ds">-5 to your next opponent's defence.</span>
             <span class="grow"></span>
             <span class="odds">
-              <span class="orow"><span class="k">R16</span><span class="obar"><i style="width:50.8%"></i><u style="left:50.8%;width:17.8%"></u></span><span class="d">+11</span></span>
-              <span class="orow"><span class="k">Cup</span><span class="obar"><i style="width:10.5%"></i><u style="left:10.5%;width:4.2%"></u></span><span class="d">+3</span></span>
+              <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></span>
             </span>
             <span class="bar" aria-hidden="true">Take it</span></button>
           <button class="bc rare" type="button">
@@ -495,8 +626,8 @@
             <span class="ds">+4 to your entire XI, for this round only.</span>
             <span class="grow"></span>
             <span class="odds">
-              <span class="orow"><span class="k">R16</span><span class="obar"><i style="width:50.8%"></i><u style="left:50.8%;width:29.7%"></u></span><span class="d">+18</span></span>
-              <span class="orow"><span class="k">Cup</span><span class="obar"><i style="width:10.5%"></i><u style="left:10.5%;width:7.2%"></u></span><span class="d">+4</span></span>
+              <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></span>
             </span>
             <span class="bar" aria-hidden="true">Take it</span></button>
           <button class="bc rare" type="button">
@@ -504,8 +635,8 @@
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
             <span class="grow"></span>
             <span class="odds">
-              <span class="orow"><span class="k">R16</span><span class="obar"><i style="width:50.8%"></i><u style="left:50.8%;width:45.7%"></u></span><span class="d">+27</span></span>
-              <span class="orow"><span class="k">Cup</span><span class="obar"><i style="width:10.5%"></i><u style="left:10.5%;width:1.3%"></u></span><span class="d level">level</span></span>
+              <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v flat">no real change</span></span>
             </span>
             <span class="bar" aria-hidden="true">Take it</span></button>
         </div>
@@ -519,14 +650,14 @@
       <div>
         <h4>What it buys</h4>
         <p>Four cards compare at a glance, which is the argument option 03 was built on, and
-        one tap still takes a boost. Read the desktop row: Sold Out Stadium at
-        <b>+27 on the tie and level on the cup</b> against Second Wind at +18 and +4 is a
+        one tap still takes a boost. Read the desktop row: Sold Out Stadium taking this tie
+        from <b>31% to 58% and the cup nowhere</b>, against Second Wind's 48% and 11%, is a
         real decision, and no wording on the cards could have made it one.</p>
       </div>
       <div>
         <h4>What it costs</h4>
         <p>This is the two items shipped next to each other rather than merged, and it pays
-        both bills in full: <b>the phone offer runs to about 640px</b>, so the fourth card is
+        both bills in full: <b>the phone offer runs to about 590px</b>, so the fourth card is
         two screens down, and every offer costs the baseline plus four simulations before
         anything can be shown. It also has no answer for the odds switch being off, where the
         cards go back to being panels with a button on them.</p>
@@ -546,9 +677,9 @@
         <span class="stagecap">Phone &middot; tap a card</span>
         <div class="basestrip">
           <span class="lbl">As you stand</span>
-          <span><b>30.5%</b> vs Brazil</span>
+          <span><b>31%</b> to beat Brazil</span>
           <span class="sep">|</span>
-          <span><b>6.3%</b> for the cup</span>
+          <span><b>6%</b> to lift the cup</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
         <div class="cards sel" data-take=".take2p">
@@ -556,15 +687,15 @@
             <span class="rar">Common</span><span class="nm">Away Days</span>
             <span class="ds">-5 to your next opponent's defence.</span>
             <span class="odds">
-              <span class="orow"><span class="k">R16</span><span class="obar"><i style="width:50.8%"></i><u style="left:50.8%;width:17.8%"></u></span><span class="d">+11</span></span>
-              <span class="orow"><span class="k">Cup</span><span class="obar"><i style="width:10.5%"></i><u style="left:10.5%;width:4.2%"></u></span><span class="d">+3</span></span>
+              <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></span>
             </span></button>
           <button class="bc rare" type="button" aria-pressed="true" data-nm="Sold Out Stadium">
             <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
             <span class="odds">
-              <span class="orow"><span class="k">R16</span><span class="obar"><i style="width:50.8%"></i><u style="left:50.8%;width:45.7%"></u></span><span class="d">+27</span></span>
-              <span class="orow"><span class="k">Cup</span><span class="obar"><i style="width:10.5%"></i><u style="left:10.5%;width:1.3%"></u></span><span class="d level">level</span></span>
+              <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v flat">no real change</span></span>
             </span></button>
         </div>
         <button class="btn take2p" type="button">Take Sold Out Stadium</button>
@@ -573,9 +704,9 @@
         <span class="stagecap">Desktop &middot; tap a card</span>
         <div class="basestrip">
           <span class="lbl">As you stand</span>
-          <span><b>30.5%</b> to beat Brazil</span>
+          <span><b>31%</b> to beat Brazil</span>
           <span class="sep">|</span>
-          <span><b>6.3%</b> to lift the cup</span>
+          <span><b>6%</b> to lift the cup</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span>
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
@@ -585,32 +716,32 @@
             <span class="ds">+2 to your goalkeeper and defenders.</span>
             <span class="grow"></span>
             <span class="odds">
-              <span class="orow"><span class="k">R16</span><span class="obar"><i style="width:50.8%"></i><u style="left:50.8%;width:5.8%"></u></span><span class="d">+4</span></span>
-              <span class="orow"><span class="k">Cup</span><span class="obar"><i style="width:10.5%"></i><u style="left:10.5%;width:5.7%"></u></span><span class="d">+3</span></span>
+              <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></span>
             </span></button>
           <button class="bc com" type="button" aria-pressed="false" data-nm="Away Days">
             <span class="rar">Common</span><span class="nm">Away Days</span>
             <span class="ds">-5 to your next opponent's defence.</span>
             <span class="grow"></span>
             <span class="odds">
-              <span class="orow"><span class="k">R16</span><span class="obar"><i style="width:50.8%"></i><u style="left:50.8%;width:17.8%"></u></span><span class="d">+11</span></span>
-              <span class="orow"><span class="k">Cup</span><span class="obar"><i style="width:10.5%"></i><u style="left:10.5%;width:4.2%"></u></span><span class="d">+3</span></span>
+              <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></span>
             </span></button>
           <button class="bc rare" type="button" aria-pressed="false" data-nm="Second Wind">
             <span class="rar">Rare</span><span class="nm">Second Wind</span>
             <span class="ds">+4 to your entire XI, for this round only.</span>
             <span class="grow"></span>
             <span class="odds">
-              <span class="orow"><span class="k">R16</span><span class="obar"><i style="width:50.8%"></i><u style="left:50.8%;width:29.7%"></u></span><span class="d">+18</span></span>
-              <span class="orow"><span class="k">Cup</span><span class="obar"><i style="width:10.5%"></i><u style="left:10.5%;width:7.2%"></u></span><span class="d">+4</span></span>
+              <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></span>
             </span></button>
           <button class="bc rare" type="button" aria-pressed="true" data-nm="Sold Out Stadium">
             <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span>
             <span class="grow"></span>
             <span class="odds">
-              <span class="orow"><span class="k">R16</span><span class="obar"><i style="width:50.8%"></i><u style="left:50.8%;width:45.7%"></u></span><span class="d">+27</span></span>
-              <span class="orow"><span class="k">Cup</span><span class="obar"><i style="width:10.5%"></i><u style="left:10.5%;width:1.3%"></u></span><span class="d level">level</span></span>
+              <span class="orow"><span class="k">vs Brazil</span><span class="v">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></span>
+              <span class="orow"><span class="k">Cup</span><span class="v flat">no real change</span></span>
             </span></button>
         </div>
         <button class="btn take2d" type="button">Take Sold Out Stadium</button>
@@ -624,15 +755,15 @@
       <div>
         <h4>What it buys</h4>
         <p>Everything 1 buys, plus one bar of button instead of four, and a pick that cannot
-        be spent by a mis-tap. Note what the chosen card does to the bars: white on green
-        rather than green on grey, so the selection stays readable rather than losing its own
-        numbers to the fill.</p>
+        be spent by a mis-tap. Note what the chosen card does to its own figures: white on
+        green rather than green on white, so the selection keeps its numbers instead of
+        losing them to the fill.</p>
       </div>
       <div>
         <h4>What it costs</h4>
         <p>The second tap is still buying nothing: the numbers were already on the table
         before it. So this is the safer version of 1 and not the cheaper one - the phone
-        offer is still about 620px, and the simulation bill is unchanged. It is what to ship
+        offer is still about 570px, and the simulation bill is unchanged. It is what to ship
         if comparing at a glance is worth more than the height.</p>
       </div>
     </div>
@@ -650,31 +781,31 @@
         <span class="stagecap">Phone &middot; tap a card</span>
         <div class="basestrip">
           <span class="lbl">As you stand</span>
-          <span><b>30.5%</b> vs Brazil</span>
+          <span><b>31%</b> to beat Brazil</span>
           <span class="sep">|</span>
-          <span><b>6.3%</b> for the cup</span>
+          <span><b>6%</b> to lift the cup</span>
           <span class="sw" role="button" tabindex="0"><span class="track"><span class="knob"></span></span> Odds on</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
         <div class="cards sel demand" data-take=".take3p" data-detail=".det3p">
           <button class="bc com" type="button" aria-pressed="false" data-nm="Defensive Drills"
-            data-rar="Common" data-r16="+4" data-cup="+3" data-r16w="5.8" data-cupw="5.7"
-            data-say="Permanent and unconditional, so the two horizons agree. The smallest of the four on this tie and the second best over the run.">
+            data-rar="Common" data-to="34" data-w="3.5" data-cup="6%|10%"
+            data-say="Permanent and unconditional, so both horizons agree: the smallest of the four on this tie, and the second best over a whole run.">
             <span class="rar">Common</span><span class="nm">Defensive Drills</span>
             <span class="ds">+2 to your goalkeeper and defenders.</span></button>
           <button class="bc com" type="button" aria-pressed="false" data-nm="Away Days"
-            data-rar="Common" data-r16="+11" data-cup="+3" data-r16w="17.8" data-cupw="4.2"
+            data-rar="Common" data-to="41" data-w="10.7" data-cup="6%|9%"
             data-say="Aimed at Brazil and nobody else, so it is worth three times as much on this tie as it is over the run.">
             <span class="rar">Common</span><span class="nm">Away Days</span>
             <span class="ds">-5 to your next opponent's defence.</span></button>
           <button class="bc rare" type="button" aria-pressed="false" data-nm="Second Wind"
-            data-rar="Rare" data-r16="+18" data-cup="+4" data-r16w="29.7" data-cupw="7.2"
+            data-rar="Rare" data-to="48" data-w="17.8" data-cup="6%|11%"
             data-say="One round of a big lift. The best cup figure of the four, because the round it buys is the one you are most likely to go out in.">
             <span class="rar">Rare</span><span class="nm">Second Wind</span>
             <span class="ds">+4 to your entire XI, for this round only.</span></button>
           <button class="bc rare" type="button" aria-pressed="true" data-nm="Sold Out Stadium"
-            data-rar="Rare" data-r16="+27" data-cup="level" data-r16w="45.7" data-cupw="1.3"
-            data-say="The best number on the board for this tie, and it gives all of it back in the next round. Over a whole run it is worth nothing.">
+            data-rar="Rare" data-to="58" data-w="27.4" data-cup="flat"
+            data-say="Nearly doubles your chance in this tie, and gives all of it back in the round after, so over a whole run it is worth nothing.">
             <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span></button>
         </div>
@@ -689,32 +820,32 @@
         <span class="stagecap">Desktop &middot; tap a card</span>
         <div class="basestrip">
           <span class="lbl">As you stand</span>
-          <span><b>30.5%</b> to beat Brazil</span>
+          <span><b>31%</b> to beat Brazil</span>
           <span class="sep">|</span>
-          <span><b>6.3%</b> to lift the cup</span>
+          <span><b>6%</b> to lift the cup</span>
           <span class="sw" role="button" tabindex="0"><span class="track"><span class="knob"></span></span> Odds on</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span>
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
         <div class="cards sel demand" data-take=".take3d" data-detail=".det3d">
           <button class="bc com" type="button" aria-pressed="false" data-nm="Defensive Drills"
-            data-rar="Common" data-r16="+4" data-cup="+3" data-r16w="5.8" data-cupw="5.7"
-            data-say="Permanent and unconditional, so the two horizons agree. The smallest of the four on this tie and the second best over the run.">
+            data-rar="Common" data-to="34" data-w="3.5" data-cup="6%|10%"
+            data-say="Permanent and unconditional, so both horizons agree: the smallest of the four on this tie, and the second best over a whole run.">
             <span class="rar">Common</span><span class="nm">Defensive Drills</span>
             <span class="ds">+2 to your goalkeeper and defenders.</span></button>
           <button class="bc com" type="button" aria-pressed="false" data-nm="Away Days"
-            data-rar="Common" data-r16="+11" data-cup="+3" data-r16w="17.8" data-cupw="4.2"
+            data-rar="Common" data-to="41" data-w="10.7" data-cup="6%|9%"
             data-say="Aimed at Brazil and nobody else, so it is worth three times as much on this tie as it is over the run.">
             <span class="rar">Common</span><span class="nm">Away Days</span>
             <span class="ds">-5 to your next opponent's defence.</span></button>
           <button class="bc rare" type="button" aria-pressed="false" data-nm="Second Wind"
-            data-rar="Rare" data-r16="+18" data-cup="+4" data-r16w="29.7" data-cupw="7.2"
+            data-rar="Rare" data-to="48" data-w="17.8" data-cup="6%|11%"
             data-say="One round of a big lift. The best cup figure of the four, because the round it buys is the one you are most likely to go out in.">
             <span class="rar">Rare</span><span class="nm">Second Wind</span>
             <span class="ds">+4 to your entire XI, for this round only.</span></button>
           <button class="bc rare" type="button" aria-pressed="true" data-nm="Sold Out Stadium"
-            data-rar="Rare" data-r16="+27" data-cup="level" data-r16w="45.7" data-cupw="1.3"
-            data-say="The best number on the board for this tie, and it gives all of it back in the next round. Over a whole run it is worth nothing.">
+            data-rar="Rare" data-to="58" data-w="27.4" data-cup="flat"
+            data-say="Nearly doubles your chance in this tie, and gives all of it back in the round after, so over a whole run it is worth nothing.">
             <span class="rar">Rare</span><span class="nm">Sold Out Stadium</span>
             <span class="ds">+6 to your XI this round, then -6 in the round after it.</span></button>
         </div>
@@ -731,31 +862,30 @@
         <h4>What it buys</h4>
         <p>The first tap becomes the question and the panel is the answer, which is the
         brief. Tap through the four in either frame: the cards stay the size they are today,
-        the phone offer is <b>about 340px instead of 640</b>, and the panel has room for a
-        sentence saying what the two figures mean rather than leaving the player to work out
-        why a card is +27 and level at the same time. It also gives the loading state a
+        the phone offer is <b>about 340px instead of 590</b>, and the panel has room for the
+        one bar worth drawing plus a sentence saying what the two figures mean - which is
+        where "58% and nothing" stops being a riddle. It also gives the loading state a
         natural home: the panel opens and the numbers land in it.</p>
       </div>
       <div>
         <h4>What it costs</h4>
         <p>Comparing four cards means four taps, and that is the honest cost: option 03's own
         case was that four cards compare at a glance. The counter is that the taps are free
-        and reversible, nothing commits until the button, and the two horizons have to be
+        and reversible, nothing commits until the button, and two horizons have to be
         <em>read</em> rather than glanced at in any case.</p>
       </div>
     </div>
   </div>
 
   <div class="callout">
-    <span class="ct">What option 3 does to item 05's bill, which is the real argument for it</span>
-    <p>Item 05's recommended readout was costed at <b>roughly 950ms for a baseline plus four
-    cards, and it needs a web worker to be honest about it</b> - 190ms a card is fine off the
-    main thread and not fine on it. Computing only the card that was tapped turns that into
-    <b>one 190ms burst per tap</b>, arriving in a panel that has just opened and can hold a
-    loading state without anything looking stuck. That is the difference between needing a
-    worker and probably not needing one. It is a judgement rather than a free win: 190ms is
-    still a visible stall, so it wants measuring on a real phone before the worker is called
-    off.</p>
+    <span class="ct">Option 3 is also what changes item 05's bill, which is the real argument for it</span>
+    <p>The readout was costed at <b>roughly 950ms for a baseline plus four cards, and a web
+    worker to be honest about it</b> - 190ms a card is fine off the main thread and not fine
+    on it. Computing only the card that was tapped turns that into <b>one 190ms burst per
+    tap</b>, into a panel that has just opened and can hold a spinner without looking stuck.
+    That is the difference between needing a worker and probably not needing one. It is a
+    judgement rather than a free win: 190ms is still a visible stall, so it wants measuring
+    on a real phone before the worker is called off.</p>
     <p>Two smaller bills go the same way. <b>The Physio Table re-roll becomes free again</b>
     (a fresh offer computes nothing until something is tapped, where option 03 re-ran three
     simulations), and the baseline is the only figure that has to be ready before the screen
@@ -764,9 +894,9 @@
 
   <h2>The cards a number cannot price still get a label</h2>
 
-  <p>Four of the 32 boosts pay outside the simulation, and printing them at +0.0 would say
-  they are worthless when they are not. Option 03's answer carries into all three merges
-  unchanged, and in option 3 it is what the panel says instead of bars:</p>
+  <p>Four of the 32 boosts pay outside the simulation, and printing them at 6% to 6% would
+  say they are worthless when they are not. Option 03's answer carries into all three merges
+  unchanged, and in option 3 it is what the panel says instead of figures:</p>
 
   <div class="stage wide" style="max-width: 760px">
     <span class="stagecap">The three label shapes, on the card and in the panel</span>
@@ -817,6 +947,8 @@
     ground that <em>the second tap was already justified without the odds</em>: a boost
     cannot be given back, and today a mis-tap spends the whole round's choice. The odds make
     the tap pay; they were never the only reason for it.</p>
+    <p>Both switches on this page are live. Turn one off and the figures go, which is exactly
+    what the component does when the prop is absent.</p>
   </div>
 
   <h2>The measurements</h2>
@@ -835,18 +967,18 @@
       </thead>
       <tbody>
         <tr><td class="k">Defensive Drills</td><td class="n">+2.5</td>
-          <td class="n">34.0% <span class="good">+3.5</span></td><td class="n good">+3.4</td>
+          <td class="n">34.0% <span class="good2">+3.5</span></td><td class="n good2">+3.4</td>
           <td>Permanent and unconditional: the two methods agree, as they should.</td></tr>
-        <tr><td class="k">Away Days</td><td class="n bad">+0.4</td>
-          <td class="n">41.2% <span class="good">+10.7</span></td><td class="n good">+2.5</td>
+        <tr><td class="k">Away Days</td><td class="n bad2">+0.4</td>
+          <td class="n">41.2% <span class="good2">+10.7</span></td><td class="n good2">+2.5</td>
           <td>A random tournament has no Brazil 2002 in it. Invisible on the tie it exists
           for.</td></tr>
-        <tr><td class="k">Second Wind</td><td class="n bad">+11.6</td>
-          <td class="n">48.3% <span class="good">+17.8</span></td><td class="n good">+4.3</td>
+        <tr><td class="k">Second Wind</td><td class="n bad2">+11.6</td>
+          <td class="n">48.3% <span class="good2">+17.8</span></td><td class="n good2">+4.3</td>
           <td>"For this round only" is not in the measurement path, so it is priced as five
           rounds.</td></tr>
-        <tr><td class="k">Sold Out Stadium</td><td class="n bad">+21.3</td>
-          <td class="n">57.9% <span class="good">+27.4</span></td><td class="n meh">+0.8</td>
+        <tr><td class="k">Sold Out Stadium</td><td class="n bad2">+21.3</td>
+          <td class="n">57.9% <span class="good2">+27.4</span></td><td class="n meh">+0.8</td>
           <td>The debt is a <code>startsIn</code> plan, which <code>applyBoon</code> skips.
           Best card on the board, worth nothing over a run.</td></tr>
         <tr><td class="k">Sponsorship</td><td class="n meh">+0.2</td>
@@ -857,8 +989,8 @@
       <caption>Baseline 30.5% to win the Round of 16, 6.3% to win the cup. 6,000 simulated
       brackets a row, standard error about 0.6pp; the position-blind column is 2,000 sims x 3
       repeats over three budget XIs. Measured 2026-08-25 against src/domain/ at bd59522, for
-      boost-odds-mock.html. Whole points only on screen, and anything inside 1pp prints
-      "level" rather than a fake +0.</caption>
+      boost-odds-mock.html. The screens above round these to whole points and print "no real
+      change" for anything inside 1pp.</caption>
     </table>
   </div>
 
@@ -872,13 +1004,14 @@
     <code>appliesFrom</code> and <code>expiresAfter</code> - that is the whole reason these
     numbers are right and the naive ones are not. <code>applyBoon</code> is the measurement
     path and skips <code>startsIn</code> by design.</li>
-    <li><b>One figure per boost per horizon, requested on demand</b> in option 3, or for the
-    whole offer up front in 1 and 2. Whichever, <code>BoostOffer</code> takes an optional
-    <code>odds</code> map keyed by boon id, so the component stays presentational and renders
-    identically with the prop absent, which is what the switch and a slow first frame both
-    look like.</li>
+    <li><b>Two figures per boost, and the baseline once.</b> The screens print your chance
+    now and your chance with the boost, so the component needs the base pair and a pair per
+    boon; the delta is never printed, which is what keeps the rounding honest.
+    <code>BoostOffer</code> takes an optional <code>odds</code> map keyed by boon id, so it
+    stays presentational and renders identically with the prop absent, which is what the
+    switch and a slow first frame both look like.</li>
     <li><b>A <code>priced</code> field on the catalogue entry</b>, beside
-    <code>rarity</code>, choosing between a number and a label.</li>
+    <code>rarity</code>, choosing between figures and a label.</li>
     <li><b>The button half of item 65</b>, which is small: the chosen card fills
     <code>pitch-dark</code> (the app's one chosen-cell green) and one
     <code>btn('primary')</code> below names what it will take. The bar in merge 1 is a
@@ -904,22 +1037,24 @@
     heads or tails before you pick, and the card is nothing else. Drawn here as "not shown
     until taken". The alternative is to accept the spoiler and retire the card.</li>
     <li><b>Does a solved offer stay interesting?</b> Four cards with numbers on them is an
-    arithmetic problem rather than a gamble. The honest form of the worry is that the
-    strongest card becomes obvious, and the two horizons disagreeing is the only thing
-    working against that.</li>
+    arithmetic problem rather than a gamble, and the from-to form makes that <em>more</em>
+    true than a bare delta did, since it needs no working out. The two horizons disagreeing
+    is the only thing working against it.</li>
     <li><b>Is Sold Out Stadium still shippable once the screen prices it?</b> Its known hole
     (free if taken before the final) becomes visible the day this ships. Fix the card, or let
-    the number be the warning.</li>
+    "no real change" be the warning.</li>
     <li><b>Whether the second tap survives the odds being off</b> - the switch decision
     above.</li>
   </ul>
 
   <div class="foot-note">
-    Drawn 2026-09-09, merging roadmap items 05 and 65 at the owner's call. Nothing is built.
-    Supersedes boost-buttons-mock.html (options B and D carried, A and C discarded) and
-    boost-odds-mock.html (option 03 carried, 01 rejected there, 02 kept as its cheap first
-    half). Odds figures measured 2026-08-25 against src/domain/ at bd59522 and not re-run
-    here; contrast figures computed from src/index.css and src/components/stickerTheme.ts.
+    Drawn 2026-09-09, merging roadmap items 05 and 65 at the owner's call, and revised the
+    same day after the readout proved unreadable. Nothing is built. Supersedes
+    boost-buttons-mock.html (options B and D carried, A and C discarded) and
+    boost-odds-mock.html (option 03 carried, its presentation corrected here, 01 rejected
+    there, 02 kept as its cheap first half). Odds figures measured 2026-08-25 against
+    src/domain/ at bd59522 and not re-run here; contrast figures computed from src/index.css
+    and src/components/stickerTheme.ts.
   </div>
 
 </div>
@@ -948,23 +1083,11 @@
     });
     label();
 
-    /* One bar of the odds strip: the grey run is where you stand, the green is what the
-       card adds. Both rows share the 0 to 60% scale the comp is drawn on. */
-    function bars(r16, cup, r16w, cupw) {
-      function row(k, base, add, fig) {
-        var d = fig === 'level'
-          ? '<span class="d level">level</span>'
-          : '<span class="d">' + fig + '</span>';
-        return '<span class="orow"><span class="k">' + k + '</span>' +
-          '<span class="obar"><i style="width:' + base + '%"></i>' +
-          '<u style="left:' + base + '%;width:' + add + '%"></u></span>' + d + '</span>';
-      }
-      return '<span class="odds">' + row('R16', 50.8, r16w, r16) +
-        row('Cup', 10.5, cupw, cup) + '</span>';
-    }
+    var BASE_TIE = 30.5;
 
-    /* Merge 3's panel: what the first tap buys. Rendered from the card's own data, so the
-       page cannot drift from the figures the cards carry. */
+    /* Merge 3's panel, rendered from the card's own data so the page cannot drift from the
+       figures the cards carry. The tie row gets the one bar worth drawing, on a plain 0 to
+       100% scale: grey is where you stand, green is what this boost adds. */
     function paint(row) {
       var det = row.dataset.detail && document.querySelector(row.dataset.detail);
       var take = row.dataset.take && document.querySelector(row.dataset.take);
@@ -972,13 +1095,22 @@
       if (take) { take.textContent = on ? 'Take ' + on.dataset.nm : 'Choose a boost'; }
       if (!det) { return; }
       if (!on) { det.innerHTML = ''; return; }
+      var cup = on.dataset.cup === 'flat'
+        ? '<span class="pv flat">No real change</span>'
+        : '<span class="pv">' + on.dataset.cup.split('|')[0] +
+          '<span class="ar">&rarr;</span><span class="to">' +
+          on.dataset.cup.split('|')[1] + '</span></span>';
       det.innerHTML =
         '<div class="dh"><span class="dn">' + on.dataset.nm + '</span>' +
         '<span class="dr">' + on.dataset.rar + '</span></div>' +
-        bars(on.dataset.r16, on.dataset.cup, on.dataset.r16w, on.dataset.cupw) +
+        '<div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>' +
+        '<span class="pbar"><i style="width:' + BASE_TIE + '%"></i>' +
+        '<u style="left:' + BASE_TIE + '%;width:' + on.dataset.w + '%"></u></span>' +
+        '<span class="pv">' + Math.round(BASE_TIE) + '%<span class="ar">&rarr;</span>' +
+        '<span class="to">' + on.dataset.to + '%</span></span></div>' +
+        '<div class="prow"><span class="pk">Lifting the cup</span>' + cup + '</div>' +
         '<p class="dnote">' + on.dataset.say + '</p>';
-      det.style.setProperty('--rar',
-        getComputedStyle(on).getPropertyValue('--rar'));
+      det.style.setProperty('--rar', getComputedStyle(on).getPropertyValue('--rar'));
     }
 
     Array.prototype.forEach.call(document.querySelectorAll('.cards.sel'), function (row) {
@@ -994,7 +1126,7 @@
     });
 
     /* The Odds on switch, so the preference is a real thing on the page rather than a
-       drawing of one: off empties the panel, which is exactly what the prop being absent
+       drawing of one: off hides every figure, which is exactly what the prop being absent
        does, and leaves the two taps in place - the decision the merge forces. */
     Array.prototype.forEach.call(document.querySelectorAll('.sw'), function (sw) {
       function flip() {
