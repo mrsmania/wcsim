@@ -347,6 +347,11 @@
   .prow .pv .ar { color: var(--dim); font-weight: 500; padding: 0 2px; }
   .prow .pv .to { color: var(--pitch-ink); }
   .prow .pv.flat { font-size: 11px; color: var(--muted); font-weight: 600; }
+  /* One height per row whatever it holds. "No real change" is 11px where a figure is
+     14px, so without this the panel gets shorter when Sold Out Stadium is chosen and the
+     button under it jumps: the owner reported exactly that. */
+  .prow .pv { line-height: 20px; }
+  .pane.nobar .prow { min-height: 20px; align-items: center; }
   /* 3b has no bar, so the label and the figures share one line instead of stacking. */
   .pane.nobar .prow { flex-wrap: nowrap; gap: 10px; margin-bottom: 5px; }
   .pane.nobar .pk { flex: 1 1 auto; }
@@ -884,34 +889,34 @@
             <div class="pane pane-drills com">
               <div class="dh"><span class="dn">Defensive Drills</span><span class="dr">Common</span></div>
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:5.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:3.5%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
-                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:5.7%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
-              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+                <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:3.4%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
+              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
             <div class="pane pane-away com">
               <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:17.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:10.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
-                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:4.2%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
-              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+                <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:2.5%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
+              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
             <div class="pane pane-wind rare">
               <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:29.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:17.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
-                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:7.2%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
-              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+                <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:4.3%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
+              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
             <div class="pane pane-sold rare">
               <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:45.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
-                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:1.3%"></u></span><span class="pv flat">No real change</span></div>
-              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+                <span class="pbar"><i style="width:6.3%"></i></span><span class="pv flat">No real change</span></div>
+              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
         </div>
         <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
@@ -956,34 +961,34 @@
             <div class="pane pane-drills com">
               <div class="dh"><span class="dn">Defensive Drills</span><span class="dr">Common</span></div>
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:5.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:3.5%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">34%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
-                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:5.7%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
-              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+                <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:3.4%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">10%</span></span></div>
+              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
             <div class="pane pane-away com">
               <div class="dh"><span class="dn">Away Days</span><span class="dr">Common</span></div>
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:17.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:10.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">41%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
-                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:4.2%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
-              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+                <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:2.5%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">9%</span></span></div>
+              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
             <div class="pane pane-wind rare">
               <div class="dh"><span class="dn">Second Wind</span><span class="dr">Rare</span></div>
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:29.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:17.8%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">48%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
-                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:7.2%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
-              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+                <span class="pbar"><i style="width:6.3%"></i><u style="left:6.3%;width:4.3%"></u></span><span class="pv">6%<span class="ar">&rarr;</span><span class="to">11%</span></span></div>
+              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
             <div class="pane pane-sold rare">
               <div class="dh"><span class="dn">Sold Out Stadium</span><span class="dr">Rare</span></div>
               <div class="prow"><span class="pk">Beating Brazil 2002 in the Round of 16</span>
-                <span class="pbar"><i style="width:50.8%"></i><u style="left:50.8%;width:45.7%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
+                <span class="pbar"><i style="width:30.5%"></i><u style="left:30.5%;width:27.4%"></u></span><span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span>
-                <span class="pbar"><i style="width:10.5%"></i><u style="left:10.5%;width:1.3%"></u></span><span class="pv flat">No real change</span></div>
-              <p class="scalenote">Both bars run 0 to 60%, the lowest round ceiling every figure here fits under</p>
+                <span class="pbar"><i style="width:6.3%"></i></span><span class="pv flat">No real change</span></div>
+              <p class="scalenote">The full track is a certainty. Grey is where you stand, green is what this boost adds</p>
             </div>
         </div>
         <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
@@ -996,20 +1001,25 @@
     <div class="note">
       <div>
         <h4>What it buys</h4>
-        <p>No asymmetry to explain, and the two rows are directly comparable because they
-        share one scale. <b>The scale is declared</b>, which is the fault that sank option
-        03's version: 0 to 60% is the lowest round ceiling every figure here fits under
-        (Sold Out Stadium's 58% is the highest), and the line under the rows says so. Sold
-        Out Stadium is the card it flatters most: two bars, one long and one barely
-        started, is the fastest possible reading of "great for this tie, nothing for the
-        run".</p>
+        <p>No asymmetry to explain, and the two rows are directly comparable because
+        they share one scale. <b>That scale runs 0 to 100%</b>: a bar showing a chance of
+        winning has to end at certainty, so a full track means "certain" and Sold Out
+        Stadium's 58% reads as the coin flip it is. The 60% ceiling this was first drawn
+        with was worse than the problem it solved, and it was option 03's real fault rather
+        than the crop being undeclared: fitting the axis to the biggest figure is a chart
+        convention for an axis with no meaningful end, and a probability has one. Sold Out
+        Stadium is still the card the pair flatters most, since one long run and one that
+        barely starts is the fastest possible reading of "great for this tie, nothing for
+        the run".</p>
       </div>
       <div>
         <h4>What it costs</h4>
-        <p>The cup bar is short at any honest scale, because the figure is genuinely small:
-        6% to 9% is a fifth of the track. Measured in the phone panel above: on one 248px
-        track, Away Days' tie run is <b>41px</b> of colour and its cup run is <b>10px</b>.
-        Legible, and not much more. It also adds
+        <p>Ending the track at certainty is what makes the cup run short, and there is no
+        way round it: 6% to 9% is three points of a hundred. Measured in the phone panel
+        above, on a 231px track, Away Days' tie run is <b>25px</b> of colour and its cup run
+        is <b>6px</b>. The old 60% crop made that 10px, which is the whole of what the crop
+        was buying and it was not worth the lie. The panel is also <b>147px tall against
+        3b's 84px</b>, so the bars nearly double the thing merge 3 exists to keep short. It also adds
         two rows of bar plus the scale line to a panel whose whole purpose was to keep the
         offer short, and it re-opens the question of whether a bar should be there at all
         (see 3b).</p>
