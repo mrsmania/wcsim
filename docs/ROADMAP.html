@@ -1065,18 +1065,18 @@
       baseline is the only figure that has to be ready before the screen is.
     </div>
 
-    <p><strong>The merge forces a decision on the odds switch, and it is the one to make
-    first.</strong> Option 03 keeps an "Odds on" preference, on the reasoning that some
-    players want the guess and a solved offer is less interesting than an unsolved one. That
-    is right on its own and it collides with this merge: <b>if the numbers are what the
-    second tap buys, turning them off leaves the tap and takes the payment.</b> Three
-    answers. Drop the switch, and lose a preference the owner may want. Fall back to one tap
-    when the odds are off, which means two interaction models for one screen depending on a
-    setting - the kind of thing this codebase deletes rather than adds. Or <b>keep both
-    unchanged</b>, on the ground that the second tap was already justified without the odds:
-    a boost cannot be given back, and today a mis-tap spends the whole round's choice. That
-    third one is the recommendation - the odds make the tap pay, they were never the only
-    reason for it.</p>
+    <p><strong>THE ODDS SWITCH IS DROPPED</strong> (owner, 2026-09-09: "remove the odds
+    toggle"), which closes the one decision the merge created. Option 03 had kept an "Odds
+    on" preference so a player could leave the pick a guess, and the merge put it in an
+    awkward place: <b>if the numbers are what the second tap buys, turning them off leaves
+    the tap and takes the payment</b>. The two alternatives were falling back to one tap with
+    the odds off, which is two interaction models for one screen depending on a setting, and
+    keeping both on the ground that the second tap is justified anyway (a boost cannot be
+    given back, and a mis-tap currently spends the whole round's choice). Neither is needed
+    now: there is one flow, the numbers are always there, and the preference goes with the
+    control. <b>What it costs is the hedge</b> - if a solved offer turns out to be duller
+    than an unsolved one, there is no switch to reach for and the answer is to change or
+    revert the feature. That is the accepted trade, not an oversight.</p>
 
     <p><strong>The button half is small, and two things come with it from item 65.</strong>
     The chosen card fills <code>pitch-dark</code>, the app's one chosen-cell green, and one
@@ -1102,6 +1102,24 @@
     clash with the screen's primary button is <b>factually wrong</b>, because the picker and
     that button are mutually exclusive branches - when the offer is up the only other control
     is the re-roll.</p>
+
+    <div class="callout">
+      <span class="ct">Why a one-tie boost moves the cup figure, asked and answered 2026-09-09</span>
+      Away Days lasts one tie and still takes the cup from 6% to 9%, which looks wrong and is
+      not: <b>winning the cup requires winning the Round of 16</b>, so anything that helps you
+      survive the next tie helps you lift the trophy by the same factor even though the boost
+      is gone by the quarter-final. It takes the tie from 31% to 41%, a factor of 1.35, and
+      6.3% x 1.35 is 8.5% against 8.8% measured. Worth keeping because it is also <b>the check
+      that the figures are measurements rather than invention</b>: comparing each card's cup
+      figure against what it would be if only the tie had moved (the tie figure times 20.7%,
+      the baseline chance of the cup given the R16 is survived) has all four cards behaving
+      exactly as their own wording says, in four different directions. Away Days +0.3 and
+      Second Wind +0.6, both inside the 0.6pp standard error, because each lasts one round.
+      Defensive Drills <b>+2.7</b>, because it is permanent and still helping in the final.
+      Sold Out Stadium <b>-4.9</b>, because minus six in the quarter-final undoes almost all of
+      it, which is why that card prints "no real change". The table is in
+      <a class="dl" href="redesign-2026/turf-flat/boost-pick-mock.html" target="_blank" rel="noopener"><code>boost-pick-mock.html</code></a>.
+    </div>
 
     <h3>The odds half, as researched on 2026-08-25</h3>
 
@@ -1228,17 +1246,6 @@ Sponsorship               +0.2   30.9%  +0.4        +0.0   correct, and useless<
       figures per horizon, not a delta</b> (the chance now and the chance with the boost); see
       the readout note above for why printing a delta as well is not possible at whole
       precision.</li>
-      <li><b>An "Odds on" preference</b>, persisted like <code>showFullDraw</code> (a run spans
-      many navigations, so component state would reset it constantly). Its control belongs on the
-      offer, not in the settings sheet. <b>It hides every figure, the strip's own baseline
-      included</b> (decided 2026-09-09: if you do not want the pick solved you do not want "31%
-      to beat Brazil" either, so the strip keeps only the switch), and what stays is the names,
-      the descriptions, the rarity and the label on the four cards that pay outside the
-      simulation. In the code it is the readout being <em>absent</em> rather than blank, which is
-      also what a slow first frame looks like, so it costs no extra branch. It exists for two
-      reasons and the second is the honest one: some players want the pick to stay a guess, and a
-      solved offer may simply be duller than an unsolved one, so the switch is the hedge against
-      having built something that makes the game worse.</li>
     </ol>
 
     <p><strong>Three decisions before code.</strong></p>

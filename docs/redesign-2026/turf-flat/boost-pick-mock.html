@@ -175,22 +175,6 @@
   }
   .basestrip b { color: var(--ink); font-size: 12px; }
   .basestrip .sep { color: var(--line); }
-  .sw {
-    margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
-    cursor: pointer; color: var(--pitch-ink); font-weight: 600; white-space: nowrap;
-  }
-  .sw .track {
-    width: 24px; height: 13px; border-radius: 999px; background: var(--pitch);
-    position: relative; transition: background 0.15s;
-  }
-  .sw .knob {
-    position: absolute; top: 2px; left: 13px; width: 9px; height: 9px; border-radius: 50%;
-    background: #fff; transition: left 0.15s;
-  }
-  .sw.off { color: var(--muted); }
-  .sw.off .track { background: var(--bar-base); }
-  .sw.off .knob { left: 2px; }
-
   .offerhead {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
     gap: 6px; margin-bottom: 11px;
@@ -326,25 +310,6 @@
   .btn:hover { background: var(--pitch-hover); }
   .btn:focus-visible { outline: 2px solid var(--pitch); outline-offset: 2px; }
 
-  /* ---- the odds switch, also a plain checkbox ----------------------------- */
-  /* Checked means OFF, so an untouched page shows the odds. */
-  .sw input { position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; }
-  .sw .swoff { display: none; }
-  .sw:has(input:checked) { color: var(--muted); }
-  .sw:has(input:checked) .track { background: var(--bar-base); }
-  .sw:has(input:checked) .knob { left: 2px; }
-  .sw:has(input:checked) .swon { display: none; }
-  .sw:has(input:checked) .swoff { display: inline; }
-  .sw:has(input:focus-visible) .track { outline: 2px solid var(--pitch); outline-offset: 2px; }
-  /* Off hides every figure, the strip's own baseline included: if you do not want the pick
-     solved you do not want "31% to beat Brazil" either. The extra .detail in the pane
-     selector is what puts it above the reveal rules on specificity. */
-  .pick:has(.oddsw:checked) .bfig,
-  .pick:has(.oddsw:checked) .odds { display: none; }
-  .pick:has(.oddsw:checked) .detail .pane { display: none; }
-  .pick .offnote { display: none; }
-  .pick:has(.oddsw:checked) .detail .offnote { display: block; }
-
   /* ---- the panel: what the first tap buys, in merge 3 --------------------- */
   .detail {
     margin-top: 11px; background: var(--panel);
@@ -382,12 +347,6 @@
   .prow .pv .ar { color: var(--dim); font-weight: 500; padding: 0 2px; }
   .prow .pv .to { color: var(--pitch-ink); }
   .prow .pv.flat { font-size: 11px; color: var(--muted); font-weight: 600; }
-  /* What the panel says with the odds switched off. It is the page explaining itself
-     rather than app copy: the point is that there is nothing left for it to show. */
-  .detail .offnote {
-    margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); max-width: none;
-  }
-
   /* the re-roll, so the tone question stays judgeable */
   .reroll {
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -561,6 +520,63 @@
   than a fake zero when the movement is inside the noise; and a <b>label rather than a
   number</b> for the four cards that pay outside the simulation.</p>
 
+  <h2>Why a one-tie boost moves the cup figure</h2>
+
+  <p>Away Days lasts one tie and still takes the cup from 6% to 9%, which looks wrong and is
+  not. <b>Winning the cup requires winning the Round of 16</b>, so anything that helps you
+  survive the next tie helps you lift the trophy by the same factor, even though the boost is
+  long gone by the quarter-final. Away Days takes this tie from 31% to 41%, a factor of 1.35,
+  and 6.3% x 1.35 is 8.5%.</p>
+
+  <p>That also means the two rows are <b>not</b> two views of the same thing, and the gap
+  between what the cup row would be if only the tie had moved and what it actually reads is
+  where each card's real character shows up. All four behave exactly as their own wording
+  says, in four different directions, which is the check that the figures are measurements
+  rather than invention:</p>
+
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>Card</th><th class="n">This tie</th>
+          <th class="n">Cup, if only<br>the tie had moved</th>
+          <th class="n">Cup,<br>measured</th><th class="n">Gap</th>
+          <th>What the gap is</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="k">Away Days</td><td class="n">41.2%</td><td class="n">8.5%</td>
+          <td class="n">8.8%</td><td class="n meh">+0.3</td>
+          <td>Nothing. It lasts one tie, so surviving that tie is the whole of what it
+          buys.</td></tr>
+        <tr><td class="k">Second Wind</td><td class="n">48.3%</td><td class="n">10.0%</td>
+          <td class="n">10.6%</td><td class="n meh">+0.6</td>
+          <td>Nothing, inside the noise. One round only, exactly as it says.</td></tr>
+        <tr><td class="k">Defensive Drills</td><td class="n">34.0%</td><td class="n">7.0%</td>
+          <td class="n">9.7%</td><td class="n good2">+2.7</td>
+          <td>The later rounds. It is permanent, so it is still helping in the final.</td></tr>
+        <tr><td class="k">Sold Out Stadium</td><td class="n">57.9%</td><td class="n">12.0%</td>
+          <td class="n">7.1%</td><td class="n bad2">-4.9</td>
+          <td>The debt. Minus six in the quarter-final undoes almost all of it, which is why
+          the card reads "no real change".</td></tr>
+      </tbody>
+      <caption>"Cup, if only the tie had moved" is the tie figure times the baseline chance
+      of the cup given the Round of 16 is survived, which is 6.3 / 30.5 = 20.7%. Standard
+      error about 0.6pp, so a gap inside 1.2 is agreement. Derived 2026-09-09 from the
+      figures below; the figures themselves were measured 2026-08-25 against src/domain/ at
+      bd59522.</caption>
+    </table>
+  </div>
+
+  <div class="callout">
+    <span class="ct">So: no, the figures are not dummy data, and no, they are not live either</span>
+    <p>They are <b>real measurements at one specific stop</b>, taken by driving the shipped
+    simulation: an 81-rated budget XI at Base Ascension, through the group, Brazil 2002 drawn
+    in the Round of 16, 6,000 simulated brackets a card. The comp is static, so they are not
+    recomputed as you read it and they describe that one position rather than any run you
+    might be in. Re-derive them rather than trusting them if the catalogue or the ratings
+    move. What the table above adds is that they are <b>mutually consistent</b>, which no
+    invented set of numbers would be.</p>
+  </div>
+
   <h2>What is being merged, and why it is one job</h2>
 
   <p><b>Item 65</b> says the three boosts do not look pressable: on a phone they stack into
@@ -700,8 +716,7 @@
         <p>This is the two items shipped next to each other rather than merged, and it pays
         both bills in full: <b>the phone offer runs to about 590px</b>, so the fourth card is
         two screens down, and every offer costs the baseline plus four simulations before
-        anything can be shown. It also has no answer for the odds switch being off, where the
-        cards go back to being panels with a button on them.</p>
+        anything can be shown. And the numbers are on four cards when only one of them is going to be taken.</p>
       </div>
     </div>
   </div>
@@ -717,10 +732,10 @@
       <div class="stage pick phone">
         <span class="stagecap">Phone &middot; tap a card</span>
         <div class="basestrip">
-          <span class="lbl bfig">As you stand</span>
-          <span class="bfig"><b>31%</b> to beat Brazil</span>
-          <span class="sep bfig">|</span>
-          <span class="bfig"><b>6%</b> to lift the cup</span>
+          <span class="lbl">As you stand</span>
+          <span><b>31%</b> to beat Brazil</span>
+          <span class="sep">|</span>
+          <span><b>6%</b> to lift the cup</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
         <div class="cards">
@@ -747,10 +762,10 @@
       <div class="stage pick wide">
         <span class="stagecap">Desktop &middot; tap a card</span>
         <div class="basestrip">
-          <span class="lbl bfig">As you stand</span>
-          <span class="bfig"><b>31%</b> to beat Brazil</span>
-          <span class="sep bfig">|</span>
-          <span class="bfig"><b>6%</b> to lift the cup</span>
+          <span class="lbl">As you stand</span>
+          <span><b>31%</b> to beat Brazil</span>
+          <span class="sep">|</span>
+          <span><b>6%</b> to lift the cup</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span>
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
@@ -828,11 +843,10 @@
       <div class="stage pick phone">
         <span class="stagecap">Phone &middot; tap a card</span>
         <div class="basestrip">
-          <span class="lbl bfig">As you stand</span>
-          <span class="bfig"><b>31%</b> to beat Brazil</span>
-          <span class="sep bfig">|</span>
-          <span class="bfig"><b>6%</b> to lift the cup</span>
-          <label class="sw"><input type="checkbox" class="oddsw"><span class="track"><span class="knob"></span></span><span class="swon">Odds on</span><span class="swoff">Odds off</span></label>
+          <span class="lbl">As you stand</span>
+          <span><b>31%</b> to beat Brazil</span>
+          <span class="sep">|</span>
+          <span><b>6%</b> to lift the cup</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span></div>
         <div class="cards">
@@ -882,7 +896,6 @@
                 <span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv flat">No real change</span></div>
             </div>
-            <p class="offnote">With the odds switched off there is nothing for this panel to show, so the first tap only highlights the card and the second one confirms it. That is the decision at the foot of this page.</p>
         </div>
         <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
         <div class="reroll">
@@ -893,11 +906,10 @@
       <div class="stage pick wide">
         <span class="stagecap">Desktop &middot; tap a card</span>
         <div class="basestrip">
-          <span class="lbl bfig">As you stand</span>
-          <span class="bfig"><b>31%</b> to beat Brazil</span>
-          <span class="sep bfig">|</span>
-          <span class="bfig"><b>6%</b> to lift the cup</span>
-          <label class="sw"><input type="checkbox" class="oddsw"><span class="track"><span class="knob"></span></span><span class="swon">Odds on</span><span class="swoff">Odds off</span></label>
+          <span class="lbl">As you stand</span>
+          <span><b>31%</b> to beat Brazil</span>
+          <span class="sep">|</span>
+          <span><b>6%</b> to lift the cup</span>
         </div>
         <div class="offerhead"><span class="lbl">Pick a boost</span>
           <span class="next">Next: <span class="flag"></span><b>Brazil</b> 2002 in the Round of 16</span></div>
@@ -952,7 +964,6 @@
                 <span class="pv">31%<span class="ar">&rarr;</span><span class="to">58%</span></span></div>
               <div class="prow"><span class="pk">Lifting the cup</span><span class="pv flat">No real change</span></div>
             </div>
-            <p class="offnote">With the odds switched off there is nothing for this panel to show, so the first tap only highlights the card and the second one confirms it. That is the decision at the foot of this page.</p>
         </div>
         <button class="btn" type="button">Take <span class="tk tk-drills">Defensive Drills</span><span class="tk tk-away">Away Days</span><span class="tk tk-wind">Second Wind</span><span class="tk tk-sold">Sold Out Stadium</span></button>
         <div class="reroll">
@@ -1033,68 +1044,6 @@
   <code>rarity</code>), and that is the thing that stops a payout card reading as worthless.
   In option 3 the label is the whole panel for such a card, which is the one place it is
   cheaper than the other two merges are: no simulation runs at all.</p>
-
-  <h2>The odds switch: what it is, exactly</h2>
-
-  <p>It is a saved player preference, and it comes from option 03 rather than from the merge.
-  Both switches on this page are live, so it can be tried rather than read about.</p>
-
-  <div class="worked">
-    <div>
-      <h4>What it is</h4>
-      <p>A setting, remembered between runs, exactly as the bracket's "show the full draw"
-      chevron is. <b>Its control belongs on the offer</b>, in the strip above the boosts,
-      rather than buried in the settings sheet, for the same reason the bracket's chevron is
-      its own control: this is where you would want it.</p>
-      <p>It is not a difficulty option and it changes nothing about the game. It only decides
-      whether the screen tells you what it knows.</p>
-    </div>
-    <div>
-      <h4>What it hides</h4>
-      <p><b>Every figure, the baseline included.</b> If you do not want the pick solved, you
-      do not want "31% to beat Brazil" either, so the strip keeps only the switch. In the
-      code this is the whole readout being absent rather than blank, which is also what a
-      slow first frame looks like, so it costs no extra branch.</p>
-      <p>What stays: the boost names, their descriptions, their rarity, and the label on the
-      four cards that pay outside the simulation, since none of that is an odds figure.</p>
-    </div>
-  </div>
-
-  <h3>Why it exists at all</h3>
-  <p>Two reasons, and the second is the honest one. Some players will want the pick to stay a
-  guess. And <b>a solved offer may simply be less interesting</b>: four cards with numbers on
-  them is an arithmetic problem rather than a gamble, and the from-to form makes that more
-  true than a bare delta did, because it needs no working out. The switch is the hedge
-  against having built something that makes the game duller.</p>
-
-  <h3>What it does in each of the three merges</h3>
-  <ul>
-    <li><b>In 1 and 2</b> the cards lose their two rows and go back to being what ships
-    today, plus the button. One tap still takes a boost in 1, two in 2. Nothing else
-    changes.</li>
-    <li><b>In 3 the panel has nothing to show</b>, which is the whole problem. Turn either
-    switch off above and read what the panel says: the first tap only highlights the card and
-    the second confirms it. That is not broken, but it is the second tap charging for
-    something it is no longer delivering.</li>
-  </ul>
-
-  <div class="callout warn">
-    <span class="ct">Two taps with the odds turned off is friction with nothing behind it</span>
-    <p>Option 03 keeps an <b>Odds on</b> preference, on the reasoning that some players want
-    the guess and a solved offer is less interesting than an unsolved one. That is right on
-    its own and it collides with this merge: if the numbers are what the second tap buys,
-    turning them off leaves the tap and takes the payment. Three answers, and the third is
-    the recommendation:</p>
-    <p><b>Drop the switch</b> - one flow, and the preference the owner might want is gone.
-    <b>Fall back to one tap when the odds are off</b> - honest, and it means the game has two
-    different interaction models for the same screen depending on a setting, which is the
-    kind of thing this codebase deletes rather than adds. <b>Keep both, unchanged</b>, on the
-    ground that <em>the second tap was already justified without the odds</em>: a boost
-    cannot be given back, and today a mis-tap spends the whole round's choice. The odds make
-    the tap pay; they were never the only reason for it.</p>
-    <p>Both switches on this page are live. Turn one off and the figures go, which is exactly
-    what the component does when the prop is absent.</p>
-  </div>
 
   <h2>The measurements</h2>
 
@@ -1188,8 +1137,6 @@
     <li><b>Is Sold Out Stadium still shippable once the screen prices it?</b> Its known hole
     (free if taken before the final) becomes visible the day this ships. Fix the card, or let
     "no real change" be the warning.</li>
-    <li><b>Whether the second tap survives the odds being off</b> - the switch decision
-    above.</li>
   </ul>
 
   <div class="foot-note">
