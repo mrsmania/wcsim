@@ -106,12 +106,17 @@ button{font:inherit;color:inherit}
   -webkit-font-smoothing:antialiased;
 }
 
-/* ---- variant B: five pairings, all from the shortlist ---- */
+/* ---- variant B: six pairings, all from the shortlist ---- */
 .board[data-set="rubik"]{--f-display:"Rubik",system-ui,sans-serif;--f-body:"Inter",system-ui,sans-serif;--f-mono:"Inter",system-ui,sans-serif}
+/* Rubik and Inter with a REAL monospace kept for the figures. The other four
+   sets retire the monospace and lean on tabular lining numerals; this one and
+   Recursive keep the current structure, where every figure and small label is
+   monospaced, and only change which face does it. */
+.board[data-set="rubik-mono"]{--f-display:"Rubik",system-ui,sans-serif;--f-body:"Inter",system-ui,sans-serif;--f-mono:"Recursive",ui-monospace,monospace}
 .board[data-set="inter"]{--f-display:"Inter",system-ui,sans-serif;--f-body:"Inter",system-ui,sans-serif;--f-mono:"Inter",system-ui,sans-serif}
 .board[data-set="poppins"]{--f-display:"Poppins",system-ui,sans-serif;--f-body:"Open Sans",system-ui,sans-serif;--f-mono:"Open Sans",system-ui,sans-serif}
 .board[data-set="recursive"]{--f-display:"Recursive",system-ui,sans-serif;--f-body:"Recursive",system-ui,sans-serif;--f-mono:"Recursive",ui-monospace,monospace}
-.board[data-set="recursive"] :is(.mono,.monocap,.eyebrow,.cp-eyebrow,.cp-meta,.crumb,
+:is(.board[data-set="recursive"],.board[data-set="rubik-mono"]) :is(.mono,.monocap,.eyebrow,.cp-eyebrow,.cp-meta,.crumb,
   .asc button,.strip .lb,.strip .vl,.disc,.donut span,.chem-chips span,.xi-head,.xi-pos,
   .xi-sq,.xi-elo,.rx-strip .lb,.rx-strip .vl,.rx-pos,.rx-elo,.st-h,.st-n,.st-pts,
   .st-pos b,.st-pos i,.st-year,.st-foot,.md-label>span,.tag,.fx .score,.fx .status,
@@ -124,7 +129,7 @@ button{font:inherit;color:inherit}
    lining numerals in the text face instead of a separate monospaced one. */
 .board[data-variant="b"]{--w-black:700;--w-x:700;--w-b:600;--w-sb:600;--tr-title:-0.01em;--num:tabular-nums}
 .board[data-variant="b"][data-set="lato"]{--w-black:900;--w-x:700}
-.board[data-variant="b"][data-set="recursive"]{--num:normal}
+.board[data-variant="b"]:is([data-set="recursive"],[data-set="rubik-mono"]){--num:normal}
 
 /* Sentence case is the SECOND variable, switchable on its own so the typeface can
    be told apart from the styling. Lowercase reads smaller at the same pixel size,
@@ -446,6 +451,7 @@ button{font:inherit;color:inherit}
     <label for="seg-set">Proposed type</label>
     <div class="seg" id="seg-set" data-ctl="set">
       <button type="button" data-v="rubik" aria-pressed="true">Rubik + Inter</button>
+      <button type="button" data-v="rubik-mono" aria-pressed="false">Rubik + Inter + Recursive Mono</button>
       <button type="button" data-v="inter" aria-pressed="false">Inter only</button>
       <button type="button" data-v="poppins" aria-pressed="false">Poppins + Open Sans</button>
       <button type="button" data-v="recursive" aria-pressed="false">Recursive</button>
@@ -497,8 +503,13 @@ button{font:inherit;color:inherit}
     small caption is set in Spline Sans Mono, which is the single loudest signal that a
     machine laid the page out. On the proposed side the figures are the text face with proper
     tabular lining numerals, so columns still line up and nothing reads as a terminal.
-    Recursive is the exception and keeps a monospace, because it has one built into the same
-    family and it is a warm one rather than a technical one.</li>
+    <b>Two of the six keep a monospace</b> and only change which face does the job: Recursive,
+    which has one built into the same family, and Rubik + Inter + Recursive Mono, which is the
+    recommended pairing with that same monospace kept for the figures alone. Worth knowing that
+    lining up in columns and being monospaced are different things: every face here has tabular
+    figures, where each digit is one width, so the tables line up either way. A monospace goes
+    further and makes every character one width, letters included, which is what produces the
+    typewriter look.</li>
     <li><b>Labels are sentence case.</b> Today they are capitals with up to 0.2em of extra
     letter spacing. On the proposed side they are written the way a person writes. This is a separate
     switch in the bar above, so you can hold the fonts still and see how much of the effect is
@@ -517,19 +528,23 @@ button{font:inherit;color:inherit}
   decision, and every word of copy. If the proposed side reads better it is not because
   anything was tidied up while you were not looking.</p>
 
-  <h2>The five pairings</h2>
+  <h2>The six pairings</h2>
   <ul>
     <li><b>Rubik and Inter.</b> The recommendation. Rubik has slightly rounded corners and
     sturdy heavy weights, which suits a football game and is not the face every dashboard
     uses; Inter carries the tables, line-ups and figures, which is the job it is best in the
     world at. Two clearly different jobs, two clearly different faces.</li>
+    <li><b>Rubik, Inter and Recursive Mono.</b> The one above with the current structure kept:
+    the figures and the small labels stay monospaced, in Recursive's own duplexed mono, which is
+    warm and slightly humanist where Spline Sans Mono is technical. Take this one if the
+    monospaced numbers are part of the game's character rather than part of the problem.</li>
     <li><b>Inter only.</b> The most restrained answer. One family, hierarchy carried by weight
     and size alone. Safe, calm, and slightly anonymous.</li>
     <li><b>Poppins and Open Sans.</b> The friendliest. Poppins is geometric and round, which
     reads younger and more casual. It is also currently the most heavily used display face on
     the web, so it carries a whiff of template.</li>
     <li><b>Recursive.</b> One superfamily doing all three jobs, with its own duplexed
-    monospace for the figures. The most distinctive of the five and the most opinionated.</li>
+    monospace for the figures. The most distinctive of the six and the most opinionated.</li>
     <li><b>Lato and Roboto.</b> The most conventional. Lato's heavy weights are warm and a
     little humanist; Roboto is the plainest, most invisible text face available.</li>
   </ul>
@@ -1069,26 +1084,32 @@ ${mast('records')}
    Wiring.
    ------------------------------------------------------------------------ */
 const SCREENS = {play:screenPlay, run:screenRun, records:screenRecords, cabinet:screenCabinet};
+/* The caption under each board, as [what it sets, the name to print, the family to
+   print it IN, monospaced?]. A set carries as many parts as it has jobs: three where
+   the figures have a face of their own, one where a single family does everything. */
 const SPEC = {
-  rubik:   ['Titles','Rubik','text and figures','Inter'],
-  inter:   ['Titles','Inter','text and figures','Inter'],
-  poppins: ['Titles','Poppins','text and figures','Open Sans'],
-  recursive:['Titles and text','Recursive','figures','Recursive Mono'],
-  lato:    ['Titles','Lato','text and figures','Roboto']
+  rubik:        [['Titles','Rubik','Rubik'],['text and figures','Inter','Inter']],
+  'rubik-mono': [['Titles','Rubik','Rubik'],['text','Inter','Inter'],['figures','Recursive Mono','Recursive',1]],
+  inter:        [['Titles, text and figures','Inter','Inter']],
+  poppins:      [['Titles','Poppins','Poppins'],['text and figures','Open Sans','Open Sans']],
+  recursive:    [['Titles and text','Recursive','Recursive'],['figures','Recursive Mono','Recursive',1]],
+  lato:         [['Titles','Lato','Lato'],['text and figures','Roboto','Roboto']]
 };
-const FAMILY_CSS = {rubik:['Rubik','Inter'], inter:['Inter','Inter'], poppins:['Poppins','Open Sans'],
-  recursive:['Recursive','Recursive'], lato:['Lato','Roboto']};
 
 const state = {screen:'play', set:'rubik', layout:'side', zoom:'fit', sentence:true};
 const A = document.getElementById('boardA'), B = document.getElementById('boardB');
 const stage = document.getElementById('stage');
 
 function paintSpec(){
-  const s = SPEC[state.set], f = FAMILY_CSS[state.set];
+  const parts = SPEC[state.set].map((part, i) => {
+    const [job, name, family, mono] = part;
+    const style = 'font-family:\'' + family + '\''
+      + (i === 0 ? ';font-weight:700' : '')
+      + (mono ? ';font-variation-settings:\'MONO\' 1' : '');
+    return job + ' <i style="' + style + '">' + name + '</i>';
+  });
   document.getElementById('specB').innerHTML =
-    s[0] + ' <i style="font-family:\'' + f[0] + '\';font-weight:700">' + s[1] + '</i>, ' +
-    s[2] + ' <i style="font-family:\'' + f[1] + '\'">' + s[3] + '</i>, labels ' +
-    (state.sentence ? 'in sentence case' : 'in capitals, as now');
+    parts.join(', ') + ', labels ' + (state.sentence ? 'in sentence case' : 'in capitals, as now');
 }
 
 function fit(){
