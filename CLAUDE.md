@@ -319,9 +319,10 @@ is a reason to revisit the name; the crowded ground is.
 - Flags from `country-flag-icons`; icons from `lucide-react`; the win-celebration
   confetti is a small self-contained canvas renderer (`Confetti.tsx`, no dependency);
   routing from `react-router-dom`.
-- Fonts: **Rubik** (display) and **Inter** (everything else), loaded via a Google Fonts
-  `<link>` in `index.html`. Read "Type" below before touching any of it, and in particular
-  before "tidying" the `font-mono` utility out of anything.
+- Fonts: **Rubik** (display), **Inter** (text) and **Recursive Mono** (every figure and
+  data label), all three loaded via a Google Fonts `<link>` in `index.html`. Read "Type"
+  below before touching any of it, and in particular before "tidying" the `font-mono`
+  utility out of anything or the `MONO,` out of that link.
 
 ## Visual design (turf-flat)
 
@@ -398,7 +399,7 @@ The comps (`home`, `selected-xi`, `tournament`, `index` launcher) carry a live
 default green scheme. Earlier explorations live alongside: `option-{1,2,3}-*.html`
 and the brutalist `tifo/` set (the hard-shadow idea came from there).
 
-## Type: Rubik and Inter, and NO CAPITALS
+## Type: Rubik, Inter and Recursive Mono, and NO CAPITALS
 
 Changed 2026-09-11, on the owner's reading that the app looked machine-made and that the
 fonts and the all-caps labels were the tell. Both halves of that were right and they are
@@ -413,7 +414,9 @@ because it is how the next question of this shape gets answered.
 **WHAT CHANGED, and it is only these four things:**
 
 - **The faces.** Archivo becomes **Rubik** for display type, Schibsted Grotesk becomes
-  **Inter** for text, and Spline Sans Mono is retired.
+  **Inter** for text, and Spline Sans Mono is retired. (The mono SLOT was not retired with
+  it, only left pointing at Inter for a day; **Recursive Mono** took it on 2026-09-10 and
+  the figures are monospaced again. See the seam below.)
 - **Every label is sentence case.** `uppercase` and the positive letter-spacing that only
   exists to make capitals legible (0.02em to 0.3em) came off together, everywhere. Negative
   tracking is a display-type decision and stayed, except that the titles' `-0.02em` eased
@@ -423,23 +426,57 @@ because it is how the next question of this shape gets answered.
   read as heavy: the pitch badge numbers and the name plates are still 800 on purpose.
 - Nothing else. No colour, no spacing, no layout, no copy.
 
-**`--font-mono` IS THE SEAM, AND IT IS THE MOST IMPORTANT LINE IN THIS SECTION.** It points
-at Inter today, so the `font-mono` utility is not monospaced any more - and **the name is
-kept deliberately**, because it is the MARKER for "this is a figure or a data label" on
-about 210 sites. Point the token at a real monospace and every one of them turns over in
-one line. That is the option the owner asked to keep open, **Recursive Mono for the figures
-later**, and it needs three things and nothing else: the token, `Recursive` added to
-`index.html`'s font link, and `font-variation-settings: 'MONO' 1` beside the `.font-mono`
-rule, since Recursive's monospace is an AXIS on the same family rather than a separate
-file. So do **not** strip `font-mono` out of the components on the grounds that it no
-longer names a monospace. It names the seam.
+**`--font-mono` IS THE SEAM, AND IT IS THE MOST IMPORTANT LINE IN THIS SECTION.** It is
+the MARKER for "this is a figure or a data label" on about 210 sites, which is why the
+name was kept when the token briefly pointed at Inter, and which is what made **taking the
+option up on 2026-09-10 a one-line change**: `--font-mono` names **Recursive Mono** now, so
+every standings column, price, rating, percentage, scoreline, position code and small
+caption is monospaced again and nothing else in the app moved. No colour, no spacing, no
+layout, no copy, and no component edited. So do **not** strip `font-mono` out of the
+components; it names the seam, and the seam is what let the face be swapped twice in a day
+without touching a screen.
 
-**THE FIGURES STILL LINE UP, and tabular numerals are what does that rather than the face.**
-One rule in `index.css` (`.font-mono { font-variant-numeric: tabular-nums }`) covers every
-standings column, price, rating, percentage and scoreline, because all of them already
-carried that utility. Worth stating precisely, since it is what makes the choice a real
-one: **tabular figures give every DIGIT one width, which is all a column ever needed, and a
-monospace also fixes the LETTERS** - which is the half that reads as a terminal.
+**THE MONO IS AN AXIS, AND IT IS PINNED IN THE FONT LINK RATHER THAN IN CSS. This is the
+one thing to know before editing either file.** Recursive carries `MONO` as a variable axis
+on ONE family, so the obvious wiring is `font-variation-settings: 'MONO' 1` beside the
+`.font-mono` rule - and that is what this file used to say to do, and it would have been
+**wrong**. Seven raw rules in `index.css` (the bracket's `bkt-` cells) set
+`font-family: var(--font-mono)` without ever carrying the `.font-mono` class, so each of
+them would have needed the same declaration and the next one written would have come out
+proportional with nothing to say so. `index.html` asks Google for
+`family=Recursive:MONO,wght@1,400..800` instead, which serves the axis **baked in** - the
+file is the "Recursive Sans Linear Monospace" instance with only `wght` still variable and
+every glyph 600/1000 wide (verified with fontTools, not assumed) - so the family the token
+names IS the monospace wherever it is reached from.
+
+**THE FAILURE THAT WOULD BE SILENT IS DROPPING THE `MONO,` FROM THAT URL.** Google serves
+the same family name, proportional; no request fails, nothing errors, and every figure in
+the game quietly stops lining up. `scripts/checks/type.ts` holds the two files together -
+every face a token names is fetched, and if the mono token is Recursive the link pins the
+axis at 1 - and all four of its assertions were mutation-tested red.
+
+**THE FIGURES LINE UP TWICE OVER, and the two halves are separable.** One rule in
+`index.css` (`.font-mono { font-variant-numeric: tabular-nums }`) asks for tabular DIGITS,
+which is all a column ever needed and which is what carried the columns while the token
+pointed at Inter; the FACE fixes the LETTERS as well, which is the half that reads as a
+terminal and the half that came back on 2026-09-10. Recursive Mono is duplexed, so the
+tabular request is a no-op while it is loaded: it is kept because it is the rule that still
+holds in the gap before the font arrives and if the token ever moves back.
+
+**WHAT IT COST IN LAYOUT WAS ONE COLUMN, and that is measured rather than assumed.** A
+monospace makes small LABELS wider (the digits barely move), so every screen was driven at
+1280 and at 390 with the token flipped between the two faces: no page gained a horizontal
+scroll and nothing new overflowed except the squad browser's phone stat header, whose
+column widths that morning's commit had sized off those very words in Inter. At
+`text-[10px]` every Recursive glyph is 6px, so Rating measures 36, Players 42 and
+Collectibles 72; the first two already were their column and the third was 64 and drew its
+first character on top of Players, so it is 72 now and the 8px came off the team name. That
+docblock in `SquadBrowser.tsx` carries the arithmetic. **Two SENTENCES render in the mono
+face** and were checked for deliberately - the build page's "Roll a national-team squad..."
+helper and the difficulty setting's "No handicap either way..." - both marked `font-mono`
+since the turf-flat design, so they read as they did under Spline Sans Mono. They are the
+only two, they are prose rather than figures, and moving them to `font-sans` is a one-line
+call for the owner rather than a consequence of the face.
 
 **FOUR THINGS KEPT THEIR CAPITALS**, and every one is an abbreviation or a marker rather
 than a label somebody wrote in caps:

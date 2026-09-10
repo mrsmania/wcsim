@@ -237,13 +237,20 @@ export default function SquadBrowser() {
  *  name: the desktop set spends 226px plus its gaps on three columns holding two
  *  digits each, which left about 46px for the name inside a 362px card and drew
  *  every nation as one letter and an ellipsis. Below `sm` they are cut back to
- *  what the headers themselves measure (about 32 / 38 / 60px at this size, plus a
- *  couple of pixels of slack), which hands roughly 90px back to the name and is
- *  enough for the longest of them on any phone. Nothing is abbreviated and no
+ *  what the headers themselves measure, which hands most of that back to the name.
+ *
+ *  THOSE PHONE WIDTHS ARE A MEASUREMENT OF THE HEADER WORDS IN THE MONO FACE, so
+ *  they moved when the face did (2026-09-10, Recursive Mono). They are exact now
+ *  rather than approximate, which is what a monospace buys: at `text-[10px]` every
+ *  glyph is 6px, so Rating measures 36, Players 42 and Collectibles 72. The first
+ *  two already were their column; the third was 64 and drew its first character on
+ *  top of Players. Re-measure all three if the mono face or this size ever moves.
+ *  The 8px the third one gained came off the name, which is the trade this whole
+ *  docblock is about. Nothing is abbreviated and no
  *  figure is dropped; the padding stays at `px-4` so the rows keep their left
  *  edge in line with the card headers above them. */
 const STAT_GRID = FEATURES.stickerAlbum
-    ? 'grid grid-cols-[minmax(0,1fr)_36px_42px_64px] items-center gap-1.5 px-4 sm:grid-cols-[minmax(0,1fr)_58px_64px_104px] sm:gap-2'
+    ? 'grid grid-cols-[minmax(0,1fr)_36px_42px_72px] items-center gap-1.5 px-4 sm:grid-cols-[minmax(0,1fr)_58px_64px_104px] sm:gap-2'
     : 'grid grid-cols-[minmax(0,1fr)_36px_42px] items-center gap-1.5 px-4 sm:grid-cols-[minmax(0,1fr)_58px_64px] sm:gap-2';
 
 /** The trailing header labels (rating / players / collectibles), right-aligned. */

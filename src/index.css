@@ -1,10 +1,13 @@
 @import 'tailwindcss';
 
-/* THE FIGURES STILL LINE UP, and this is the rule that does it rather than the face.
-   Tabular numerals give every digit one width, which is all a column of ratings, prices
-   or scorelines ever needed; a monospace also fixes the LETTERS, and that is the part
-   that read as a terminal. `font-mono` marks every such site (see the token note in
-   the theme block below), so one rule serves all of them. */
+/* THE FIGURES LINE UP TWICE OVER, and the two halves are worth telling apart.
+   Tabular numerals give every DIGIT one width, which is all a column of ratings, prices
+   or scorelines ever needed, and this rule is what asks for them; the face named by
+   `--font-mono` fixes the LETTERS as well, which is the half a monospace adds. Recursive
+   Mono is duplexed, so the request is a no-op while it is loaded and the rule earns its
+   place in the gap before it is and if the token ever moves back to a proportional face.
+   `font-mono` marks every such site (see the token note in the theme block below), so
+   one rule serves all of them. */
 .font-mono {
     font-variant-numeric: tabular-nums;
 }
@@ -124,18 +127,30 @@
        twice and holds every other variable still, so the pairing was picked against the
        real game rather than against a specimen.
 
-       `--font-mono` IS THE ONE TO READ BEFORE CHANGING ANYTHING HERE. It is Inter today,
-       which is to say the `font-mono` utility is no longer monospaced - and the name is
-       kept deliberately, because it is the MARKER for "this is a figure or a data label"
-       on about 210 sites. Point it at a real monospace and every one of them becomes
-       monospaced again in one line, which is exactly the option the owner asked to keep
-       open (Recursive Mono is the candidate; it would need adding to index.html's font
-       link and `font-variation-settings: 'MONO' 1` beside the rule below, since its
-       monospace is an axis on the same family rather than a separate file).
+       `--font-mono` IS THE ONE TO READ BEFORE CHANGING ANYTHING HERE, and it is a real
+       monospace again: Recursive Mono, taken up on 2026-09-10 (the option the Rubik +
+       Inter pass was written to keep open, and the sixth pairing on
+       docs/redesign-2026/typography-compare.html). The token is the SEAM: `font-mono`
+       marks "this is a figure or a data label" on about 210 sites, so which face does
+       that job is this one line and nothing else had to move.
 
-       So: do not "tidy" `font-mono` out of the components. It is the seam. */
+       THE MONO IS AN AXIS, NOT A SEPARATE FAMILY, AND IT IS PINNED IN THE FONT LINK
+       RATHER THAN IN CSS. Recursive carries MONO as a variable axis on one family, so
+       the obvious wiring is `font-variation-settings: 'MONO' 1` beside the rule at the
+       top of this file - and that would have been WRONG, because seven raw rules further
+       down (the bracket's `bkt-` cells) set `font-family: var(--font-mono)` without ever
+       carrying the `.font-mono` class, so each of them would have needed the same
+       declaration and a new one would silently come out proportional. `index.html` asks
+       Google for `Recursive:MONO,wght@1,400..800` instead, which serves the axis baked in
+       at 1 (verified: the file is the "Recursive Sans Linear Monospace" instance, only
+       `wght` still variable, every glyph 600/1000 wide), so the family named by the token
+       IS the monospace wherever it is reached from.
+
+       So: do not "tidy" `font-mono` out of the components, and do not drop the `MONO,`
+       part of the font link - without it the family loads proportional and every figure
+       in the game quietly stops lining up. */
     --font-sans: 'Inter', system-ui, sans-serif;
-    --font-mono: 'Inter', system-ui, sans-serif;
+    --font-mono: 'Recursive', ui-monospace, SFMono-Regular, Menlo, monospace;
     --font-display: 'Rubik', system-ui, sans-serif;
 }
 
