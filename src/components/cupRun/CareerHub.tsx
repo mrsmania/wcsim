@@ -198,6 +198,14 @@ export default function CareerHub({
                     <div className="mt-1 font-mono text-[38px] font-bold leading-none text-amber-ink">
                         {career.prestige}
                     </div>
+                    {/* The one sentence on the page, and it is here rather than beside a
+                        heading: a currency needs saying what it BUYS once, where the figure
+                        is, and the two shops below then need no caption of their own. It is
+                        the album card's own shape - the duplicate count carries a line
+                        under it saying what duplicates are for. */}
+                    <div className="mt-1.5 text-[11.5px] leading-snug text-muted">
+                        Spend it on perks and boosts to strengthen your next run.
+                    </div>
                 </div>
             </section>
 
