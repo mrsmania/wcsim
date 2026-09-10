@@ -1,0 +1,1129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mondialino: typography comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600;700&family=Rubik:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700;900&family=Roboto:wght@400;500;700&family=Recursive:MONO,wght@0,400..800;1,400..800&display=swap">
+<style>
+/* ===========================================================================
+   THE WORKBENCH.
+
+   Deliberately typographically silent. The chrome is set in whatever UI face the
+   reader's operating system supplies, and it is monochrome, because anything with
+   a voice of its own would sit right next to the two samples and contaminate the
+   comparison. The only colour and the only personality on this page belong to the
+   two artboards.
+   ========================================================================= */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:#17191d;color:#cbd0d6;
+  font:400 13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+button{font:inherit;color:inherit}
+
+.bar{
+  position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;align-items:center;
+  gap:8px 22px;padding:10px 18px;background:#1f2228;border-bottom:1px solid #2c3037;
+}
+.bar h1{margin:0;font-size:13px;font-weight:600;color:#f2f4f7}
+.bar h1 span{color:#7d858f;font-weight:400}
+.grp{display:flex;align-items:center;gap:9px}
+.grp>label{color:#7d858f;font-size:12px}
+.seg{display:flex;border:1px solid #35393f;border-radius:6px;overflow:hidden;background:#191b1f}
+.seg button{
+  border:0;background:transparent;color:#9aa2ab;padding:5px 11px;font-size:12px;
+  cursor:pointer;border-left:1px solid #35393f;white-space:nowrap;
+}
+.seg button:first-child{border-left:0}
+.seg button:hover{color:#e7eaee;background:#23262c}
+.seg button[aria-pressed="true"]{background:#3a3f47;color:#fff}
+.seg button:focus-visible{outline:2px solid #6f7b88;outline-offset:-2px}
+.chk{display:inline-flex;align-items:center;gap:7px;color:#9aa2ab;font-size:12px;cursor:pointer}
+.chk input{accent-color:#8b959f;width:14px;height:14px}
+
+.stage{padding:20px 18px 8px;display:grid;gap:20px;align-items:start}
+.stage[data-layout="side"]{grid-template-columns:1fr 1fr}
+.stage[data-layout="stack"]{grid-template-columns:minmax(0,1fr)}
+.pane{margin:0;min-width:0}
+.slate{
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  padding:0 2px 9px;border-bottom:1px solid #2c3037;margin-bottom:12px;
+}
+.slate b{color:#f2f4f7;font-weight:600;font-size:12.5px}
+.slate .spec{color:#7d858f;font-size:12px}
+/* Each font name is set in the font it names, so the caption demonstrates the
+   thing it labels instead of describing it. */
+.slate .spec i{font-style:normal;color:#c9d0d7}
+.frame{overflow:auto;border:1px solid #2c3037;background:#0f1013}
+.zoomer{zoom:var(--z,1)}
+
+.notes{max-width:76ch;margin:26px auto 70px;padding:0 18px;color:#9aa2ab;font-size:13px;line-height:1.65}
+.notes h2{font-size:13px;font-weight:600;color:#f2f4f7;margin:26px 0 8px}
+.notes p{margin:0 0 10px}
+.notes ul{margin:0 0 10px;padding-left:18px}
+.notes li{margin:0 0 6px}
+.notes b{color:#dfe4e9;font-weight:600}
+.notes hr{border:0;border-top:1px solid #2c3037;margin:22px 0}
+
+@media (max-width:1100px){.stage[data-layout="side"]{grid-template-columns:minmax(0,1fr)}}
+
+/* ===========================================================================
+   THE ARTBOARD.
+
+   Everything below reproduces the shipped app: the tokens from src/index.css and
+   the measurements from src/components. The two boards render IDENTICAL markup
+   with identical colour, spacing, borders, radii and shadows. Only the type layer
+   differs, and all of it is custom properties set on .board, so the comparison is
+   isolated to typography and nothing else.
+   ========================================================================= */
+.board{
+  --ground:#f4f2ec;--panel:#fff;--chalk:#e8f0e8;--ink:#13211a;--muted:#5c6a60;
+  --line:#d4ded5;--pitch:#15924c;--pitch-dark:#0e5c34;--accent:#0e5c34;
+  --amber:#e4922b;--loss:#c8453c;--dim:#636c65;--hair:#e3e8e2;--faint:#ecebe3;
+  --cup-deep:#0a1b12;--amber-ink:#8a5a0f;--pitch-ink:#0e5c34;--gold-ink:#7d5f10;
+  --grass:#1a7d45;--grass-stripe:#1f8a4d;--amber-on-green:#f5c168;
+  --sh-hard:6px 6px 0 var(--pitch-dark);
+  --sh-hard-sm:4px 4px 0 var(--pitch-dark);
+  --sh-soft:0 1px 2px rgba(19,33,26,.05),0 12px 30px rgba(19,33,26,.07);
+
+  /* ---- the type layer, variant A: exactly what ships today ---- */
+  --f-display:"Archivo",system-ui,sans-serif;
+  --f-body:"Schibsted Grotesk",system-ui,sans-serif;
+  --f-mono:"Spline Sans Mono",ui-monospace,monospace;
+  --w-black:900;--w-x:800;--w-b:700;--w-sb:600;
+  --tr-title:-0.02em;   /* display tracking */
+  --cap:uppercase;      /* label casing */
+  --capk:1;             /* label tracking multiplier */
+  --lc:1;               /* label size multiplier */
+  --num:normal;         /* tabular figures, only needed once off the monospace */
+
+  width:1180px;background:var(--ground);color:var(--ink);
+  font-family:var(--f-body);font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---- variant B: five pairings, all from the shortlist ---- */
+.board[data-set="rubik"]{--f-display:"Rubik",system-ui,sans-serif;--f-body:"Inter",system-ui,sans-serif;--f-mono:"Inter",system-ui,sans-serif}
+.board[data-set="inter"]{--f-display:"Inter",system-ui,sans-serif;--f-body:"Inter",system-ui,sans-serif;--f-mono:"Inter",system-ui,sans-serif}
+.board[data-set="poppins"]{--f-display:"Poppins",system-ui,sans-serif;--f-body:"Open Sans",system-ui,sans-serif;--f-mono:"Open Sans",system-ui,sans-serif}
+.board[data-set="recursive"]{--f-display:"Recursive",system-ui,sans-serif;--f-body:"Recursive",system-ui,sans-serif;--f-mono:"Recursive",ui-monospace,monospace}
+.board[data-set="recursive"] :is(.mono,.monocap,.eyebrow,.cp-eyebrow,.cp-meta,.crumb,
+  .asc button,.strip .lb,.strip .vl,.disc,.donut span,.chem-chips span,.xi-head,.xi-pos,
+  .xi-sq,.xi-elo,.rx-strip .lb,.rx-strip .vl,.rx-pos,.rx-elo,.st-h,.st-n,.st-pts,
+  .st-pos b,.st-pos i,.st-year,.st-foot,.md-label>span,.tag,.fx .score,.fx .status,
+  .boost .rar,.oddsrow .fig,.reroll span,.legend span,.prestige,.filters .pill b,
+  .fam .ct,.lrow .aw,.lhead,.c-rank,.c-name i,.c-metric,.c-apps,.c-runs,.plinth b,
+  .shelf .nth,.rec .v,.formhead,.forms li,.bdg .pg){font-variation-settings:"MONO" 1}
+.board[data-set="lato"]{--f-display:"Lato",system-ui,sans-serif;--f-body:"Roboto",system-ui,sans-serif;--f-mono:"Roboto",system-ui,sans-serif}
+
+/* Every B set drops a step of display weight and gives the figures real tabular
+   lining numerals in the text face instead of a separate monospaced one. */
+.board[data-variant="b"]{--w-black:700;--w-x:700;--w-b:600;--w-sb:600;--tr-title:-0.01em;--num:tabular-nums}
+.board[data-variant="b"][data-set="lato"]{--w-black:900;--w-x:700}
+.board[data-variant="b"][data-set="recursive"]{--num:normal}
+
+/* Sentence case is the SECOND variable, switchable on its own so the typeface can
+   be told apart from the styling. Lowercase reads smaller at the same pixel size,
+   so the labels come up six per cent to hold their weight on the page. */
+.board[data-case="sentence"]{--cap:none;--capk:0;--lc:1.06}
+
+/* ---- shared atoms ---- */
+.board .page{max-width:1180px;margin:0 auto;padding:20px 22px 44px}
+.mono{font-family:var(--f-mono);font-variant-numeric:var(--num)}
+.disp{font-family:var(--f-display)}
+.card{border-radius:6px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--sh-hard)}
+.card-sm{border-radius:6px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--sh-hard-sm)}
+.card-flat{border-radius:6px;border:1px solid var(--line);background:var(--panel)}
+.clip{overflow:hidden}
+.monocap{
+  font-family:var(--f-mono);font-weight:var(--w-sb);color:var(--muted);
+  font-size:calc(10px*var(--lc));text-transform:var(--cap);
+  letter-spacing:calc(.16em*var(--capk));font-variant-numeric:var(--num);
+}
+.eyebrow{
+  font-family:var(--f-mono);font-weight:var(--w-sb);color:var(--pitch-ink);
+  font-size:calc(11px*var(--lc));text-transform:var(--cap);letter-spacing:calc(.2em*var(--capk));
+}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:5px;
+  border:1px solid transparent;font-family:var(--f-display);font-weight:var(--w-x);
+  text-transform:var(--cap);letter-spacing:calc(.04em*var(--capk));
+  padding:12px 20px;font-size:calc(13px*var(--lc));cursor:pointer;line-height:1.2;
+}
+.btn.sm{padding:6px 10px;font-size:calc(11px*var(--lc))}
+.btn.primary{border-color:var(--pitch-dark);background:var(--pitch-dark);color:#fff}
+.btn.secondary{border-color:var(--ink);background:var(--panel);color:var(--ink)}
+.btn.wide{width:100%}
+.btn[disabled]{opacity:.5}
+.chip-on{border-color:var(--pitch-dark)!important;background:var(--pitch-dark);color:#fff}
+.chip-off{border-color:var(--line);background:var(--panel);color:var(--ink)}
+/* The chosen cell, at a specificity that beats each host rule below. A stateful
+   control cannot wear an atom that another rule can out-specify: this is the exact
+   trap BoostOffer.tsx records, met again here. */
+.asc button.chip-on,.filters .pill.chip-on,.boost.chip-on{
+  background:var(--pitch-dark);color:#fff;border-color:var(--pitch-dark);
+}
+.flagbox{display:inline-flex;flex:none;overflow:hidden;border-radius:2px}
+.flagbox svg{display:block;width:100%;height:100%}
+.youflag{
+  display:inline-flex;flex:none;align-items:center;justify-content:center;border-radius:4px;
+  background:#dc2626;color:#fff;font-family:var(--f-body);font-weight:900;font-size:9px;line-height:1;
+}
+.cstar{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:999px;color:#fff;flex:none}
+
+/* ---- masthead ---- */
+.mast{display:flex;flex-wrap:wrap;align-items:stretch;gap:0 20px;border-bottom:1px solid var(--line)}
+.crest{display:flex;align-items:center;gap:10px;padding:7px 0}
+.crest .tile{display:grid;place-items:center;width:30px;height:30px;flex:none;border-radius:5px;background:var(--pitch-dark);color:var(--amber)}
+.crest h1{margin:0;font-family:var(--f-display);font-size:21px;font-weight:var(--w-black);text-transform:uppercase;line-height:1;letter-spacing:var(--tr-title)}
+.crest h1 em{font-style:normal;color:var(--pitch-ink)}
+.tabs{display:flex;align-items:stretch;gap:4px}
+.tabs a{
+  position:relative;display:flex;align-items:center;padding:9px 13px;text-decoration:none;
+  color:var(--muted);font-family:var(--f-display);font-size:calc(13.5px*var(--lc));
+  font-weight:var(--w-x);text-transform:var(--cap);letter-spacing:calc(.03em*var(--capk));
+}
+.tabs a[aria-current]{color:var(--ink)}
+.tabs a[aria-current]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--pitch-ink)}
+.mastbtns{margin-left:auto;display:flex;align-items:center;gap:8px;padding:7px 0}
+.mastbtns .btn{height:30px}
+.mastbtns .who{text-transform:none;letter-spacing:0}
+
+/* ---- page headers ---- */
+.stagehead{margin:48px 0 18px}
+.stagehead h2{margin:0;font-family:var(--f-display);font-size:30px;font-weight:var(--w-x);line-height:1;letter-spacing:var(--tr-title)}
+.crumb{
+  margin:48px 0 12px;display:inline-flex;align-items:center;gap:6px;color:var(--muted);
+  font-family:var(--f-mono);font-size:calc(10.5px*var(--lc));font-weight:var(--w-sb);
+  text-transform:var(--cap);letter-spacing:calc(.14em*var(--capk));
+}
+.subtabs{display:flex;overflow:hidden;border-radius:5px;border:1px solid var(--line);background:var(--panel);max-width:320px;margin-bottom:18px}
+.subtabs a{
+  flex:1;border-left:1px solid var(--line);padding:9px 14px;text-align:center;text-decoration:none;
+  font-family:var(--f-display);font-size:calc(12px*var(--lc));font-weight:var(--w-b);
+  text-transform:var(--cap);letter-spacing:calc(.04em*var(--capk));color:var(--muted);
+}
+.subtabs a:first-child{border-left:0}
+.subtabs a[aria-current]{background:var(--pitch-dark);color:#fff}
+
+/* ---- /play ---- */
+.grid-play{display:grid;align-items:start;gap:22px;grid-template-columns:300px minmax(0,1fr) 320px}
+.stack{display:flex;flex-direction:column;gap:18px}
+.cp-sec{border-bottom:1px solid var(--line);padding:18px}
+.cp-sec:last-child{border-bottom:0}
+.cp-eyebrow{font-family:var(--f-mono);font-weight:var(--w-sb);color:var(--pitch-ink);font-size:calc(10.5px*var(--lc));text-transform:var(--cap);letter-spacing:calc(.18em*var(--capk))}
+.cp-big{margin-top:6px;font-family:var(--f-display);font-size:26px;font-weight:var(--w-black);line-height:1.05;letter-spacing:var(--tr-title)}
+.cp-meta{margin-top:10px;font-family:var(--f-mono);font-size:12.5px;line-height:1.6;color:var(--muted);font-variant-numeric:var(--num)}
+.cp-meta b{color:var(--ink)}
+.cp-meta .chem{font-weight:700;color:var(--amber)}
+.cp-note{margin:0 0 16px;font-size:13px;color:var(--muted)}
+.asc{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.asc button{border-radius:4px;border:1px solid var(--line);padding:10px 0;text-align:center;font-family:var(--f-mono);font-size:calc(11.5px*var(--lc));font-weight:var(--w-sb);background:var(--panel);color:var(--ink);cursor:pointer;font-variant-numeric:var(--num)}
+.asc button.locked{color:var(--dim);opacity:.7}
+.asc-note{margin:10px 0 0;font-size:12px;line-height:1.35;color:var(--muted)}
+
+.pitch{position:relative;aspect-ratio:3/4;border-radius:6px;overflow:hidden}
+.pitch svg.board-svg{position:absolute;inset:0;width:100%;height:100%}
+.badge{position:absolute;transform:translate(-50%,-50%);width:88px;display:flex;flex-direction:column;align-items:center}
+.disc{
+  display:grid;place-items:center;width:48px;height:48px;border-radius:999px;border:2px solid #fff;
+  background:var(--pitch-dark);color:#fff;font-family:var(--f-mono);font-size:15px;font-weight:800;
+  box-shadow:0 3px 8px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.35);font-variant-numeric:var(--num);
+}
+.plate{margin-top:6px;max-width:88px;border-radius:6px;background:var(--panel);padding:1px 8px;text-align:center;box-shadow:var(--sh-soft)}
+.plate span{display:block;font-size:13px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.strip{display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden;border-radius:6px;border:1px solid var(--line);box-shadow:var(--sh-hard)}
+.strip>div{border-right:1px solid var(--line);padding:14px 12px;background:var(--panel)}
+.strip>div:last-child{border-right:0}
+.strip .ovr{background:var(--pitch-dark)}
+.strip .lb{font-family:var(--f-mono);font-weight:var(--w-sb);font-size:calc(10px*var(--lc));text-transform:var(--cap);letter-spacing:calc(.16em*var(--capk));color:var(--muted)}
+.strip .ovr .lb{color:rgba(255,255,255,.7)}
+.strip .vl{margin-top:6px;font-family:var(--f-mono);font-size:30px;font-weight:700;line-height:1;font-variant-numeric:var(--num)}
+.strip .ovr .vl{color:#fff}
+
+.chem-row{display:flex;align-items:center;gap:14px}
+.donut{display:grid;place-items:center;width:58px;height:58px;flex:none;border-radius:999px}
+.donut span{display:grid;place-items:center;width:42px;height:42px;border-radius:999px;background:var(--panel);font-family:var(--f-mono);font-size:16px;font-weight:700;color:var(--amber);font-variant-numeric:var(--num)}
+.chem-eff{margin-top:2px;font-family:var(--f-display);font-size:18px;font-weight:var(--w-x);line-height:1.25}
+.chem-eff b{color:var(--amber)}
+.chem-chips{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;display:flex;flex-wrap:wrap;gap:6px}
+.chem-chips span{border-radius:3px;border:1px solid var(--line);padding:4px 8px;font-family:var(--f-mono);font-size:11px;font-weight:var(--w-sb);color:var(--muted);font-variant-numeric:var(--num)}
+.chem-chips b{color:var(--pitch-ink)}
+
+.xi-head{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--ink);padding:12px 16px;font-family:var(--f-mono);font-size:calc(10.5px*var(--lc));font-weight:var(--w-sb);text-transform:var(--cap);letter-spacing:calc(.18em*var(--capk));color:var(--muted)}
+.xi-row{display:grid;grid-template-columns:30px minmax(0,1fr) auto auto;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:10px 16px}
+.xi-row:last-child{border-bottom:0}
+.xi-pos{font-family:var(--f-mono);font-size:calc(11px*var(--lc));font-weight:var(--w-sb);letter-spacing:calc(.04em*var(--capk));color:var(--pitch-ink);text-transform:var(--cap)}
+.xi-name{display:flex;min-width:0;align-items:center;gap:6px;font-size:13.5px;font-weight:600}
+.xi-name>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xi-sq{display:flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:11px;color:var(--muted);font-variant-numeric:var(--num)}
+.xi-elo{min-width:24px;text-align:right;font-family:var(--f-mono);font-size:14px;font-weight:700;font-variant-numeric:var(--num)}
+
+/* ---- /cup-run ---- */
+.grid-run{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;align-items:start}
+.runcol{display:flex;min-width:0;flex-direction:column;gap:16px}
+.rx-head{display:flex;align-items:center;border-bottom:2px solid var(--ink);padding:12px 16px}
+.rx-head span{font-family:var(--f-display);font-size:16px;font-weight:var(--w-x);text-transform:var(--cap);letter-spacing:-0.01em}
+.rx-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-bottom:1px solid var(--line);text-align:center}
+.rx-strip>div{background:var(--panel);padding:8px 0}
+.rx-strip .hero{background:var(--pitch-dark);color:#fff}
+.rx-strip .lb{font-family:var(--f-mono);font-size:calc(9px*var(--lc));font-weight:var(--w-sb);text-transform:var(--cap);letter-spacing:calc(.12em*var(--capk));color:var(--muted)}
+.rx-strip .hero .lb{color:rgba(255,255,255,.7)}
+.rx-strip .vl{font-family:var(--f-mono);font-size:17px;font-weight:700;line-height:1.25;font-variant-numeric:var(--num)}
+.rx-row{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:6px 16px}
+.rx-row:last-child{border-bottom:0}
+.rx-pos{width:28px;flex:none;font-family:var(--f-mono);font-size:calc(10px*var(--lc));font-weight:var(--w-sb);text-transform:var(--cap);letter-spacing:calc(.04em*var(--capk));color:var(--pitch-ink)}
+.rx-nm{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600}
+.rx-elo{width:24px;flex:none;text-align:right;font-family:var(--f-mono);font-size:14px;font-weight:700;font-variant-numeric:var(--num)}
+
+.st-grid{display:grid;grid-template-columns:34px minmax(0,1fr) 32px 26px 26px 26px 46px 38px 40px;align-items:center;gap:4px;padding:11px 16px}
+.st-head{border-bottom:2px solid var(--ink);background:var(--chalk)}
+.st-h{text-align:center;font-family:var(--f-mono);font-size:calc(10px*var(--lc));font-weight:var(--w-sb);text-transform:var(--cap);letter-spacing:calc(.1em*var(--capk));color:var(--muted)}
+.st-h.left{text-align:left}
+.st-row{border-bottom:1px solid var(--line)}
+.st-row.me{background:rgba(21,146,76,.06)}
+.st-n{text-align:center;font-family:var(--f-mono);font-size:13px;color:var(--muted);font-variant-numeric:var(--num)}
+.st-pts{text-align:center;font-family:var(--f-mono);font-size:14px;font-weight:700;color:var(--ink);font-variant-numeric:var(--num)}
+.st-pos{display:flex;justify-content:center}
+.st-pos b{display:grid;place-items:center;width:22px;height:22px;border-radius:4px;background:var(--pitch);color:#fff;font-family:var(--f-mono);font-size:12px;font-weight:var(--w-sb);font-variant-numeric:var(--num)}
+.st-pos i{font-style:normal;font-family:var(--f-mono);font-size:13px;font-weight:var(--w-sb);color:var(--muted)}
+.st-team{display:flex;min-width:0;align-items:center;gap:9px}
+.st-team>span.nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600}
+.st-team>span.nm.me{font-weight:700}
+.st-year{flex:none;font-family:var(--f-mono);font-size:11px;font-weight:500;color:var(--muted);font-variant-numeric:var(--num)}
+.st-foot{border-top:1px solid var(--line);background:var(--chalk);padding:10px 16px;text-align:center;font-family:var(--f-mono);font-size:11px;letter-spacing:calc(.04em*var(--capk));color:var(--muted);font-variant-numeric:var(--num)}
+
+.md-label{margin-bottom:9px;display:flex;align-items:center;gap:10px}
+.md-label>span{font-family:var(--f-mono);font-size:calc(11px*var(--lc));font-weight:var(--w-sb);text-transform:var(--cap);letter-spacing:calc(.14em*var(--capk));color:var(--muted)}
+.tag{border-radius:3px;padding:3px 8px;font-family:var(--f-mono);font-size:calc(9.5px*var(--lc));font-weight:700;text-transform:var(--cap);letter-spacing:calc(.06em*var(--capk))}
+.tag.w{background:rgba(21,146,76,.13);color:var(--pitch-ink)}
+.tag.l{background:rgba(200,69,60,.13);color:var(--loss)}
+.tag.d{background:var(--chalk);color:var(--muted)}
+.fx{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:14px 18px;font-size:14.5px}
+.fx .side{display:flex;min-width:0;align-items:center;gap:9px;font-weight:600}
+.fx .side.home{justify-content:flex-end}
+.fx .mid{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:74px}
+.fx .score{border-radius:4px;background:var(--ink);color:var(--ground);padding:3px 14px;font-family:var(--f-mono);font-size:20px;font-weight:700;letter-spacing:.02em;font-variant-numeric:var(--num)}
+.fx .status{font-family:var(--f-mono);font-size:calc(8.5px*var(--lc));font-weight:var(--w-sb);text-transform:var(--cap);letter-spacing:calc(.1em*var(--capk));color:var(--muted)}
+.disclose{display:flex;width:100%;align-items:center;justify-content:center;gap:6px;border-top:1px solid var(--line);background:var(--chalk);padding:9px 16px}
+
+.banner{position:relative;overflow:hidden;border-radius:6px;border:1px solid var(--pitch-dark);background:var(--pitch-dark);color:#fff;padding:20px;text-align:center;box-shadow:var(--sh-hard)}
+.banner .arc{position:absolute;width:96px;height:96px;border-radius:999px;border:2px solid rgba(255,255,255,.15)}
+.banner .arc.a{bottom:-40px;left:-40px}
+.banner .arc.b{top:-40px;right:-40px}
+.banner .eb{position:relative;font-family:var(--f-mono);font-size:calc(10px*var(--lc));font-weight:var(--w-sb);text-transform:var(--cap);letter-spacing:calc(.2em*var(--capk));color:var(--amber-on-green)}
+.banner h3{position:relative;margin:4px 0 0;font-family:var(--f-display);font-size:24px;font-weight:var(--w-black);letter-spacing:var(--tr-title)}
+
+.boosts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.boost{display:flex;flex-direction:column;gap:6px;border-radius:6px;border:1px solid var(--line);padding:12px;text-align:left;background:var(--panel)}
+.boost .rar{font-family:var(--f-mono);font-size:calc(9px*var(--lc));font-weight:700;text-transform:var(--cap);letter-spacing:calc(.12em*var(--capk))}
+.boost .nm{font-family:var(--f-display);font-size:14px;font-weight:var(--w-x);line-height:1.2}
+.boost .ds{font-size:11.5px;line-height:1.35;color:var(--muted)}
+.boost.chip-on .ds{color:rgba(255,255,255,.85)}
+.boost.chip-on .rar{color:#fff}
+.odds{margin-top:12px;display:flex;min-height:116px;align-items:center;border-radius:6px;border:1px solid var(--line);border-left:3px solid var(--pitch);background:var(--panel);padding:12px}
+.odds .rows{display:flex;width:100%;flex-direction:column;gap:8px}
+.oddsrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.oddsrow .lbl{width:100%;font-size:11.5px;line-height:1.35;color:var(--muted)}
+.oddsrow .track{position:relative;height:9px;min-width:70px;flex:1;overflow:hidden;border-radius:2px;background:var(--chalk)}
+.oddsrow .track i{position:absolute;top:0;bottom:0;display:block}
+.oddsrow .fig{font-family:var(--f-mono);font-size:14px;font-weight:700;color:var(--ink);font-variant-numeric:var(--num)}
+.oddsrow .fig s{text-decoration:none;padding:0 2px;font-weight:500;color:var(--dim)}
+.oddsrow .fig b{color:var(--pitch-ink)}
+.reroll{margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;border-top:1px solid var(--line);padding-top:12px}
+.reroll span{font-family:var(--f-mono);font-size:11px;color:var(--muted);font-variant-numeric:var(--num)}
+
+/* ---- /records ---- */
+.counter{display:grid;grid-template-columns:minmax(0,1fr) 210px;overflow:hidden}
+.counter .l{padding:22px}
+.counter .r{display:flex;flex-direction:column;justify-content:center;border-left:1px solid var(--line);background:var(--chalk);padding:22px}
+.cbig{margin:6px 0 12px;font-family:var(--f-display);font-weight:var(--w-black);line-height:1;letter-spacing:var(--tr-title)}
+.cbig .n{font-size:44px}
+.cbig .t{font-size:18px;font-weight:var(--w-x);color:var(--muted)}
+.meter{overflow:hidden;border-radius:999px;border:1px solid var(--line);background:var(--chalk);height:9px}
+.meter i{display:block;height:100%;background:linear-gradient(to right,var(--pitch),var(--pitch-dark))}
+.legend{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px 16px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:var(--num)}
+.legend b{color:var(--ink)}
+.pips{display:inline-flex;flex:none;gap:2px;color:var(--ink)}
+.pips i{display:block;width:5px;height:5px;border-radius:1px;background:currentColor;opacity:.13}
+.pips i.on{opacity:.5}
+.prestige{margin-top:4px;font-family:var(--f-mono);font-size:38px;font-weight:700;line-height:1;font-variant-numeric:var(--num)}
+.pnote{margin-top:6px;font-size:11.5px;line-height:1.35;color:var(--muted)}
+.filters{margin-top:24px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:2px solid var(--ink);padding-top:16px}
+.filters .pill{border-radius:999px;border:1px solid var(--line);padding:6px 14px;font-family:var(--f-display);font-size:calc(11px*var(--lc));font-weight:var(--w-x);text-transform:var(--cap);letter-spacing:calc(.05em*var(--capk));cursor:pointer;background:var(--panel);color:var(--ink)}
+.filters .pill b{margin-left:6px;font-family:var(--f-mono);font-size:calc(10px*var(--lc));font-weight:700;opacity:.6;font-variant-numeric:var(--num)}
+.fam{margin-top:22px}
+.fam h3{margin:0;border-bottom:2px solid}
+.fam h3>div{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding-bottom:6px}
+.fam .nm{font-family:var(--f-display);font-size:15px;font-weight:var(--w-x);letter-spacing:-0.01em}
+.fam .ct{margin-left:auto;font-family:var(--f-mono);font-size:11.5px;font-weight:var(--w-sb);color:var(--muted);font-variant-numeric:var(--num)}
+.fam .chev{flex:none;color:var(--muted);display:flex}
+.ledger{display:grid;grid-template-columns:1fr 1fr;column-gap:30px}
+.lrow{display:flex;align-items:flex-start;gap:11px;border-bottom:1px solid var(--hair);padding:8px 2px}
+.lrow .mk{margin-top:2px;display:grid;place-items:center;width:15px;height:15px;flex:none;color:var(--dim)}
+.lrow.done .mk{color:var(--pitch-ink)}
+.lrow .mk .o{display:block;width:9px;height:9px;border-radius:999px;border:1.5px solid currentColor;opacity:.45}
+.lrow .bd{min-width:0;flex:1}
+.lrow .nm{display:block;font-family:var(--f-display);font-size:13.5px;font-weight:var(--w-b);line-height:1.2;color:var(--dim)}
+.lrow.done .nm{font-weight:var(--w-x);color:var(--ink)}
+.lrow .ds{display:block;font-size:12px;line-height:1.35;color:var(--dim)}
+.lrow.done .ds{color:var(--muted)}
+.lrow .aw{margin-top:1px;flex:none;font-family:var(--f-mono);font-size:11.5px;font-weight:700;color:var(--dim);font-variant-numeric:var(--num)}
+.lrow.done .aw{color:var(--accent)}
+.lrow .tp{margin-top:5px}
+
+/* ---- /records/cabinet ---- */
+.cabgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;margin-bottom:14px}
+.span2{grid-column:span 2}
+.bhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;border-bottom:1px solid var(--hair);padding:12px 14px 10px}
+.bhead h3{margin:0;font-family:var(--f-display);font-size:14.5px;font-weight:var(--w-x);letter-spacing:-0.01em}
+.bhead .ct{font-family:var(--f-mono);font-size:11.5px;font-weight:700;color:var(--muted);font-variant-numeric:var(--num)}
+.bbody{padding:14px}
+.lhead,.lrowp{display:flex;align-items:baseline;gap:10px}
+.lhead{border-bottom:1px solid var(--line);padding-bottom:6px;font-family:var(--f-mono);font-size:calc(8.5px*var(--lc));font-weight:700;text-transform:var(--cap);letter-spacing:calc(.12em*var(--capk));color:var(--muted)}
+.lrowp{border-bottom:1px solid var(--hair);padding:7px 0}
+.lrowp:last-child{border-bottom:0}
+.c-rank{width:15px;flex:none;text-align:right;font-family:var(--f-mono);font-size:10.5px;color:var(--dim);font-variant-numeric:var(--num)}
+.c-flag{width:16px;flex:none}
+.c-name{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--f-display);font-size:13px;font-weight:var(--w-b)}
+.c-name i{font-style:normal;margin-left:6px;font-family:var(--f-mono);font-size:10px;font-weight:400;color:var(--dim);font-variant-numeric:var(--num)}
+.c-metric{width:44px;flex:none;text-align:right;font-family:var(--f-mono);font-size:11px;font-weight:700;color:var(--ink);font-variant-numeric:var(--num)}
+.c-apps{width:48px;flex:none;text-align:right;font-family:var(--f-mono);font-size:11px;color:var(--muted);font-variant-numeric:var(--num)}
+.c-apps.lead{font-weight:700;color:var(--ink)}
+.c-runs{width:40px;flex:none;text-align:right;font-family:var(--f-mono);font-size:10.5px;color:var(--dim);font-variant-numeric:var(--num)}
+.shelf{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;list-style:none;margin:0;padding:0}
+.shelf li{width:74px;flex:none;text-align:center}
+.plinth{display:grid;place-items:center;gap:6px;border-radius:6px 6px 3px 3px;border:1px solid var(--line);padding:11px 0 8px;color:var(--amber)}
+.plinth b{font-family:var(--f-mono);font-size:calc(9px*var(--lc));font-weight:700;text-transform:var(--cap);letter-spacing:calc(.1em*var(--capk));color:var(--muted)}
+.plinth.dark{border-color:transparent}
+.plinth.dark b{color:rgba(255,255,255,.8)}
+.shelf .nth{margin-top:4px;font-family:var(--f-mono);font-size:9.5px;color:var(--dim);font-variant-numeric:var(--num)}
+.recs{display:grid;grid-template-columns:1fr 1fr;column-gap:26px}
+.rec{display:flex;align-items:baseline;gap:8px;border-bottom:1px solid var(--hair);padding:7px 0}
+.rec .k{font-size:12.5px;color:var(--muted)}
+.rec .v{margin-left:auto;text-align:right;font-family:var(--f-mono);font-size:12.5px;font-weight:700;color:var(--ink);font-variant-numeric:var(--num)}
+.rec .v.dim{font-weight:var(--w-sb);color:var(--dim)}
+.formhead{margin:15px 0 8px;display:flex;align-items:baseline;gap:10px;font-family:var(--f-mono);font-size:calc(9.5px*var(--lc));font-weight:700;text-transform:var(--cap);letter-spacing:calc(.15em*var(--capk));color:var(--muted)}
+.formhead b{letter-spacing:normal;font-size:11px;color:var(--ink);text-transform:none}
+.forms{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0;padding:0}
+.forms li{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--hair);background:var(--faint);padding:4px 10px;font-family:var(--f-mono);font-size:11px;font-weight:700;color:var(--dim);font-variant-numeric:var(--num)}
+.forms li.won{border-color:var(--line);background:var(--chalk);color:var(--ink)}
+.forms li.won svg{color:var(--pitch-ink)}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(212px,100%),1fr));gap:10px;list-style:none;margin:0;padding:0}
+.bdg{display:flex;align-items:flex-start;gap:10px;border-radius:6px;border:1px solid var(--hair);background:var(--faint);padding:10px 11px}
+.bdg.done{border-color:var(--line);background:var(--panel);box-shadow:var(--sh-hard-sm)}
+.bdg .mk{margin-top:1px;display:grid;place-items:center;width:22px;height:22px;flex:none;border-radius:999px;border:1.5px dashed var(--line);color:var(--dim)}
+.bdg.done .mk{border:0;background:var(--pitch);color:#fff}
+.bdg .nm{display:block;font-family:var(--f-display);font-size:13.5px;font-weight:var(--w-x);line-height:1.2;color:var(--dim)}
+.bdg.done .nm{color:var(--ink)}
+.bdg .ds{display:block;margin-top:2px;font-size:11.5px;line-height:1.35;color:var(--dim)}
+.bdg.done .ds{color:var(--muted)}
+.bdg .pg{display:block;margin-top:4px;font-family:var(--f-mono);font-size:10px;font-weight:var(--w-sb);color:var(--dim);font-variant-numeric:var(--num)}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <h1>Mondialino <span>typography comparison</span></h1>
+
+  <div class="grp">
+    <label for="seg-screen">Screen</label>
+    <div class="seg" id="seg-screen" data-ctl="screen">
+      <button type="button" data-v="play" aria-pressed="true">Build an XI</button>
+      <button type="button" data-v="run" aria-pressed="false">Cup Run</button>
+      <button type="button" data-v="records" aria-pressed="false">Records</button>
+      <button type="button" data-v="cabinet" aria-pressed="false">Cabinet</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <label for="seg-set">Proposed type</label>
+    <div class="seg" id="seg-set" data-ctl="set">
+      <button type="button" data-v="rubik" aria-pressed="true">Rubik + Inter</button>
+      <button type="button" data-v="inter" aria-pressed="false">Inter only</button>
+      <button type="button" data-v="poppins" aria-pressed="false">Poppins + Open Sans</button>
+      <button type="button" data-v="recursive" aria-pressed="false">Recursive</button>
+      <button type="button" data-v="lato" aria-pressed="false">Lato + Roboto</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="seg" data-ctl="layout">
+      <button type="button" data-v="side" aria-pressed="true">Side by side</button>
+      <button type="button" data-v="stack" aria-pressed="false">Stacked</button>
+    </div>
+    <div class="seg" data-ctl="zoom">
+      <button type="button" data-v="fit" aria-pressed="true">Fit</button>
+      <button type="button" data-v="full" aria-pressed="false">100%</button>
+    </div>
+  </div>
+
+  <label class="chk"><input type="checkbox" id="sentence" checked> Sentence case labels on the proposed side</label>
+</div>
+
+<div class="stage" id="stage" data-layout="side">
+  <figure class="pane">
+    <figcaption class="slate">
+      <b>Now</b>
+      <span class="spec">Titles <i style="font-family:'Archivo';font-weight:800">Archivo</i>, text <i style="font-family:'Schibsted Grotesk'">Schibsted Grotesk</i>, figures <i style="font-family:'Spline Sans Mono'">Spline Sans Mono</i>, labels in capitals</span>
+    </figcaption>
+    <div class="frame"><div class="zoomer"><div class="board" id="boardA" data-variant="a"></div></div></div>
+  </figure>
+  <figure class="pane">
+    <figcaption class="slate">
+      <b>Proposed</b>
+      <span class="spec" id="specB"></span>
+    </figcaption>
+    <div class="frame"><div class="zoomer"><div class="board" id="boardB" data-variant="b" data-set="rubik" data-case="sentence"></div></div></div>
+  </figure>
+</div>
+
+<div class="notes">
+  <h2>What this is</h2>
+  <p>Two renderings of the same four screens. The markup is generated once and dropped into
+  both boards, so the colours, the spacing, the borders, the radii and the tifo shadow are
+  identical down to the pixel. <b>Only the type changes.</b> Anything that looks different is
+  a consequence of the fonts and the way the small labels are set, and nothing else.</p>
+
+  <h2>What moves on the proposed side</h2>
+  <ul>
+    <li><b>The monospace face is retired.</b> Today every rating, price, score, percentage and
+    small caption is set in Spline Sans Mono, which is the single loudest signal that a
+    machine laid the page out. On the proposed side the figures are the text face with proper
+    tabular lining numerals, so columns still line up and nothing reads as a terminal.
+    Recursive is the exception and keeps a monospace, because it has one built into the same
+    family and it is a warm one rather than a technical one.</li>
+    <li><b>Labels are sentence case.</b> Today they are capitals with up to 0.2em of extra
+    letter spacing. On the proposed side they are written the way a person writes. This is a separate
+    switch in the bar above, so you can hold the fonts still and see how much of the effect is
+    just the capitals.</li>
+    <li><b>Headings lose a step of weight.</b> Archivo Black at 900 becomes 700, and the tight
+    -0.02em tracking eases to -0.01em.</li>
+    <li>Labels come up six per cent, because lowercase reads smaller than capitals at the same
+    size and would otherwise go quiet.</li>
+    <li><b>The wordmark stays in capitals on both sides.</b> A logotype is a fixed asset, not
+    a label, so it changes typeface here but never case. That keeps the casing switch a
+    statement about the interface and nothing else.</li>
+  </ul>
+
+  <h2>What does not move</h2>
+  <p>The green, the paper, the hard offset shadow, the card shapes, the pitch, every layout
+  decision, and every word of copy. If the proposed side reads better it is not because
+  anything was tidied up while you were not looking.</p>
+
+  <h2>The five pairings</h2>
+  <ul>
+    <li><b>Rubik and Inter.</b> The recommendation. Rubik has slightly rounded corners and
+    sturdy heavy weights, which suits a football game and is not the face every dashboard
+    uses; Inter carries the tables, line-ups and figures, which is the job it is best in the
+    world at. Two clearly different jobs, two clearly different faces.</li>
+    <li><b>Inter only.</b> The most restrained answer. One family, hierarchy carried by weight
+    and size alone. Safe, calm, and slightly anonymous.</li>
+    <li><b>Poppins and Open Sans.</b> The friendliest. Poppins is geometric and round, which
+    reads younger and more casual. It is also currently the most heavily used display face on
+    the web, so it carries a whiff of template.</li>
+    <li><b>Recursive.</b> One superfamily doing all three jobs, with its own duplexed
+    monospace for the figures. The most distinctive of the five and the most opinionated.</li>
+    <li><b>Lato and Roboto.</b> The most conventional. Lato's heavy weights are warm and a
+    little humanist; Roboto is the plainest, most invisible text face available.</li>
+  </ul>
+
+  <hr>
+  <p>The screens are fixtures, not live data: a drafted 4-3-3, a group won on seven points, a
+  part-filled honours ledger and a cabinet with four cups in it.</p>
+</div>
+
+<script>
+/* ---------------------------------------------------------------------------
+   Flags. Simplified flat drawings rather than the real icon set, which is an npm
+   package the app imports. At 22px they read the same.
+   ------------------------------------------------------------------------- */
+const FLAGS = {
+  BRA:'<svg viewBox="0 0 30 21"><rect width="30" height="21" fill="#009b3a"/><path d="M15 2.4 28 10.5 15 18.6 2 10.5Z" fill="#fedf00"/><circle cx="15" cy="10.5" r="4.4" fill="#002776"/></svg>',
+  ITA:'<svg viewBox="0 0 30 21"><rect width="10" height="21" fill="#009246"/><rect x="10" width="10" height="21" fill="#fff"/><rect x="20" width="10" height="21" fill="#ce2b37"/></svg>',
+  FRA:'<svg viewBox="0 0 30 21"><rect width="10" height="21" fill="#002395"/><rect x="10" width="10" height="21" fill="#fff"/><rect x="20" width="10" height="21" fill="#ed2939"/></svg>',
+  GER:'<svg viewBox="0 0 30 21"><rect width="30" height="7" fill="#000"/><rect y="7" width="30" height="7" fill="#dd0000"/><rect y="14" width="30" height="7" fill="#ffce00"/></svg>',
+  ESP:'<svg viewBox="0 0 30 21"><rect width="30" height="21" fill="#aa151b"/><rect y="5.25" width="30" height="10.5" fill="#f1bf00"/></svg>',
+  NED:'<svg viewBox="0 0 30 21"><rect width="30" height="7" fill="#ae1c28"/><rect y="7" width="30" height="7" fill="#fff"/><rect y="14" width="30" height="7" fill="#21468b"/></svg>',
+  ENG:'<svg viewBox="0 0 30 21"><rect width="30" height="21" fill="#fff"/><rect x="12.5" width="5" height="21" fill="#ce1124"/><rect y="8" width="30" height="5" fill="#ce1124"/></svg>',
+  ARG:'<svg viewBox="0 0 30 21"><rect width="30" height="21" fill="#74acdf"/><rect y="7" width="30" height="7" fill="#fff"/><circle cx="15" cy="10.5" r="2.6" fill="#f6b40e"/></svg>',
+  CMR:'<svg viewBox="0 0 30 21"><rect width="10" height="21" fill="#007a5e"/><rect x="10" width="10" height="21" fill="#ce1126"/><rect x="20" width="10" height="21" fill="#fcd116"/><circle cx="15" cy="10.5" r="2.6" fill="#fcd116"/></svg>'
+};
+const flag = (c,w,h) => '<span class="flagbox" style="width:'+w+'px;height:'+h+'px">'+(FLAGS[c]||'')+'</span>';
+const you  = (w,h) => '<span class="youflag" style="width:'+w+'px;height:'+h+'px">YOU</span>';
+
+/* Icons, traced from the lucide set the app uses. */
+const ICONS = {
+  trophy:'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2 1.1.6 2 2 2 3.8"/><path d="M18 2H6v7a6 6 0 0 0 12 0Z"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  chevD:'<path d="m6 9 6 6 6-6"/>',
+  chevR:'<path d="m9 18 6-6-6-6"/>',
+  arrowL:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  arrowR:'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.2 2.2M16.9 16.9l2.2 2.2M19.1 4.9l-2.2 2.2M7.1 16.9l-2.2 2.2"/>',
+  help:'<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/>',
+  dice:'<rect x="2" y="10" width="12" height="12" rx="2"/><path d="M5.5 13.5h.01M10.5 18.5h.01"/><path d="m17.9 14 3.5-3.5a2.2 2.2 0 0 0 0-3l-4.9-4.9a2.2 2.2 0 0 0-3 0L10 6"/>'
+};
+const ic = (n,s,extra) => '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(extra||2)+'" stroke-linecap="round" stroke-linejoin="round" style="flex:none">'+ICONS[n]+'</svg>';
+const star = '<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>';
+const TIER = { legendary:'#15924c', iconic:'#e4922b', monumental:'#c99a3a' };
+const cstar = (tier, owned) =>
+  '<span class="cstar" style="background:'+TIER[tier]+'">'+(owned ? ic('check',9,3.2) : star)+'</span>';
+
+/* --------------------------------------------------------------------------
+   The chrome: masthead. `MONDIALINO` is authored in sentence case and the
+   capitals come from the stylesheet, which is what makes the wordmark part of
+   the experiment rather than a fixed picture.
+   ------------------------------------------------------------------------ */
+const TABS = [['play','Play'],['career','Career'],['album','Album'],['records','Records'],['squads','Squads'],['versus','Versus']];
+const mast = (active) => `
+<header class="mast">
+  <a class="crest" href="#"><span class="tile">${ic('trophy',17)}</span>
+    <h1>Mondial<em>ino</em></h1></a>
+  <nav class="tabs">
+    ${TABS.map(([k,l]) => `<a href="#"${k===active?' aria-current="page"':''}>${l}</a>`).join('')}
+  </nav>
+  <div class="mastbtns">
+    <button class="btn secondary sm">${ic('user',15,2.2)}<span class="who">mario.smania</span></button>
+    <button class="btn secondary sm">${ic('gear',16)}</button>
+  </div>
+</header>`;
+
+/* --------------------------------------------------------------------------
+   Screen 1: /play, with a finished XI.
+   ------------------------------------------------------------------------ */
+const XI = [
+  {pos:'GK', name:'Dino Zoff',        code:'ITA', year:1982, elo:88, x:50, y:88,  n:1,  tier:null},
+  {pos:'LB', name:'Paolo Maldini',    code:'ITA', year:1994, elo:92, x:13, y:66,  n:3,  tier:'legendary', owned:true},
+  {pos:'CB', name:'Ronald Koeman',    code:'NED', year:1990, elo:84, x:38, y:68,  n:4,  tier:null},
+  {pos:'CB', name:'Fabio Cannavaro',  code:'ITA', year:2006, elo:89, x:62, y:68,  n:5,  tier:null},
+  {pos:'RB', name:'Cafu',             code:'BRA', year:2002, elo:85, x:87, y:66,  n:2,  tier:null},
+  {pos:'CM', name:'Bryan Robson',     code:'ENG', year:1986, elo:81, x:25, y:44,  n:16, tier:null},
+  {pos:'CM', name:'Xavi',             code:'ESP', year:2010, elo:91, x:50, y:44,  n:6,  tier:'legendary', owned:false},
+  {pos:'CM', name:'Michael Ballack',  code:'GER', year:2002, elo:85, x:75, y:44,  n:13, tier:null},
+  {pos:'LW', name:'Ronaldinho',       code:'BRA', year:2006, elo:91, x:20, y:20,  n:10, tier:'legendary', owned:true},
+  {pos:'ST', name:'Ronaldo',          code:'BRA', year:2002, elo:96, x:50, y:16,  n:9,  tier:'iconic', owned:true},
+  {pos:'RW', name:'Kylian Mbappe',    code:'FRA', year:2022, elo:96, x:80, y:20,  n:7,  tier:'iconic', owned:false}
+];
+const lastName = (n) => n.split(' ').slice(-1)[0];
+
+function pitchSvg(){
+  const P = 0.035, VW = 480, VH = 640, px = 16.8, py = 22.4, S = 1.488;
+  const X = v => (px + v*S).toFixed(1), Y = v => (py + v*S).toFixed(1);
+  const stripes = [];
+  for (let i = 0; i < 11; i++)
+    stripes.push('<rect x="0" y="'+(i*VH/11).toFixed(1)+'" width="480" height="'+(VH/11+0.6).toFixed(1)+'" fill="'+(i%2 ? 'var(--grass)' : 'var(--grass-stripe)')+'"/>');
+  const r = 44*S, dTop = 'M'+X(150-41.8)+' '+Y(60)+' A'+r.toFixed(1)+' '+r.toFixed(1)+' 0 0 0 '+X(150+41.8)+' '+Y(60);
+  const dBot = 'M'+X(150-41.8)+' '+Y(340)+' A'+r.toFixed(1)+' '+r.toFixed(1)+' 0 0 1 '+X(150+41.8)+' '+Y(340);
+  return `<svg class="board-svg" viewBox="0 0 480 640" preserveAspectRatio="xMidYMid meet">
+  <rect width="480" height="640" fill="var(--grass)"/>${stripes.join('')}
+  <g fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="2">
+    <rect x="${X(0)}" y="${Y(0)}" width="${(300*S).toFixed(1)}" height="${(400*S).toFixed(1)}"/>
+    <line x1="${X(0)}" y1="${Y(200)}" x2="${X(300)}" y2="${Y(200)}"/>
+    <circle cx="${X(150)}" cy="${Y(200)}" r="${(46*S).toFixed(1)}"/>
+    <path d="M${X(62)} ${Y(0)} V${Y(60)} H${X(238)} V${Y(0)}"/>
+    <path d="M${X(112)} ${Y(0)} V${Y(22)} H${X(188)} V${Y(0)}"/>
+    <path d="M${X(62)} ${Y(400)} V${Y(340)} H${X(238)} V${Y(400)}"/>
+    <path d="M${X(112)} ${Y(400)} V${Y(378)} H${X(188)} V${Y(400)}"/>
+    <path d="${dTop}"/><path d="${dBot}"/>
+  </g>
+  <g fill="#fff"><circle cx="${X(150)}" cy="${Y(40)}" r="2.4"/><circle cx="${X(150)}" cy="${Y(360)}" r="2.4"/></g>
+</svg>`;
+}
+
+const screenPlay = () => `
+${mast('play')}
+<div class="stagehead"><h2>Your XI is set</h2></div>
+<div class="grid-play">
+
+  <aside>
+    <div class="card clip">
+      <div class="cp-sec">
+        <div class="cp-eyebrow">Complete</div>
+        <div class="cp-big">11 of 11<br>drafted</div>
+        <div class="cp-meta">Formation <b>4-3-3</b><br>Style <b>Balanced</b><br>Avg rating <b>89</b><br>
+          Chemistry <span class="chem">+3 &rarr; 92</span></div>
+      </div>
+      <div class="cp-sec">
+        <p class="monocap" style="margin:0 0 8px">Ascension</p>
+        <div class="asc">
+          <button class="chip-off">Base</button><button class="chip-on">I</button>
+          <button class="chip-off">II</button><button class="chip-off">III</button>
+          <button class="locked">IV</button><button class="locked">V</button>
+        </div>
+        <p class="asc-note">-2 to your own attack and defence, a stronger knockout field, and rewards x1.25.</p>
+      </div>
+      <div class="cp-sec">
+        <p class="cp-note">Take it on a Cup Run: pick a team boost between rounds and climb the
+          Ascension tiers, earning XP and Prestige for your career.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn primary wide">Start Run ${ic('arrowR',16,2.5)}</button>
+          <button class="btn secondary wide">Start over</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section>
+    <div class="pitch">
+      ${pitchSvg()}
+      ${XI.map(p => `<div class="badge" style="left:${p.x}%;top:${p.y}%">
+        <span class="disc">${p.n}</span>
+        <span class="plate"><span>${lastName(p.name)}</span></span>
+      </div>`).join('')}
+    </div>
+  </section>
+
+  <section class="stack">
+    <div class="strip">
+      <div class="ovr"><div class="lb">Ovr</div><div class="vl">89</div></div>
+      <div><div class="lb">Att</div><div class="vl">90</div></div>
+      <div><div class="lb">Def</div><div class="vl">88</div></div>
+    </div>
+
+    <div class="card" style="padding:16px">
+      <div class="chem-row">
+        <span class="donut" style="background:conic-gradient(var(--amber) 0 50%, var(--chalk) 50% 100%)"><span>+3</span></span>
+        <div style="min-width:0">
+          <div class="monocap" style="display:flex;align-items:center;gap:6px">Chemistry bonus
+            <span style="color:rgba(92,106,96,.7);display:flex">${ic('help',13,2.5)}</span></div>
+          <div class="chem-eff">Effective overall <b>92</b></div>
+        </div>
+      </div>
+      <div class="chem-chips">
+        <span>Same nation <b>+1</b></span><span>Same continent <b>+1</b></span><span>In position <b>+1</b></span>
+      </div>
+    </div>
+
+    <div class="card clip">
+      <div class="xi-head"><span>Line-up</span></div>
+      ${XI.map(p => `<div class="xi-row"${p.tier ? ' style="box-shadow:inset 3px 0 0 '+TIER[p.tier]+'"' : ''}>
+        <span class="xi-pos">${p.pos}</span>
+        <span class="xi-name"><span>${p.name}</span>${p.tier ? cstar(p.tier, p.owned) : ''}</span>
+        <span class="xi-sq">${flag(p.code,20,14)}<span>${p.year}</span></span>
+        <span class="xi-elo">${p.elo}</span>
+      </div>`).join('')}
+    </div>
+  </section>
+</div>`;
+
+/* --------------------------------------------------------------------------
+   Screen 2: /cup-run, group played out, first boost on offer.
+   ------------------------------------------------------------------------ */
+const TABLE = [
+  {code:null, name:'Your XI',      year:null, pl:3, w:2, d:1, l:0, gf:6, ga:2, gd:'+4', pts:7, me:true},
+  {code:'BRA',name:'Brazil',       year:1970, pl:3, w:2, d:0, l:1, gf:6, ga:3, gd:'+3', pts:6},
+  {code:'NED',name:'Netherlands',  year:1974, pl:3, w:1, d:1, l:1, gf:4, ga:3, gd:'+1', pts:4},
+  {code:'CMR',name:'Cameroon',     year:1990, pl:3, w:0, d:0, l:3, gf:0, ga:8, gd:'-8', pts:0}
+];
+const MATCHES = [
+  {md:'Matchday 1', opp:'Brazil',      code:'BRA', year:1970, u:2, o:1, tag:'w', label:'Won'},
+  {md:'Matchday 2', opp:'Cameroon',    code:'CMR', year:1990, u:3, o:0, tag:'w', label:'Won'},
+  {md:'Matchday 3', opp:'Netherlands', code:'NED', year:1974, u:1, o:1, tag:'d', label:'Draw'}
+];
+const BOOSTS = [
+  {r:'common',    c:'#15924c', n:'Away Days',    d:"-5 to your next opponent's defence.", on:true},
+  {r:'rare',      c:'#e4922b', n:'Second Wind',  d:'+4 to your whole XI for one round.'},
+  {r:'common',    c:'#15924c', n:'Loan Deal',    d:"Borrow the next opponent's best player for one round."},
+  {r:'legendary', c:'#c99a3a', n:'Prime Years',  d:'Every player becomes his own best tournament.'}
+];
+const RAR_INK = {common:'var(--pitch-ink)', rare:'var(--amber-ink)', legendary:'var(--gold-ink)'};
+
+const oddsRow = (label, from, to) => {
+  const a = Math.min(from,to), g = Math.max(0,to-from), lo = Math.max(0,from-to);
+  return `<div class="oddsrow">
+    <span class="lbl">${label}</span>
+    <span class="track">
+      <i style="left:0;width:${a}%;background:var(--line)"></i>
+      <i style="left:${from}%;width:${g}%;background:var(--pitch)"></i>
+      ${lo ? '<i style="left:'+to+'%;width:'+lo+'%;background:var(--loss)"></i>' : ''}
+    </span>
+    <span class="fig">${from}%<s>&rarr;</s><b>${to}%</b></span>
+  </div>`;
+};
+
+const screenRun = () => `
+${mast('play')}
+<div class="crumb">${ic('arrowL',13,2.5)} Back to the build</div>
+<div class="grid-run">
+
+  <section class="card clip" style="align-self:start">
+    <div class="rx-head"><span>Your XI</span></div>
+    <div class="rx-strip">
+      <div class="hero"><div class="lb">Title</div><div class="vl">14%</div></div>
+      <div><div class="lb">Ovr</div><div class="vl">89</div></div>
+      <div><div class="lb">Att</div><div class="vl">90</div></div>
+      <div><div class="lb">Def</div><div class="vl">88</div></div>
+    </div>
+    ${XI.map(p => `<div class="rx-row">
+      <span class="rx-pos">${p.pos}</span>
+      <span class="rx-nm">${p.name}</span>
+      ${flag(p.code,18,12)}
+      <span class="rx-elo">${p.elo}</span>
+    </div>`).join('')}
+  </section>
+
+  <section class="runcol">
+
+    <div class="card clip">
+      <div class="st-grid st-head">
+        <span class="st-h">#</span><span class="st-h left">Team</span>
+        <span class="st-h">Pl</span><span class="st-h">W</span><span class="st-h">D</span>
+        <span class="st-h">L</span><span class="st-h">+/-</span><span class="st-h">Gd</span><span class="st-h">Pts</span>
+      </div>
+      ${TABLE.map((t,i) => `<div class="st-grid st-row${t.me?' me':''}">
+        <span class="st-pos">${i<2 ? '<b>'+(i+1)+'</b>' : '<i>'+(i+1)+'</i>'}</span>
+        <span class="st-team">
+          ${t.me ? you(22,15) : flag(t.code,22,15)}
+          <span class="nm${t.me?' me':''}">${t.name}</span>
+          ${t.year ? '<span class="st-year">'+t.year+'</span>' : ''}
+          ${t.me ? '<span class="youflag" style="width:auto;height:auto;padding:2px 5px;border-radius:3px;font-size:8px;letter-spacing:.06em">YOU</span>' : ''}
+        </span>
+        <span class="st-n">${t.pl}</span><span class="st-n">${t.w}</span><span class="st-n">${t.d}</span>
+        <span class="st-n">${t.l}</span><span class="st-n">${t.gf}:${t.ga}</span>
+        <span class="st-n">${t.gd}</span><span class="st-pts">${t.pts}</span>
+      </div>`).join('')}
+      <div class="st-foot">Finished 1st of 4 &middot; through to the knockouts</div>
+      <div class="disclose monocap">All results ${ic('chevR',13)}</div>
+    </div>
+
+    ${MATCHES.map(m => `<div>
+      <div class="md-label"><span>${m.md}</span><span class="tag ${m.tag}">${m.label}</span></div>
+      <div class="card clip">
+        <div class="fx">
+          <div class="side home"><span>Your XI</span>${you(22,15)}</div>
+          <div class="mid"><span class="score">${m.u}&ndash;${m.o}</span><span class="status">Full time</span></div>
+          <div class="side">${flag(m.code,22,15)}<span>${m.opp} ${m.year}</span></div>
+        </div>
+        <div class="disclose monocap">Goals ${ic('chevR',13)}</div>
+      </div>
+    </div>`).join('')}
+
+    <div class="banner" style="margin-top:10px">
+      <span class="arc a"></span><span class="arc b"></span>
+      <div class="eb">Group stage &middot; finished 1st of 4</div>
+      <h3>Through to the knockouts</h3>
+    </div>
+
+    <div class="card" style="padding:20px">
+      <div style="margin-bottom:12px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px">
+        <span class="monocap">Pick a boost</span>
+        <span class="mono" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)">
+          Next: ${flag('ARG',18,12)} <b style="color:var(--ink)">Argentina</b> 1986 in Round of 16</span>
+      </div>
+      <div class="boosts">
+        ${BOOSTS.map(b => `<label class="boost ${b.on?'chip-on':'chip-off'}" style="border-top:3px solid ${b.c}">
+          <span class="rar" style="${b.on?'':'color:'+RAR_INK[b.r]}">${b.r}</span>
+          <span class="nm">${b.n}</span>
+          <span class="ds">${b.d}</span>
+        </label>`).join('')}
+      </div>
+      <div class="odds">
+        <div class="rows">
+          ${oddsRow('Beating Argentina in the Round of 16', 61, 68)}
+          ${oddsRow('Lifting the cup', 14, 17)}
+        </div>
+      </div>
+      <button class="btn primary wide" style="margin-top:12px">Take Away Days</button>
+      <div class="reroll">
+        <button class="btn secondary">${ic('dice',16)} Re-roll these boosts</button>
+        <span>Physio Table: 1 re-roll left this run</span>
+      </div>
+    </div>
+
+  </section>
+</div>`;
+
+/* --------------------------------------------------------------------------
+   Screen 3: /records, the honours ledger.
+   ------------------------------------------------------------------------ */
+const FAM_COLOR = {silverware:'#b8862b', ascension:'#6d5bd0', identity:'#2e7d57', rating:'#2465b0',
+  defence:'#4a6572', attack:'#c24a34', drama:'#9b3a6b', boosts:'#1e8a8a', album:'#a8762b',
+  market:'#5e8c2b', shape:'#2f6e8f', career:'#8a5a2b'};
+const pips = (n) => '<span class="pips">'+[1,2,3].map(i => '<i class="'+(i<=n?'on':'')+'"></i>').join('')+'</span>';
+
+const LEDGER = [
+  {fam:'silverware', name:'Silverware & progression', got:6, total:11, open:true, rows:[
+    ['First Blood','Win your first cup.',2,true],
+    ['Back to Back','Win cups in two consecutive runs.',5,true],
+    ['Three-Peat','Win cups in three consecutive runs.',12,false],
+    ['Serial Winner','Win 10 cups in total.',12,false],
+    ['Dynasty','Win 25 cups in total.',12,false],
+    ['Finalist','Reach a final.',2,true],
+    ['Nearly Man','Lose a final, then win the cup in your next run.',5,true],
+    ['Perfect Run','Win the cup without losing a single match, group included.',12,false],
+    ['Maximum Points','Win all three group matches.',2,true],
+    ['Group Winner','Finish first in your group.',2,true],
+    ['Escape Artist','Qualify second, then win the cup.',5,false]
+  ]},
+  {fam:'ascension', name:'Ascension', got:2, total:8, open:true, rows:[
+    ['Step Up','Win at Ascension I.',2,true],
+    ['Higher Ground','Win at Ascension II.',5,true],
+    ['Giant Slayer','Win at Ascension III.',12,false],
+    ['The Summit','Win at the highest Ascension tier.',12,false],
+    ['Ladder Climb','Win at least once at every Ascension tier.',12,false],
+    ['Hard Habit','Finish 10 runs at Ascension II or higher.',5,false],
+    ['No Safety Net','Win at Ascension III or higher without taking a legendary boost.',12,false],
+    ['Straight Up','Unlock a new Ascension tier without ever losing a final.',5,false]
+  ]},
+  {fam:'identity', name:'Squad identity', got:3, total:9, open:true, rows:[
+    ['United Nations','Win with 5 or more different nations in the XI.',2,true],
+    ['Cosmopolitan','Win with 8 or more different nations.',5,true],
+    ['Babel','Win with 11 different nations.',12,false],
+    ['One Flag','Win with every player you picked from a single nation.',12,false],
+    ['Club Class','Win with every player from one nation and one tournament.',12,false],
+    ['Time Capsule','Win with every player you picked from a single World Cup year.',5,false],
+    ['Two Cups','Win with players from exactly two tournaments.',5,true],
+    ['Golden Generation','Win with 7 or more players from one nation.',5,false],
+    ['Continental','Win with all 11 from one confederation.',5,false]
+  ]},
+  {fam:'rating', name:'Rating & value', got:4, total:11, open:false},
+  {fam:'defence', name:'Defence', got:3, total:9, open:false},
+  {fam:'attack', name:'Attack', got:5, total:12, open:false},
+  {fam:'drama', name:'Knockout drama', got:4, total:11, open:false},
+  {fam:'boosts', name:'Boosts & perks', got:6, total:14, open:false},
+  {fam:'album', name:'Album & collectibles', got:2, total:10, open:false},
+  {fam:'market', name:'Market & budget', got:3, total:11, open:false},
+  {fam:'shape', name:'Shape & positions', got:5, total:12, open:false},
+  {fam:'career', name:'Career & streaks', got:4, total:12, open:false}
+];
+const TIER_OF = {2:1, 5:2, 12:3};
+
+const screenRecords = () => `
+${mast('records')}
+<div class="stagehead"><h2>Records</h2></div>
+<div class="subtabs"><a href="#" aria-current="page">Challenges</a><a href="#">Cabinet</a></div>
+
+<section class="card counter">
+  <div class="l">
+    <div class="eyebrow">Completed</div>
+    <div class="cbig"><span class="n">47</span><span class="t"> / 130 honours</span></div>
+    <div class="meter"><i style="width:36%"></i></div>
+    <div class="legend">
+      <span>${pips(1)}<span>Bronze</span><b>21/44</b></span>
+      <span>${pips(2)}<span>Silver</span><b>18/49</b></span>
+      <span>${pips(3)}<span>Gold</span><b>8/37</b></span>
+    </div>
+  </div>
+  <div class="r">
+    <div class="monocap">Prestige earned</div>
+    <div class="prestige">228</div>
+    <div class="pnote">Bronze 2, silver 5, gold 12. Paid into the same wallet the perk shop spends from.</div>
+  </div>
+</section>
+
+<div class="filters">
+  <span class="monocap" style="margin-right:4px">Show</span>
+  <button class="pill chip-on">All<b>130</b></button>
+  <button class="pill">Available<b>83</b></button>
+  <button class="pill">Completed<b>47</b></button>
+  <button class="btn secondary sm" style="margin-left:auto">Collapse all</button>
+</div>
+
+${LEDGER.map(f => `<section class="fam">
+  <h3 style="border-bottom-color:${FAM_COLOR[f.fam]}">
+    <div><span class="nm">${f.name}</span>
+      <span class="ct">${f.got} / ${f.total}</span>
+      <span class="chev">${f.open ? ic('chevD',14) : ic('chevR',14)}</span></div>
+  </h3>
+  ${f.open ? '<div class="ledger">' + f.rows.map(r => `<div class="lrow${r[3]?' done':''}">
+      <span class="mk">${r[3] ? ic('check',11,3.2) : '<span class="o"></span>'}</span>
+      <span class="bd"><span class="nm">${r[0]}</span><span class="ds">${r[1]}</span></span>
+      <span class="aw">+${r[2]}</span>
+      <span class="tp">${pips(TIER_OF[r[2]])}</span>
+    </div>`).join('') + '</div>' : ''}
+</section>`).join('')}`;
+
+/* --------------------------------------------------------------------------
+   Screen 4: /records/cabinet.
+   ------------------------------------------------------------------------ */
+/* Rows are [name, nation, year, metric, matches, runs]. "Most used" ranks on the
+   matches column itself, so it has no metric of its own and passes null. */
+const USED = [
+  ['Ronaldo','BRA',2002,null,31,9],['Paolo Maldini','ITA',1994,null,28,8],['Xavi','ESP',2010,null,26,8],
+  ['Dino Zoff','ITA',1982,null,24,7],['Cafu','BRA',2002,null,22,7],['Ronaldinho','BRA',2006,null,21,6],
+  ['Fabio Cannavaro','ITA',2006,null,19,6],['Kylian Mbappe','FRA',2022,null,17,5],
+  ['Michael Ballack','GER',2002,null,15,5],['Ronald Koeman','NED',1990,null,12,4]
+];
+const SCORERS = [
+  ['Ronaldo','BRA',2002,14,31,9],['Kylian Mbappe','FRA',2022,11,17,5],['Ronaldinho','BRA',2006,9,21,6],
+  ['Gerd Muller','GER',1974,8,11,4],['Romario','BRA',1994,7,13,4],['Michael Ballack','GER',2002,5,15,5],
+  ['Xavi','ESP',2010,4,26,8],['Roberto Baggio','ITA',1994,4,9,3],['Bryan Robson','ENG',1986,3,10,4],
+  ['Cafu','BRA',2002,1,22,7]
+];
+const TITLES = [
+  ['Ronaldo','BRA',2002,4,31,9],['Paolo Maldini','ITA',1994,3,28,8],['Xavi','ESP',2010,3,26,8],
+  ['Dino Zoff','ITA',1982,2,24,7],['Cafu','BRA',2002,2,22,7],['Ronaldinho','BRA',2006,2,21,6],
+  ['Fabio Cannavaro','ITA',2006,1,19,6],['Kylian Mbappe','FRA',2022,1,17,5]
+];
+const board = (title, rows, metricLabel) => {
+  const m = !!metricLabel;
+  return `
+<section class="card-sm">
+  <div class="bhead"><h3>${title}</h3><span class="ct">(top ${rows.length})</span></div>
+  <div class="bbody">
+    <div class="lhead"><span class="c-rank"></span><span class="c-flag"></span>
+      <span class="c-name">Player</span>${m ? '<span class="c-metric">'+metricLabel+'</span>' : ''}
+      <span class="c-apps">Matches</span><span class="c-runs">Runs</span></div>
+    <ol style="list-style:none;margin:0;padding:0">
+      ${rows.map((r,i) => `<li class="lrowp">
+        <span class="c-rank">${i+1}</span><span class="c-flag">${flag(r[1],16,10)}</span>
+        <span class="c-name">${r[0]}<i>${r[2]}</i></span>
+        ${m ? '<span class="c-metric">'+r[3]+'</span>' : ''}
+        <span class="c-apps${m ? '' : ' lead'}">${r[4]}</span><span class="c-runs">${r[5]}</span>
+      </li>`).join('')}
+    </ol>
+  </div>
+</section>`;
+};
+
+const SHELF = [
+  {tier:0, label:'Base', nth:1, of:2},{tier:0, label:'Base', nth:2, of:2},
+  {tier:1, label:'Asc I', nth:1, of:1},{tier:2, label:'Asc II', nth:1, of:1}
+];
+const PLINTH = ['var(--chalk)','var(--pitch)','var(--pitch-dark)','var(--cup-deep)'];
+const RECS = [
+  ['Best finish','Champions',false],['Cup streak, current','1',false],
+  ['Cup streak, best (from honours)','2',false],['Finals in a row, current','2',false],
+  ['Semis in a row, current','3',false],['Finals lost','1',false],
+  ['Runs at Ascension II or higher','6',false],['Prestige spent, lifetime','1,340',false],
+  ['Perk tiers owned','9 / 19',false]
+];
+const FORMS = [['5-3-2',false],['4-5-1',false],['4-4-2',true],['4-2-3-1',true],
+  ['4-3-3',true],['3-4-3',false],['3-5-2',false],['4-2-4',true]];
+const BADGES = [
+  ['Half Way','Half the sticker album collected.',58,58,true],
+  ['Complete Set','Every sticker in the album.',58,115,false],
+  ['Full House','At least one honour completed in every family.',12,12,true],
+  ['Perfect Ledger','Every honour in the catalogue completed.',47,130,false],
+  ['Every Tier','A cup won at every Ascension tier.',3,6,false],
+  ['All Formations','A cup won with each of the formations.',4,24,false],
+  ['Full Library','Every boost unlocked into the offer pool.',18,32,false],
+  ['Fully Kitted','Every perk track at its top tier.',9,19,false],
+  ['Big Spender','Spend 1,000 Prestige across the shop and the boost library.',1340,1000,true]
+];
+
+const screenCabinet = () => `
+${mast('records')}
+<div class="stagehead"><h2>Records</h2></div>
+<div class="subtabs"><a href="#">Challenges</a><a href="#" aria-current="page">Cabinet</a></div>
+
+<div class="cabgrid">
+  ${board('Most used', USED, null)}
+  ${board('Top scorers', SCORERS, 'Goals')}
+  <div class="span2">${board('Most titles', TITLES, 'Cups')}</div>
+</div>
+
+<section class="card-sm" style="margin-bottom:14px">
+  <div class="bhead"><h3>The shelf</h3><span class="ct">(4 cups)</span></div>
+  <div class="bbody">
+    <ul class="shelf">
+      ${SHELF.map(c => `<li>
+        <div class="plinth${c.tier>=1?' dark':''}" style="background:${PLINTH[c.tier]}">
+          ${ic('trophy',26,1.9)}<b>${c.label}</b></div>
+        <div class="nth">${c.nth} of ${c.of}</div>
+      </li>`).join('')}
+    </ul>
+  </div>
+</section>
+
+<section class="card-sm" style="margin-bottom:14px">
+  <div class="bhead"><h3>Records</h3></div>
+  <div class="bbody">
+    <div class="recs">
+      ${RECS.map(r => `<div class="rec"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`).join('')}
+    </div>
+    <div class="formhead">Cups won with <b>4 of 8 formations</b></div>
+    <ul class="forms">
+      ${FORMS.map(f => `<li class="${f[1]?'won':''}">${f[1]?ic('check',10,3.4):''}${f[0]}</li>`).join('')}
+    </ul>
+  </div>
+</section>
+
+<section class="card-sm" style="margin-bottom:14px">
+  <div class="bhead"><h3>Badges</h3></div>
+  <div class="bbody">
+    <ul class="badges">
+      ${BADGES.map(b => `<li class="bdg${b[4]?' done':''}">
+        <span class="mk">${b[4]?ic('check',12,3.2):ic('plus',11,2.4)}</span>
+        <span style="min-width:0">
+          <span class="nm">${b[0]}</span>
+          <span class="ds">${b[1]}</span>
+          <span class="pg">${b[2]} / ${b[3]}</span>
+        </span>
+      </li>`).join('')}
+    </ul>
+  </div>
+</section>`;
+
+/* --------------------------------------------------------------------------
+   Wiring.
+   ------------------------------------------------------------------------ */
+const SCREENS = {play:screenPlay, run:screenRun, records:screenRecords, cabinet:screenCabinet};
+const SPEC = {
+  rubik:   ['Titles','Rubik','text and figures','Inter'],
+  inter:   ['Titles','Inter','text and figures','Inter'],
+  poppins: ['Titles','Poppins','text and figures','Open Sans'],
+  recursive:['Titles and text','Recursive','figures','Recursive Mono'],
+  lato:    ['Titles','Lato','text and figures','Roboto']
+};
+const FAMILY_CSS = {rubik:['Rubik','Inter'], inter:['Inter','Inter'], poppins:['Poppins','Open Sans'],
+  recursive:['Recursive','Recursive'], lato:['Lato','Roboto']};
+
+const state = {screen:'play', set:'rubik', layout:'side', zoom:'fit', sentence:true};
+const A = document.getElementById('boardA'), B = document.getElementById('boardB');
+const stage = document.getElementById('stage');
+
+function paintSpec(){
+  const s = SPEC[state.set], f = FAMILY_CSS[state.set];
+  document.getElementById('specB').innerHTML =
+    s[0] + ' <i style="font-family:\'' + f[0] + '\';font-weight:700">' + s[1] + '</i>, ' +
+    s[2] + ' <i style="font-family:\'' + f[1] + '\'">' + s[3] + '</i>, labels ' +
+    (state.sentence ? 'in sentence case' : 'in capitals, as now');
+}
+
+function fit(){
+  document.querySelectorAll('.zoomer').forEach(z => {
+    const avail = z.parentElement.clientWidth - 2;
+    z.style.setProperty('--z', state.zoom === 'fit' ? Math.min(1, avail / 1180) : 1);
+  });
+}
+
+function render(){
+  const html = '<div class="page">' + SCREENS[state.screen]() + '</div>';
+  A.innerHTML = html;
+  B.innerHTML = html;
+  B.dataset.set = state.set;
+  if (state.sentence) B.dataset.case = 'sentence'; else B.removeAttribute('data-case');
+  stage.dataset.layout = state.layout;
+  paintSpec();
+  requestAnimationFrame(fit);
+}
+
+document.querySelectorAll('.seg').forEach(seg => {
+  seg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    state[seg.dataset.ctl] = b.dataset.v;
+    seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    render();
+  });
+});
+document.getElementById('sentence').addEventListener('change', e => {
+  state.sentence = e.target.checked;
+  render();
+});
+window.addEventListener('resize', fit);
+document.fonts && document.fonts.ready.then(fit);
+render();
+</script>
+</body>
+</html>
