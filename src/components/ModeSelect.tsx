@@ -1,15 +1,14 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CircleDashed, Swords, Trophy } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { Player } from '../data/types';
-import { WORLD_CUP_YEARS } from '../data/squads';
-import { FEATURES } from '../config';
+import { FEATURES, STICKER_TIERS } from '../config';
 import { collectibleCards } from '../domain/album';
 import StickerCard from './StickerCard';
 import { btn, PAGE_TOP } from './matchUi';
 
-/** The front page (route `/`): a marketing hero that sells the fantasy, then a 3-beat
- *  "how it works" and a "chase the legends" showcase.
+/** The front page (route `/`): a marketing hero that sells the fantasy, then the
+ *  "chase the legends" showcase. Two things and nothing else.
  *
  *  It used to be a LAUNCHER, with two door cards (Quick Run / Career Mode) and up to
  *  three resume buttons. Both went with the navigation rework (roadmap items 27 and 28):
@@ -31,7 +30,21 @@ import { btn, PAGE_TOP } from './matchUi';
  *  was standing beside it - is one plain link that needs no confirm and no sub-line. What
  *  carries on with a run is the Play tab, which already lands on it (see App's `playTo`),
  *  and the run screen itself. Nothing here branches on state now, which is the point:
- *  the front page is the pitch for the game, not a control panel over the save. */
+ *  the front page is the pitch for the game, not a control panel over the save.
+ *
+ *  AND TWO MORE SECTIONS WENT ON THE SAME DAY (owner's call), which leaves the page at
+ *  the two blocks above. The three-beat "how it works" - an icon tile, a heading and a
+ *  line of grey text, three across - explained the game in the words the hero paragraph
+ *  directly above it had already used, so it was the pitch restated one size smaller;
+ *  its `Beat` component and the three lucide icons went with it, and so did
+ *  `rounded-[10px]`, which was one of the two radii in the whole codebase used exactly
+ *  once (the note on the hero's own corner below predicted that: "the 10px goes when the
+ *  beats do"). The closing strip - "From 1970 to 2026. 15 World Cups, every squad, one
+ *  trophy." - was a statistic under a rule at the foot of a page whose job was finished
+ *  two sections earlier; its figures were derived off `WORLD_CUP_YEARS` rather than
+ *  typed, which was the right way to write a line that should not have been there.
+ *  **Do not re-add either as "the page looks short".** What sells the game is the board
+ *  and the shelf. */
 interface Props {
     /** Where "Build your XI now" goes. */
     buildTo: string;
@@ -77,28 +90,6 @@ const GRASS_STRIPE = 'var(--color-grass-stripe)';
 //
 // See the note on `btn` in matchUi for why a surface is not a fourth design.
 
-function Beat({
-    icon,
-    title,
-    children,
-}: {
-    icon: React.ReactNode;
-    title: string;
-    children: React.ReactNode;
-}) {
-    return (
-        <div className="flex items-start gap-3.5">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-chalk text-accent">
-                {icon}
-            </span>
-            <div>
-                <h3 className="font-display text-[16px] font-bold tracking-[-0.01em]">{title}</h3>
-                <p className="mt-1 text-[13px] text-muted">{children}</p>
-            </div>
-        </div>
-    );
-}
-
 export default function ModeSelect({ buildTo, allPlayers }: Props) {
     // The rarest collectibles (highest-rated), for the "chase the legends" showcase.
     const legends = useMemo(() => {
@@ -116,10 +107,10 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
 
                 THE RADIUS AND THE SHADOW ARE THE HOUSE ONES, and both used to be this
                 page's own (fixed 2026-09-07, authenticity pass A3). The corner was
-                `rounded-[14px]` and the beat tiles below are still `rounded-[10px]`, and
+                `rounded-[14px]` and the beat tiles below it were `rounded-[10px]`, and
                 those were the only two radii in the whole codebase used exactly once:
-                everything else is 5px (33 uses) or the 6px card idiom (22). The 10px goes
-                when the beats do.
+                everything else is 5px (33 uses) or the 6px card idiom (22). The 10px went
+                with the beats on 2026-09-10, as this note said it would.
 
                 The shadow was the one that mattered. It was a bespoke
                 `7px_7px_0_var(--color-ink)` against the system's 6px `shadow-hard`, and
@@ -229,36 +220,42 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                 </div>
             </section>
 
-            {/* HOW IT WORKS */}
-            <div className="mt-8 grid grid-cols-1 gap-4 min-[680px]:grid-cols-3">
-                <Beat icon={<CircleDashed size={21} strokeWidth={2} />} title="Draft your XI">
-                    Roll real squads (or shop a transfer budget) and pick your eleven, one position at a
-                    time.
-                </Beat>
-                <Beat icon={<Swords size={21} strokeWidth={2} />} title="Play the tournament">
-                    Group stage, then knockouts - revealed live, goal by goal, just like the real thing.
-                </Beat>
-                <Beat icon={<Trophy size={21} strokeWidth={2} />} title="Lift the cup">
-                    Win it all - and keep the legends you drafted in a Panini-style sticker album.
-                </Beat>
-            </div>
-
             {/* CHASE THE LEGENDS */}
             {FEATURES.stickerAlbum && legends.length > 0 && (
                 <section className="mt-10">
-                    <div className="mb-4 flex items-baseline justify-between gap-3">
-                        <div>
-                            <h2 className="font-display text-[22px] font-bold tracking-[-0.01em]">
-                                Chase the legends
-                            </h2>
-                            <p className="mt-1 text-[13.5px] text-muted">
-                                {FEATURES.stickersOnCupWinOnly
-                                    ? 'Win the cup with an all-time great and the sticker is yours to keep.'
-                                    : 'Draft an all-time great and the sticker is yours to keep.'}{' '}
-                                These five are the rarest of all.
-                            </p>
-                        </div>
+                    {/* One block, not a flex row: the `justify-between` here used to hold a
+                        control on the right and has held nothing since it went, so a
+                        two-child layout was describing a header with one child. */}
+                    <div className="mb-4">
+                        <h2 className="font-display text-[22px] font-bold tracking-[-0.01em]">
+                            Chase the legends
+                        </h2>
+                        {/* WHAT THE ALBUM IS, AND HOW A CARD GETS INTO IT (2026-09-10,
+                            owner's call: the old line said only "the sticker is yours to
+                            keep", which promises a reward without ever saying what the
+                            collection is or what earns one).
 
+                            THE FLOOR IS DERIVED, NEVER TYPED. `STICKER_TIERS.legendary.min`
+                            is the one place that decides who is collectible, and a literal
+                            90 here would go on promising 90 the day somebody moves the
+                            band - which is exactly the class of stale front-page figure
+                            the closing strip's own note was written about before it was
+                            deleted.
+
+                            THE BRANCH IS NOT OPTIONAL. `stickersOnCupWinOnly` is the flag
+                            that decides whether a run banks its XI or only a cup does, and
+                            it has been flipped both ways (see the album section of
+                            CLAUDE.md). The copy has to move with it, or the front page
+                            starts lying the moment it is thrown. */}
+                        <p className="mt-1 max-w-[62ch] text-[13.5px] text-muted">
+                            Every player in the game rated {STICKER_TIERS.legendary.min} or
+                            higher has a sticker, across three tiers.{' '}
+                            {FEATURES.stickersOnCupWinOnly
+                                ? 'Win the cup and the ones in your XI go into the album, plus one more of your choosing.'
+                                : 'Finish a run and the ones in your final XI go into the album, win or lose; win the cup and you pick one more.'}{' '}
+                            Spare copies trade for a card you are missing. These five are
+                            the rarest of all.
+                        </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3 min-[460px]:grid-cols-3 min-[760px]:grid-cols-5">
                         {legends.map(({ player: p, tier }) => (
@@ -285,22 +282,6 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                     </div>
                 </section>
             )}
-
-            {/* CLOSING */}
-            <div className="mt-10 flex flex-wrap items-center justify-between gap-3.5 border-t border-line pt-6">
-                <div className="max-w-[42ch] font-display text-[17px] font-bold tracking-[-0.01em]">
-                    {/* Derived, both halves. "Nine World Cups" was true three drops ago and
-                        "'90 to '22" named the ends of a dataset that now runs further at both
-                        ends - a hardcoded count in front of a growing dataset is a promise
-                        that goes stale quietly. */}
-                    From {WORLD_CUP_YEARS[0]} to {WORLD_CUP_YEARS[WORLD_CUP_YEARS.length - 1]}.{' '}
-                    <span className="font-medium text-muted">
-                        {WORLD_CUP_YEARS.length} World Cups, every squad, one trophy.
-                    </span>
-                </div>
-                {/* Album and Squads are tabs, so shortcuts here would be a third way to
-                    the same two places. */}
-            </div>
         </div>
     );
 }
