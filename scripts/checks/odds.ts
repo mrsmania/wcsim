@@ -84,8 +84,27 @@ export function oddsChecks(): void {
   {
     const stops = withSeed(20260909, () => boonStops(0, undefined, 1));
     const run = stops[0];
-    const base = run ? runOddsNow(run, 0, 3000) : null;
-    const away = run ? boostOdds(run, boon('away-days'), 0, 3000) : null;
+    // EVERY READING IN THIS BLOCK IS SEEDED, and that is the difference between an
+    // assertion and a coin toss. All five are Monte-Carlo estimates and the four checks
+    // below compare a PAIR of them against a tolerance of two to five points, which is
+    // the size of the estimate's own spread at this sim count: the first of them read
+    // 1.4 to 4.4pp over twelve independent readings of the same unchanged stop against
+    // its own threshold of 2, so it failed about half the runs of the suite while
+    // passing on its own. It is the lesson the odds work already wrote down once (a
+    // tolerance is a measurement, and a check that compares two noisy readings needs a
+    // seed) applied to the block that did not get it. The seed is the stop's own, and
+    // it pins a typical reading rather than a favourable one: Away Days comes out at
+    // 2.8pp against a measured mean of 2.9. Discrimination is unharmed, which is the
+    // thing a seed can quietly cost - a card that moves nothing at this stop reads
+    // 0.0pp give or take the noise floor, so a real regression still goes red.
+    const readings = withSeed(20260909, () => ({
+      base: run ? runOddsNow(run, 0, 3000) : null,
+      away: run ? boostOdds(run, boon('away-days'), 0, 3000) : null,
+      oneRound: run ? boostOdds(run, boon('second-wind'), 0, 3000) : null,
+      permanent: run ? boostOdds(run, boon('defensive-drills'), 0, 3000) : null,
+      sold: run ? boostOdds(run, boon('sold-out-stadium'), 0, 3000) : null,
+    }));
+    const { base, away, oneRound, permanent, sold } = readings;
     check(
       'odds: a next-opponent card is worth something on the tie it is aimed at',
       () => {
@@ -105,8 +124,6 @@ export function oddsChecks(): void {
     // still helping in the final. Replace the per-round `teamAt` with a constant round and
     // this goes red: a one-round card then reads as a permanent one.
     const cond = base ? base.cup / base.tie : 0;
-    const oneRound = run ? boostOdds(run, boon('second-wind'), 0, 3000) : null;
-    const permanent = run ? boostOdds(run, boon('defensive-drills'), 0, 3000) : null;
     check(
       'odds: a one-round card moves the cup by the factor it moves the tie, a permanent one by more',
       () => {
@@ -129,7 +146,6 @@ export function oddsChecks(): void {
 
     // Sold Out Stadium is the case the two horizons exist for: +6 now and -6 the round
     // after, so it is the best card on the board for this tie and pays for it immediately.
-    const sold = run ? boostOdds(run, boon('sold-out-stadium'), 0, 3000) : null;
     check(
       'odds: a card that pays its debt next round wins the tie and not the cup',
       () => {
