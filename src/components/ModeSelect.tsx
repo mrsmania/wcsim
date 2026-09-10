@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CircleDashed, Swords, Trophy } from 'lucide-react';
-import ConfirmAction from './ConfirmAction';
 import type { Player } from '../data/types';
 import { WORLD_CUP_YEARS } from '../data/squads';
 import { FEATURES } from '../config';
@@ -25,17 +24,17 @@ import { btn, PAGE_TOP } from './matchUi';
  *  door was a second answer to a question the bar already answers - and it was pulling the
  *  front page towards a mode this screen is not about. Play is the single-player game.
  *
- *  The single Continue is likewise single-player only: a held versus room used to outrank
- *  the Cup Run here and does not any more (see App). */
+ *  AND THE LAST OF IT, the Continue, went on 2026-09-10 (owner's call): the hero offers
+ *  ONE action, "Build your XI now", whatever is in progress. So the cover no longer reads
+ *  the run or the half-built board at all, and the pair of buttons it used to grow - a
+ *  Continue plus the destructive "Build a new XI" that had to confirm because Continue
+ *  was standing beside it - is one plain link that needs no confirm and no sub-line. What
+ *  carries on with a run is the Play tab, which already lands on it (see App's `playTo`),
+ *  and the run screen itself. Nothing here branches on state now, which is the point:
+ *  the front page is the pitch for the game, not a control panel over the save. */
 interface Props {
-    /** The single Continue action (a live run, a tournament, or a half-built XI), or null
-     *  when nothing is in progress. */
-    continueAction: { to: string; label: string; sub: string } | null;
-    /** Where "Build your XI" goes. */
+    /** Where "Build your XI now" goes. */
     buildTo: string;
-    /** Discard what is in progress and start a fresh build. Destructive, so it confirms
-     *  inline. */
-    onNewXi?: () => void;
     /** The active squad pool, for the rarest-stickers showcase. */
     allPlayers: Player[];
 }
@@ -63,12 +62,13 @@ const LINEUP: { n: number; name: string; x: number; y: number }[] = [
 const GRASS_BASE = 'var(--color-grass)';
 const GRASS_STRIPE = 'var(--color-grass-stripe)';
 
-// THE HERO'S CTAs ARE THE APP'S TWO BUTTONS, on the app's one dark surface (2026-09-02).
-// They used to be three looks of their own - an amber fill, a white fill and a translucent
-// white outline, all at a 14px label and an 8px radius nothing else in the app uses - which
-// made the front page the loudest argument against there being a button system at all.
+// THE HERO'S CTA IS THE APP'S OWN BUTTON, on the app's one dark surface (2026-09-02, when
+// there were two of them). They used to be three looks of their own - an amber fill, a
+// white fill and a translucent white outline, all at a 14px label and an 8px radius
+// nothing else in the app uses - which made the front page the loudest argument against
+// there being a button system at all.
 //
-// They take `btn(tone, size, 'dark')` now: the same shape, the same radius, the same face
+// It takes `btn(tone, size, 'dark')` now: the same shape, the same radius, the same face
 // and the same size as every other page action, rendered for a green ground. The amber went
 // with it, and that is the one visible loss: amber was doing the "this is the thing to press"
 // job that the primary tone does everywhere else, and it cannot be the primary here because
@@ -99,7 +99,7 @@ function Beat({
     );
 }
 
-export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayers }: Props) {
+export default function ModeSelect({ buildTo, allPlayers }: Props) {
     // The rarest collectibles (highest-rated), for the "chase the legends" showcase.
     const legends = useMemo(() => {
         if (!FEATURES.stickerAlbum) return [];
@@ -176,44 +176,12 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
                         a time, then run the gauntlet - group stage to final, live and minute by minute.
                     </p>
 
-
                     <div className="mt-6 flex flex-wrap items-center gap-3">
-                        {continueAction ? (
-                            <>
-                                <Link
-                                    to={continueAction.to}
-                                    className={btn('primary', 'normal', 'dark')}
-                                >
-                                    {continueAction.label}
-                                    <ArrowRight size={17} strokeWidth={2.5} />
-                                </Link>
-                                {onNewXi && (
-                                    <ConfirmAction
-                                        triggerLabel="Build a new XI"
-                                        triggerClassName={btn('secondary', 'normal', 'dark')}
-                                        prompt="This ends what you have in progress."
-                                        confirmLabel="Start a new XI"
-                                        onConfirm={onNewXi}
-                                        rowClassName="flex flex-wrap items-center gap-2.5"
-                                        promptClassName="text-[12.5px] font-semibold text-white/85"
-                                    />
-                                )}
-                            </>
-                        ) : (
-                            <Link
-                                to={buildTo}
-                                className={btn('primary', 'normal', 'dark')}
-                            >
-                                Build your XI now
-                                <ArrowRight size={17} strokeWidth={2.5} />
-                            </Link>
-                        )}
+                        <Link to={buildTo} className={btn('primary', 'normal', 'dark')}>
+                            Build your XI now
+                            <ArrowRight size={17} strokeWidth={2.5} />
+                        </Link>
                     </div>
-                    {continueAction && (
-                        <p className="mt-3.5 text-[12.5px] text-white/70">
-                            {continueAction.sub}
-                        </p>
-                    )}
                 </div>
 
                 {/* All-time 4-3-3 on the tactics board (desktop only) */}

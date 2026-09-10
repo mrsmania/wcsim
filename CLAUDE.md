@@ -183,8 +183,9 @@ done and why. What that means for anyone working in this tree now:
   cache holds, which has to be the run already carrying `stickersApplied` - set in the same
   effect that reports the run's end, relying on **a child's effect running before its
   parent's**. Lifting that state inverts the ordering and the failure is a run banked twice
-  on a reload. The one `store.peek()` left in App reads the run for the front page's
-  Continue line, and that is the price.
+  on a reload. The one `store.peek()` left in App reads the run to decide where the Play
+  tab lands, and that is the price. (It used to be read for the front page's Continue
+  line as well, which is gone - see "the cover offers one action" below.)
 - **Everything that talks to `localStorage` goes through `state/storage/kv.ts`**
   (`readJson` / `writeJson` / `removeKeys` / `hasAnyKey`), and **every storage key is
   exported by the module that owns it**, with `GUEST_KEYS` built from those exports rather
@@ -708,10 +709,10 @@ src/
 **There is ONE way to play, and one tournament.** `/` is the front page (`ModeSelect`),
 `/play` the build page, `/cup-run` the run. Build an XI (roll a squad or buy within a
 budget - both are always available), then the single `CompletePanel` "Start Run" CTA
-requests a kickoff and goes to `/cup-run`. The front page surfaces one **Continue**: a
-live Cup Run, else a **half-finished build** ("Finish your XI - 4-3-3 - 7 of 11 picked",
-or "Your XI is ready" for a complete XI that never kicked off). `handleReset` always
-returns to `/play`.
+requests a kickoff and goes to `/cup-run`. **The front page offers one action, "Build
+your XI now", and it never branches on what is in progress** (2026-09-10): carrying on
+with a run is the Play tab's job, which lands on it. `handleReset` always returns to
+`/play`.
 
 This used to be two of everything - a Quick Run playing a plain World Cup on
 `TournamentScreen`/`KnockoutScreen`, and a Career Mode Cup Run - chosen on a launcher with
@@ -977,8 +978,21 @@ onto a second row below the fold. Do not add a seventh without a reason of that 
 - **The mode doors go, the front page stays.** `/` is still `ModeSelect` - the hero
   tactics board, the three beats and the "Chase the legends" showcase are what sell the
   game - but the two door cards went, and the three resume buttons collapsed into one
-  **Continue**: a live Cup Run, else a half-built XI. "Build a new XI" beside it confirms
-  first, because it discards whichever of the two that is.
+  **Continue**: a live Cup Run, else a half-built XI, with a destructive "Build a new XI"
+  beside it that confirmed first because it discarded whichever of the two that was.
+- **AND THE COVER OFFERS ONE ACTION NOW, whatever is in progress** (2026-09-10, owner's
+  call): the hero is a single **"Build your XI now"** link and reads no state at all. So
+  the Continue, the confirm beside it and the sub-line under it are gone, and with them
+  every derivation that only existed to write their copy - `buildResume` in
+  `state/resume.ts` (the "4-3-3 - 7 of 11 picked" sentence and the half-built test that
+  produced it) and the sentence half of `cupRunResume`, which is now the predicate
+  `hasLiveRun`. **The one remaining reader of "is there a run" is the Play tab's
+  destination**, which needs a yes or no; the run screen is what carries a run on. Nothing
+  on the cover branches, which is the point: the front page is the pitch for the game
+  rather than a control panel over the save - and it is also why the check that used to
+  assert "the cover's Continue does not prefer a versus room" now asserts the shape that
+  makes that unaskable (one unconditional link, and a file that names no room, no run and
+  no board).
 - **PLAY IS THE SINGLE-PLAYER GAME, and nothing about Versus is under it** (2026-09-01,
   a reported bug: *"when I have a running versus room I cannot get back to the home page,
   clicking PLAY always forwards to the versus page"*). Three things had grown there while

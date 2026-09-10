@@ -7,16 +7,13 @@
 import { check } from './harness';
 import { readFileSync, readdirSync } from 'node:fs';
 import { BANK_CAP, FEATURES } from '../../src/config';
-import { ALL_PLAYERS, WORLD_CUP_YEARS } from '../../src/data/squads';
+import { WORLD_CUP_YEARS } from '../../src/data/squads';
 import { FAMILIES } from '../../src/domain/challenges';
-import { type Filled } from '../../src/domain/draft';
-import { getFormation } from '../../src/domain/formations';
-import { KO_ROUNDS } from '../../src/domain/knockout';
 import { type RunState } from '../../src/domain/run';
 import { ALBUM_KEY, ALBUM_STATS_KEY } from '../../src/state/albumStorage';
 import { CAREER_KEY } from '../../src/state/careerStorage';
 import { GAME_KEY } from '../../src/state/persist';
-import { buildResume, cupRunResume } from '../../src/state/resume';
+import { hasLiveRun } from '../../src/state/resume';
 import { type Screen, isPlayTab, isRecords, screenOf } from '../../src/state/routes';
 import { REVEAL_KEY, RUN_KEY } from '../../src/state/runStorage';
 import {
@@ -152,32 +149,25 @@ export function stateChecks(): void {
     );
   }
 
-  // --- The front page's two Continue offers -----------------------------------
-  // A run that ENDED is a finished story, not something to carry on with, and a board
-  // with nothing picked is just the build page. Both were inline ternaries in the
-  // composition root before H83.
+  // --- The one question anything still asks about a run in flight --------------
+  // A run that ENDED is a finished story rather than something to carry on with, so the
+  // Play tab lands on the build page instead of on a summary nobody can advance. It was
+  // an inline ternary in the composition root before H83.
+  //
+  // IT USED TO BE TWO CHECKS OVER TWO SENTENCE-WRITING HELPERS, and both went with the
+  // front page's Continue (2026-09-10): `cupRunResume` also wrote the round and the next
+  // opponent, and `buildResume` wrote "4-3-3 - 1 of 11 picked" for a half-built board.
+  // The cover offers one unconditional "Build your XI now" now, so nothing needs either
+  // sentence and the half-built test has no reader at all - what is left is a predicate.
   {
     const run = (over: Partial<RunState>) => ({ phase: 'group', koRound: 0, ...over }) as RunState;
-    const f = getFormation('4-3-3', 'bal')!;
-    const one: Filled = { [f.slots[0]!.id]: ALL_PLAYERS[0]! };
-    const full: Filled = Object.fromEntries(f.slots.map((s, i) => [s.id, ALL_PLAYERS[i]!]));
     check(
       'resume: only a live run is offered, and an ended one never is',
-      () => cupRunResume(null) === null &&
-        cupRunResume(run({ phase: 'ended' })) === null &&
-        cupRunResume(run({}))?.summary === 'Group stage' &&
-        cupRunResume(run({ phase: 'match', koRound: 0 }))?.summary === KO_ROUNDS[0] &&
-        cupRunResume(run({ phase: 'match', koRound: 99 }))?.summary === 'Knockouts',
-    );
-    check(
-      'resume: a half-built XI is offered, an empty board and a live run are not',
-      () => buildResume(null, {}, false) === null &&
-        buildResume(f, {}, false) === null &&
-        buildResume(f, one, true) === null &&
-        buildResume(f, one, false)?.label === 'Finish your XI' &&
-        buildResume(f, one, false)?.sub === '4-3-3 · 1 of 11 picked' &&
-        buildResume(f, full, false)?.label === 'Your XI is ready' &&
-        buildResume(f, full, false)?.sub === '4-3-3',
+      () => !hasLiveRun(null) &&
+        !hasLiveRun(undefined) &&
+        !hasLiveRun(run({ phase: 'ended' })) &&
+        hasLiveRun(run({})) &&
+        hasLiveRun(run({ phase: 'match', koRound: 3 })),
     );
   }
 
@@ -317,6 +307,13 @@ export function stateChecks(): void {
   // (2026-08-31): the mode is reachable from every screen now, so borrowing the Play tab
   // costs a destination and buys nothing.
   //
+  // THE COVER'S HALF IS NOW THE STRONGER STATEMENT (2026-09-10): its Continue is gone
+  // altogether, so the hero is one unconditional link to the build page and CANNOT prefer
+  // a room, a run or anything else. What replaces "the Continue does not name the room" is
+  // therefore the shape that makes that true - the link goes to `buildTo`, and the file
+  // reads no run, no board and no room. That doubles as the guard on the removal itself,
+  // since a Continue growing back would have to name one of them.
+  //
   // Source-level for the same reason the pointer check above is: there is nothing to run,
   // the defect is a line being there. The strip assertion is the vacuity guard, and it is
   // the load-bearing half - "Play does not mention the room" is trivially true of a build
@@ -324,27 +321,31 @@ export function stateChecks(): void {
   // replaces (a player mid-room with no way back to it from the album).
   {
     const app = readFileSync('src/App.tsx', 'utf8');
+    const cover = readFileSync('src/components/ModeSelect.tsx', 'utf8');
     const playTo = /\n\s*const playTo = ([^;]*);/.exec(app)?.[1] ?? '';
-    // `;\r?\n`, not `;\n`: a Windows checkout has CRLF line endings, so that anchor never
-    // matched there and the capture came back empty - which reads as a Continue that has
-    // stopped naming the run, on a machine where the app is perfectly correct.
-    const continueAction = /\n\s*const continueAction = ([\s\S]*?);\r?\n/.exec(app)?.[1] ?? '';
     const mentionsRoom = (src: string) => /roomTo|heldRoom|VersusRoom/.test(src);
+    // The hero's one action, and the state it is not allowed to read. Identifiers rather
+    // than words, so the file's own prose about the Continue it used to carry does not
+    // fail the check that records its removal.
+    const coverAction = /<Link to=\{buildTo\} className=\{btn\('primary', 'normal', 'dark'\)\}>/.test(
+      cover,
+    );
+    const coverStateless =
+      !mentionsRoom(cover) && !/continueAction|onNewXi|hasLiveRun|Resume/.test(cover);
     // The chrome's one-line strip is where a held room lives now, and it links to it.
     const strip = /heldRoom && roomTo && !isVersus \? \(\s*<Link\s+to=\{roomTo\}/.test(app);
     check(
-      'versus: the Play tab and the cover Continue are single-player, and the strip still holds the room',
+      'versus: the Play tab is single-player, the cover offers one plain build link, and the strip still holds the room',
       () =>
-        // Vacuity: both expressions were found and both really do decide a destination.
+        // Vacuity: the expression was found and really does decide a destination.
         playTo.includes("'/cup-run'") &&
-        continueAction.includes("'/cup-run'") &&
         !mentionsRoom(playTo) &&
-        !mentionsRoom(continueAction) &&
+        coverAction &&
+        coverStateless &&
         strip,
       () =>
-        `playTo ${mentionsRoom(playTo) ? 'takes the room' : 'is solo'}, continue ${
-          mentionsRoom(continueAction) ? 'takes the room' : 'is solo'
-        }, strip ${strip}`,
+        `playTo ${mentionsRoom(playTo) ? 'takes the room' : 'is solo'}, cover link ${coverAction}` +
+        `, cover stateless ${coverStateless}, strip ${strip}`,
     );
   }
 

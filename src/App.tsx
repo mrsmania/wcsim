@@ -8,7 +8,7 @@ import { FEATURES } from './config';
 import { INITIAL_REROLLS, INITIAL_SWAPS } from './state/gameReducer';
 import { soloBuildIo } from './state/buildIo';
 import { isPlayTab, isRecords, screenOf } from './state/routes';
-import { buildResume, cupRunResume } from './state/resume';
+import { hasLiveRun } from './state/resume';
 import { useLiveMatch } from './nav/liveMatch';
 import { useHeldVersusRoom } from './nav/versusRoom';
 import { useDuelAlert } from './hooks/useDuelAlert';
@@ -213,23 +213,16 @@ export default function App({
         [],
     );
 
-    // A Cup Run that is mid-flight, described in one line for the Continue button
-    // (`state/resume.ts`). The one `store.peek()` left, and `useCupRun` records why: the
-    // run stays owned by the run screen, because the account path needs it written back by
-    // a CHILD's effect.
+    // Whether a Cup Run is mid-flight, which is the one thing the Play tab's destination
+    // needs to know (`state/resume.ts`). The one `store.peek()` left, and `useCupRun`
+    // records why: the run stays owned by the run screen, because the account path needs
+    // it written back by a CHILD's effect.
     //
     // A plain read, not a memo keyed on the path (hygiene H14). `peek()` is a synchronous
     // in-memory field read, so the memo cached nothing and its key was a lie about the
     // dependency - and it was strictly WORSE than reading: a memo keyed on the path serves
     // a stale run for any change that does not navigate.
-    const resumeCupRun = cupRunResume(store.peek().run);
-
-    // Launcher-only read: an XI left mid-build, so coming back to the site is not a
-    // dead end. Only when there is nothing further along to resume.
-    const resumeBuild = useMemo(
-        () => buildResume(formation, filled, !!resumeCupRun),
-        [formation, filled, resumeCupRun],
-    );
+    const liveRun = hasLiveRun(store.peek().run);
 
     // ---------------------------------------------------------------- tabs chrome
     // A match reveal is transient state (deliberately not persisted), so the bar goes
@@ -266,7 +259,7 @@ export default function App({
     // Where the Play tab lands: the run if there is one, the build if one is half done,
     // otherwise the cover. The crest always returns to the cover. A versus room is
     // deliberately NOT in this chain - see above.
-    const playTo = resumeCupRun ? '/cup-run' : formation ? '/play' : '/';
+    const playTo = liveRun ? '/cup-run' : formation ? '/play' : '/';
     const playTabActive = isPlayTab(screen);
     // A tab is a label and a destination. The per-tab sub-line each of these used to
     // carry (where the run is, level and Prestige, album completion, challenges earned,
@@ -307,20 +300,6 @@ export default function App({
         },
     ];
     const tabs: TabItem[] = tabEntries.filter((t): t is TabItem => t !== false);
-
-    // The cover's single Continue action: a live Cup Run, else a half-built XI. One
-    // action because this navigation keeps one run at a time; "build a new XI" beside it
-    // discards whichever of the two it is.
-    //
-    // A held versus room used to come FIRST here ("Back to your room"), and it does not
-    // any more: the cover is the Play tab's own screen, so a room on it made the front
-    // page one more place that talked about Versus and hid the single-player game behind
-    // it. The room is reachable from the strip in the chrome, on this screen included.
-    const continueAction = resumeCupRun
-        ? { to: '/cup-run', label: 'Resume your Cup Run', sub: resumeCupRun.summary }
-        : resumeBuild
-          ? { to: resumeBuild.to, label: resumeBuild.label, sub: resumeBuild.sub }
-          : null;
 
     return (
         <div className="min-h-full text-ink">
@@ -475,12 +454,7 @@ export default function App({
                             )}
                         </>
                     ) : isLauncher ? (
-                        <ModeSelect
-                            continueAction={continueAction}
-                            buildTo="/play"
-                            onNewXi={handleReset}
-                            allPlayers={poolPlayers}
-                        />
+                        <ModeSelect buildTo="/play" allPlayers={poolPlayers} />
                     ) : isVersus ? (
                         <VersusScreen
                             signedIn={!!accountEmail}
