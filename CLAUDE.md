@@ -1853,6 +1853,23 @@ deleted with the plain World Cup it used to gate). Design:
     the group**, where there is no bracket to be aware of and so nothing on screen to
     contradict. `npm run checks` reads all of it, because a build that computes the figure
     twice renders a perfectly good screen and simply prints two numbers.
+  - **THE FIGURE MOVES BETWEEN RUNS OF THE SAME XI, AND THE DRAW IS WHY** (measured
+    2026-09-10, asked because it looks like a fault and is the feature working). One
+    unchanged XI over twelve runs read **79% to 92%** on the cup, a 13pp spread, while the
+    bracket's average opponent ranged 77.9 to 82.3 - and the correlation between the two is
+    **-0.85**, so the draw accounts for nearly all of it and the simulation's own 1 to 2pp
+    is the remainder. That is the whole point of the position-aware pass: the number is a
+    fact about THIS run, not about the XI, which is exactly what the blind reading could not
+    say. Worth knowing that the two horizons move differently, too: for a strong XI the TIE
+    figure barely moves (93 to 99% across those twelve) because any single tie is near
+    certain, while the cup compounds four of them, so the quality of the tree dominates.
+  - **IT PLAYS THIS BRACKET, NOT ALL POSSIBLE OPPONENTS.** The sixteen teams are fixed the
+    moment the group is survived, drawn elo-weighted from the player's selected World Cups
+    and excluding the group opponents. Every simulation plays every remaining tie, so a
+    quarter-final opponent is whoever wins the other Round-of-16 tie IN THAT SIMULATION:
+    the figure covers every possible PATH through the actual draw, and no team the tree does
+    not contain. That is what makes it need no squad pool, and it is why the later rounds are
+    already in the number rather than only the next tie.
   - **AN ODDS FIGURE IS REPRODUCIBLE TO ABOUT A POINT, AND THE LEVER IS THE SIM COUNT, NOT
     THE SAMPLING** (measured 2026-09-10, after a check of my own failed on its second day).
     The check asserted that two readings of Wildcard Legend agree within 8pp, and the claim
