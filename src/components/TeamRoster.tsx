@@ -25,10 +25,16 @@ const CATEGORY_LABEL: Record<PositionCategory, string> = {
 const ROW = 'grid grid-cols-[28px_1fr_auto_40px] items-center gap-2.5 px-4';
 
 /**
- * A single squad as a reference roster: a header (flag, nation, year, team
- * rating, squad average, size) and the full player list grouped GK -> DEF ->
- * MID -> FWD. Each row shows the four required fields, always visible: jersey
+ * A single squad as a reference roster: a header (flag, nation, year, the best
+ * XI's rating and the squad average) and the full player list grouped GK -> DEF
+ * -> MID -> FWD. Each row shows the four required fields, always visible: jersey
  * number, full name, main position (positions[0]), and rating. Pure over `squad`.
+ *
+ * TWO COUNTS WERE DELETED ON 2026-09-10 (owner's call): the squad size beside the
+ * ratings, and the per-position tally on each group heading. Both were countable
+ * off the rows they sat above, and the header line is the one thing on the page
+ * that is NOT: `squadOverall` is the mean of the best eleven that can be picked,
+ * which is why it now says so rather than the ambiguous "Team".
  */
 export default function TeamRoster({ squad }: { squad: Squad }) {
     const avg = squad.players.length
@@ -45,8 +51,8 @@ export default function TeamRoster({ squad }: { squad: Squad }) {
                 </span>
                 <span className="font-mono text-[13px] font-semibold text-muted">{squad.year}</span>
                 <span className="ml-auto font-mono text-[11px] font-semibold tracking-[0.02em] text-muted">
-                    Team <span className="text-ink">{squadOverall(squad)}</span> &middot; Avg{' '}
-                    <span className="text-ink">{avg}</span> &middot; {squad.players.length} players
+                    Best XI <span className="text-ink">{squadOverall(squad)}</span> &middot; Avg{' '}
+                    <span className="text-ink">{avg}</span>
                 </span>
             </div>
 
@@ -70,7 +76,6 @@ export default function TeamRoster({ squad }: { squad: Squad }) {
                     <div key={cat}>
                         <div className="border-b border-line bg-ground/60 px-4 py-1.5 font-mono text-[10px] font-semibold text-pitch-ink">
                             {CATEGORY_LABEL[cat]}
-                            <span className="ml-1.5 text-muted">&middot; {group.length}</span>
                         </div>
                         {group.map((p) => {
                             const tier = FEATURES.stickerAlbum ? tierOf(p) : null;
