@@ -38,6 +38,7 @@ export default function BoostOffer({
   roundName,
   run,
   atkDefDelta = 0,
+  baseOdds = null,
   onPick,
   rerollsLeft = 0,
   onReroll,
@@ -51,6 +52,12 @@ export default function BoostOffer({
   /** The difficulty setting's own delta. The Ascension handicap is NOT included: the odds
    *  pass reads that off the run itself, so passing both would apply it twice. */
   atkDefDelta?: number;
+  /** The run's odds as the screen already computed them, which is what makes the cup row
+   *  here and the Title figure in the XI panel ONE number. They were two readings of the
+   *  same run and disagreed on screen; passing the figure in is what stops that being
+   *  possible rather than merely unlikely. Null falls back to computing it, which is what
+   *  the checks harness and any future caller get. */
+  baseOdds?: RunOdds | null;
   onPick: (b: Boon) => void;
   /** Physio Table perk: re-rolls of this offer still available in the run. */
   rerollsLeft?: number;
@@ -60,7 +67,8 @@ export default function BoostOffer({
   /** Figures per boon id. A key present with `null` is a card the simulation cannot
    *  price, which is a different thing from one not computed yet. */
   const [odds, setOdds] = useState<Record<string, RunOdds | null>>({});
-  const [base, setBase] = useState<RunOdds | null>(null);
+  const [localBase, setLocalBase] = useState<RunOdds | null>(null);
+  const base = baseOdds ?? localBase;
   const [working, setWorking] = useState(false);
   /** The offer this cache belongs to. A Physio Table re-roll deals new cards, and figures
    *  computed against the old ones would be answers to a question nobody asked. */
@@ -70,7 +78,7 @@ export default function BoostOffer({
     cacheKey.current = offerKey;
     setChosenId(null);
     setOdds({});
-    setBase(null);
+    setLocalBase(null);
     setWorking(false);
   }
 
@@ -93,7 +101,7 @@ export default function BoostOffer({
       const b = base ?? runOddsNow(run, atkDefDelta);
       const o = boostOdds(run, chosen, atkDefDelta);
       if (cancelled) return;
-      if (b) setBase(b);
+      if (b && !baseOdds) setLocalBase(b);
       setOdds((prev) => ({ ...prev, [chosen.id]: o }));
       setWorking(false);
     }, 0);
@@ -101,8 +109,8 @@ export default function BoostOffer({
       cancelled = true;
       window.clearTimeout(t);
     };
-    // `base` is deliberately not a dependency: it is filled by this same effect, and
-    // watching it would re-run the work the moment it lands.
+    // `base` is deliberately not a dependency: when the screen does not supply it, this
+    // same effect fills it, and watching it would re-run the work the moment it lands.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chosen, odds, run, atkDefDelta]);
 
@@ -244,16 +252,24 @@ function OddsPanel({
     ? `Beating ${nextOpponent.name} in the ${roundName}`
     : `Winning the ${roundName}`;
 
+  /* ONE HEIGHT WHATEVER IT HOLDS. The two-row readout is the tallest thing the panel can
+     show, and the three single-line states are a fraction of it, so the panel used to
+     shrink and the button under it jumped as you tapped between cards: 116px against 41.
+     The 116 is MEASURED off the two rows in the running app, at 375px and at desktop
+     width, where it comes out the same because neither row wraps - so one figure covers
+     both and a taller reading would simply grow past the floor. A line on its own is
+     centred in that space rather than parked in the corner of a box sized for something
+     else, which is what `items-center` plus `w-full text-center` are for. */
   return (
-    <div className="mt-3 rounded-md border border-line border-l-[3px] border-l-pitch bg-panel p-3">
+    <div className="mt-3 flex min-h-[116px] items-center rounded-md border border-line border-l-[3px] border-l-pitch bg-panel p-3">
       {boon.priced !== 'sim' ? (
-        <p className={MONO_CAP}>{label}</p>
+        <p className={`w-full text-center ${MONO_CAP}`}>{label}</p>
       ) : working || !base || odds === undefined ? (
-        <p className={MONO_CAP}>Working out what it is worth</p>
+        <p className={`w-full text-center ${MONO_CAP}`}>Working out what it is worth</p>
       ) : odds === null ? (
-        <p className={MONO_CAP}>No figure for this one</p>
+        <p className={`w-full text-center ${MONO_CAP}`}>No figure for this one</p>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex w-full flex-col gap-2">
           <OddsRow label={tieLabel} from={base.tie} to={odds.tie} />
           <OddsRow label="Lifting the cup" from={base.cup} to={odds.cup} />
         </div>

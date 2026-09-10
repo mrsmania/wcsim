@@ -1011,6 +1011,25 @@
     </div>
 
     <div class="callout">
+      <span class="ct">Two figures on one screen, reported the day it shipped</span>
+      <b>82% in the XI panel beside 69% on the boost panel</b>, about one run. Both were
+      honest: the panel had the position-aware reading and the Title cell had
+      <code>simulateTitleOdds</code>, which replays a fresh random tournament from a group,
+      so it described a group stage already won and a draw that is not this run's. An XI at
+      the reported strength reproduces <b>82.1%</b> on the blind pass, so neither pass was
+      broken - it was two answers to two questions under one label, and <b>the 69 was the one
+      about the run</b>. The owner's gap was 13 points where a mid-strength XI shows 2 to 3,
+      because a harder-than-average draw is precisely what the blind reading throws away.
+      <b>The fix is not "call the same function" but "compute it once and pass it"</b>, since
+      two runs of a Monte-Carlo pass disagree by their own noise even when both are right:
+      the screen computes it in one memo and hands it to the cell and to both boost stops.
+      Two traps in it - the odds belong to <code>reveal.next</code> during a group reveal
+      rather than to the pre-commit run, or the first stop has no bracket and falls back to
+      the blind pass on exactly the reported screen; and the blind pass stays for the build
+      page and the group, where there is no bracket to be aware of.
+    </div>
+
+    <div class="callout">
       <span class="ct">The bug that only driving the real app could find</span>
       <b><code>boostOdds</code> resolves the card from the catalogue by ID.</b> A
       <code>RunState</code> is persisted to localStorage and a <code>Boon</code> carries

@@ -3,6 +3,7 @@ import { KO_ROUNDS } from '../../domain/knockout';
 import { groupAsOf, GROUP_MATCHDAYS, splitGroup } from '../../domain/tournament';
 import type { GroupRecord, RunState } from '../../domain/run';
 import type { Boon } from '../../domain/boons';
+import type { RunOdds } from '../../domain/odds';
 import { Banner, CARD, ordinal, PRIMARY_BTN } from '../matchUi';
 import StandingsTable from '../StandingsTable';
 import GroupDrawReveal from '../GroupDrawReveal';
@@ -22,6 +23,7 @@ export default function GroupRevealPanel({
   onDismissDraw,
   userRating,
   atkDefDelta,
+  baseOdds,
   speed,
   onMatchEnd,
   onPickBoost,
@@ -40,6 +42,9 @@ export default function GroupRevealPanel({
   /** The difficulty setting's own rating delta, for the boost offer's odds. Not the
    *  Ascension handicap, which the odds pass reads off the run itself. */
   atkDefDelta: number;
+  /** The run's own odds, computed once by the screen so the XI panel's Title figure and
+   *  the boost panel's cup row are the SAME number rather than two readings of one run. */
+  baseOdds: RunOdds | null;
   speed: MatchSpeed;
   onMatchEnd: () => void;
   /** The first boost, picked right here rather than on a screen of its own. */
@@ -123,6 +128,7 @@ export default function GroupRevealPanel({
           {advanced && reveal.next.offer ? (
             <div className={`mt-4 ${CARD} p-5`}>
               <BoostOffer
+                baseOdds={baseOdds}
                 run={reveal.next}
                 atkDefDelta={atkDefDelta}
                 offer={reveal.next.offer}

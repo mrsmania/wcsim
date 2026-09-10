@@ -2,6 +2,7 @@ import { KO_ROUNDS } from '../../domain/knockout';
 import type { KoMatch, RunState } from '../../domain/run';
 import type { GroupTeam } from '../../domain/tournament';
 import type { Boon } from '../../domain/boons';
+import type { RunOdds } from '../../domain/odds';
 import { Banner, CARD, PRIMARY_BTN } from '../matchUi';
 import Flag from '../Flag';
 import FinishedKoCard from './FinishedKoCard';
@@ -23,6 +24,7 @@ export default function RunPhasePanel({
   endedKoRecord,
   userRating,
   atkDefDelta,
+  baseOdds,
   reward,
   banking,
   boostRef,
@@ -45,6 +47,9 @@ export default function RunPhasePanel({
   /** The difficulty setting's own rating delta, for the boost offer's odds. Not the
    *  Ascension handicap, which the odds pass reads off the run itself. */
   atkDefDelta: number;
+  /** The run's own odds, computed once by the screen so the XI panel's Title figure and
+   *  the boost panel's cup row are the SAME number rather than two readings of one run. */
+  baseOdds: RunOdds | null;
   reward: Reward | null;
   banking: boolean;
   /** The boost card, scrolled into view when a run enters the boost phase. */
@@ -153,6 +158,7 @@ export default function RunPhasePanel({
           ) : (
             run.offer && (
               <BoostOffer
+                baseOdds={baseOdds}
                 run={run}
                 atkDefDelta={atkDefDelta}
                 offer={run.offer}

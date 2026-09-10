@@ -1830,6 +1830,50 @@ deleted with the plain World Cup it used to gate). Design:
     for two different reasons** - the Coin Toss is derived from the XI and the opponent so a
     reload cannot re-roll it, which means an honest figure would say heads or tails before
     the card is taken, and the Armband's worth depends on a captain the user has not named.
+  - **THE TITLE FIGURE AND THE CUP ROW ARE ONE NUMBER, computed once by the screen**
+    (2026-09-10, reported as 82% in the XI panel beside 69% on the boost panel, on one
+    screen, about one run). **Both were honest and the 69 was the one about the run.** The
+    panel had the position-aware reading; the Title cell had `simulateTitleOdds`, which
+    replays a FRESH random tournament from a group - so it described a group stage already
+    won and a draw that is not this run's, and threw away the one thing the player can see
+    on the same screen. Measured: an XI at the reported strength (ovr 95 / att 97 / def 93)
+    reproduces **82.1%** on the blind pass, so neither pass was broken - it was two answers
+    to two questions under one label. The owner's gap was 13 points where a mid-strength XI
+    shows 2 to 3, because a harder-than-average draw is exactly what the blind reading
+    cannot see.
+    **The fix is not "call the same function", it is "compute it once and pass it"**, since
+    two runs of a Monte-Carlo pass disagree by their own noise even when both are right.
+    `CupRunScreen` computes `runOddsNow` in one memo and hands the result to the Title cell
+    and to both boost stops as `baseOdds`; `BoostOffer` prefers the prop and keeps its own
+    computation only as the fallback for a caller that passes none. Two things about it: the
+    odds belong to the run the SCREEN is about, which during a group reveal is
+    **`reveal.next`** rather than the pre-commit `run` (reading `run` there leaves the first
+    stop with no bracket, so the cell would silently fall back to the blind pass on exactly
+    the screen the report came from); and **the blind pass survives for the build page and
+    the group**, where there is no bracket to be aware of and so nothing on screen to
+    contradict. `npm run checks` reads all of it, because a build that computes the figure
+    twice renders a perfectly good screen and simply prints two numbers.
+  - **AN ODDS FIGURE IS REPRODUCIBLE TO ABOUT A POINT, AND THE LEVER IS THE SIM COUNT, NOT
+    THE SAMPLING** (measured 2026-09-10, after a check of my own failed on its second day).
+    The check asserted that two readings of Wildcard Legend agree within 8pp, and the claim
+    was simply false: its cup figure spreads **5 to 7pp at 3,000 sims**. The tempting fix is
+    to average over more draws of the card, and it was measured NOT to work - 5 samples
+    7.2pp, 10 samples 5.3, 20 samples 5.9, all inside the estimate's own noise - because the
+    spread is not the card being sampled. **A DETERMINISTIC card spreads 2.7pp at 3,000 sims
+    and 1.3pp at 6,000**, so it is the bracket simulation's own variance and `ODDS_SIMS` is
+    the only lever on it. `ODDS_SAMPLES` therefore stays at 5, which is where it belongs:
+    what averaging fixes is a figure that would otherwise price ONE draw of a random card,
+    not the width of the distribution. The assertion is the true one now (a fixed card,
+    within 3pp, seeded so it cannot flake), and the two lessons are the ones this file keeps
+    re-learning: **a tolerance is a measurement, and a check that compares two noisy
+    readings needs a seed.**
+  - **The panel keeps ONE height and centres a single line in it** (2026-09-10, asked for).
+    The two-row readout is **116px** and a label was **41**, so the panel shrank by 75px and
+    the button under it moved as cards were tapped. The 116 is measured off the two rows in
+    the running app at 375px and at desktop width, where it comes out the same because
+    neither row wraps. `items-center` on the panel plus `w-full text-center` on each
+    single-line state does the centring, and the two-row readout keeps `w-full` so it fills
+    rather than being centred with them.
   - **`boostOdds` resolves the card from the catalogue BY ID, and that was a crash.** A
     `RunState` is persisted to localStorage and a `Boon` carries FUNCTIONS (`plan`, `apply`)
     which a JSON round trip does not, so a run resumed mid-offer holds cards whose data is

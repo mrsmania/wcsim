@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Player, Squad } from '../data/types';
 import { xiStrength } from '../domain/match';
-import { simulateTitleOdds } from '../domain/odds';
+import { simulateTitleOdds, type RunOdds } from '../domain/odds';
 import { userRatingDelta, type Difficulty } from '../domain/difficulty';
 import { ascensionAt, maxSelectableAscension, selectedAscension } from '../domain/ascension';
 import type { MatchSpeed } from '../domain/clock';
@@ -16,6 +16,7 @@ import {
   resolveChoice,
   rerollOffer,
   chemistryOf,
+  runOddsNow,
   type RunState,
   type RunShape,
   type RunBuild,
@@ -198,18 +199,38 @@ export default function CupRunScreen({
   const activeAsc = run?.ascension ?? chosenAsc;
 
   const chem = useMemo(() => (activeXi ? chemistryOf(activeXi) : 0), [activeXi]);
-  const odds = useMemo(
+
+  /* THE TITLE FIGURE AND THE BOOST PANEL'S CUP ROW ARE ONE NUMBER, computed here and
+   * passed to both. They used to be two: the panel had the position-aware reading and
+   * this cell had `simulateTitleOdds`, which replays a FRESH random tournament from a
+   * group - so it described a group stage already won and a draw that is not this run's,
+   * and the two disagreed on the same screen. Reported with 82% beside 69% on one screen:
+   * the 82 reproduces exactly on an XI of that strength and is the honest answer to a
+   * different question, and the 69 is the one about the run.
+   *
+   * The odds belong to whichever run the SCREEN is about: during a group reveal that is
+   * `reveal.next`, which is the state carrying the bracket and the offer being decided
+   * from, not the pre-commit run still on `run`. */
+  const oddsRun = reveal?.kind === 'group' ? reveal.next : run;
+  const runOdds = useMemo<RunOdds | null>(
+    () => (oddsRun ? runOddsNow(oddsRun, diffDelta) : null),
+    [oddsRun, diffDelta],
+  );
+  /* No bracket, no position to be aware of: the build page before kickoff and the group
+   * itself, where a fresh-tournament reading is the only thing that can be said and
+   * nothing on screen contradicts it. Computed only when it is the one being shown. */
+  const blindOdds = useMemo(
     () =>
-      activeXi
+      !runOdds && activeXi
         ? simulateTitleOdds(activeXi, 600, {
             chemistryBonus: chem,
             atkDefDelta: diffDelta + ascensionAt(activeAsc).userDelta,
             pool,
-          })
-            .champion
-        : 0,
-    [activeXi, activeAsc, chem, diffDelta, pool],
+          }).champion
+        : null,
+    [runOdds, activeXi, activeAsc, chem, diffDelta, pool],
   );
+  const odds = runOdds?.cup ?? blindOdds ?? 0;
   const str = useMemo(
     () => (activeXi ? xiStrength(activeXi) : { attack: 0, defense: 0, overall: 0 }),
     [activeXi],
@@ -568,6 +589,7 @@ export default function CupRunScreen({
                       {reveal.kind === 'group' ? (
                         <GroupRevealPanel
                           atkDefDelta={diffDelta}
+                          baseOdds={runOdds}
                           reveal={reveal}
                           drawOpen={drawOpen}
                           onDismissDraw={() => setDrawOpen(false)}
@@ -596,6 +618,7 @@ export default function CupRunScreen({
                   ) : (
                     <RunPhasePanel
                       atkDefDelta={diffDelta}
+                      baseOdds={runOdds}
                       run={run}
                       lastKoMatch={lastKoMatch}
                       endedKoRecord={endedKoRecord}

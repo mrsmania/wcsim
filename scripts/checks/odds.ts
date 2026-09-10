@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { check, xiFor, boonStops, withSeed } from './harness';
 import { simulateTitleOdds } from '../../src/domain/odds';
-import { boostOdds, runOddsNow, ODDS_SAMPLES } from '../../src/domain/run';
+import { boostOdds, runOddsNow, ODDS_SAMPLES, ODDS_SIMS } from '../../src/domain/run';
 import { BOONS, type Boon, type Priced } from '../../src/domain/boons';
 
 const boon = (id: string): Boon => {
@@ -177,6 +177,72 @@ export function oddsChecks(): void {
     );
   }
 
+  // --- The Title cell and the cup row are ONE number ---------------------------
+  // Reported with 82% in the XI panel beside 69% on the boost panel, on one screen, about
+  // one run. Both were honest: the panel had the position-aware reading and the cell had
+  // `simulateTitleOdds`, which replays a FRESH random tournament from a group - so it
+  // described a group stage already won and a draw that is not this run's. The 82
+  // reproduces exactly on an XI of that strength, so it was not a bug in either pass, it
+  // was two answers to two questions under one label.
+  //
+  // The fix is not "use the same function", it is "compute it once and pass it", because
+  // two calls to a Monte-Carlo pass disagree by their own noise even when both are right.
+  // Nothing behavioural can see any of this: a build that computes it twice renders a
+  // perfectly good screen and simply prints two numbers.
+  {
+    const screen = readFileSync('src/components/CupRunScreen.tsx', 'utf8');
+    const offer = readFileSync('src/components/cupRun/BoostOffer.tsx', 'utf8');
+    const phase = readFileSync('src/components/cupRun/RunPhasePanel.tsx', 'utf8');
+    const group = readFileSync('src/components/cupRun/GroupRevealPanel.tsx', 'utf8');
+
+    check(
+      'odds: the screen computes the run odds once and hands them to both boost stops',
+      () =>
+        /runOddsNow\(oddsRun, diffDelta\)/.test(screen) &&
+        // the Title cell reads that figure, with the blind pass only as the no-bracket case
+        /runOdds\?\.cup \?\? blindOdds/.test(screen) &&
+        // and it is passed down rather than recomputed in either panel
+        (screen.match(/baseOdds=\{runOdds\}/g) ?? []).length === 2 &&
+        /baseOdds=\{baseOdds\}/.test(phase) &&
+        /baseOdds=\{baseOdds\}/.test(group) &&
+        /baseOdds \?\? localBase/.test(offer),
+    );
+
+    // The odds belong to the run the SCREEN is about, which during a group reveal is
+    // `reveal.next` - the state carrying the bracket and the offer being decided from,
+    // not the pre-commit run still on `run`. Reading `run` there gives the first stop no
+    // bracket at all, so the Title cell would silently fall back to the blind pass on
+    // exactly the screen the report came from.
+    check(
+      'odds: during a group reveal the figure describes the run the offer belongs to',
+      () => /reveal\?\.kind === 'group' \? reveal\.next : run/.test(screen),
+    );
+
+    // The blind pass is the build page's and the group's, and nothing else's: it is the
+    // only thing that can be said before a bracket exists, and the moment one does exist
+    // it would be a second answer to a question already answered on the same screen.
+    check(
+      'odds: the position-blind pass runs only when there is no bracket to read',
+      () =>
+        /!runOdds && activeXi/.test(screen) &&
+        (screen.match(/simulateTitleOdds\(/g) ?? []).length === 1,
+    );
+
+    // One height whatever the panel holds, so the button under it does not move as cards
+    // are tapped, and a single line is centred in that space rather than parked in the
+    // corner of a box sized for two rows of bar. 116px is measured off the two rows in
+    // the running app, at 375px and at desktop width.
+    check(
+      'odds: the panel keeps one height and centres a single line in it',
+      () =>
+        /min-h-\[116px\]/.test(offer) &&
+        /items-center/.test(offer) &&
+        (offer.match(/w-full text-center \$\{MONO_CAP\}/g) ?? []).length === 3 &&
+        // vacuity: the two-row readout fills the width rather than being centred with them
+        /flex w-full flex-col gap-2/.test(offer),
+    );
+  }
+
   // --- The wiring, which nothing behavioural can see --------------------------
   // Three things about how the readout is put on screen, each of which would look
   // perfectly fine in a fixture and be wrong in the app.
@@ -244,17 +310,31 @@ export function oddsChecks(): void {
       () => ODDS_SAMPLES > 1,
       () => `ODDS_SAMPLES ${ODDS_SAMPLES}`,
     );
+    // AND A READING IS REPRODUCIBLE ENOUGH TO PRINT A WHOLE PERCENT, which is the claim
+    // that matters, on a card whose effect is fixed. This check used to compare two
+    // readings of WILDCARD against an 8pp tolerance and it failed on its second day,
+    // because the claim was false: measured over eight readings, Wildcard's cup figure
+    // spreads 5 to 7pp at 3,000 sims. Raising ODDS_SAMPLES does not fix that and was
+    // measured not to (5 samples 7.2pp, 10 samples 5.3, 20 samples 5.9, all within the
+    // estimate's own noise), because the spread is NOT the card being sampled - a
+    // DETERMINISTIC card spreads 2.7pp at 3,000 sims and 1.3pp at 6,000, so it is the
+    // bracket simulation's own variance and the only lever on it is the sim count. So the
+    // constant stays where it is and the assertion is the true one, seeded so it cannot
+    // flake at all.
     const stops = withSeed(99, () => boonStops(0, undefined, 1));
     const run = stops[0];
     check(
-      'odds: two readings of a random card agree within the noise',
-      () => {
-        if (!run) return false;
-        const a = boostOdds(run, boon('wildcard'), 0, 3000);
-        const b = boostOdds(run, boon('wildcard'), 0, 3000);
-        if (!a || !b) return false;
-        return Math.abs(a.tie - b.tie) < 0.08 && Math.abs(a.cup - b.cup) < 0.08;
-      },
+      'odds: two readings of a fixed card agree closely enough to print a whole percent',
+      () =>
+        withSeed(20260910, () => {
+          if (!run) return false;
+          const a = boostOdds(run, boon('defensive-drills'), 0, ODDS_SIMS);
+          const b = boostOdds(run, boon('defensive-drills'), 0, ODDS_SIMS);
+          if (!a || !b) return false;
+          // 1.3pp is the measured spread over six readings at this count; 3pp is that with
+          // room, and tight enough that losing the averaging or the sim count shows up.
+          return Math.abs(a.tie - b.tie) < 0.03 && Math.abs(a.cup - b.cup) < 0.03;
+        }),
     );
   }
 }
