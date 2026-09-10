@@ -228,10 +228,23 @@ export default function SquadBrowser() {
 /** The stat table's column grid, shared by its header and rows so they line up.
  *  The By World Cup and By Team tables both use it (first column is the team or the
  *  year; the trailing three are rating / players / collectibles). The collectibles
- *  column is dropped when the sticker album is off. */
+ *  column is dropped when the sticker album is off.
+ *
+ *  The three trailing columns are fixed widths because every row is its own grid
+ *  container, so `auto` would size each row to its own content and the columns
+ *  would not line up with the header. Their width is therefore set by the widest
+ *  HEADER word rather than by the figures, and on a phone that starved the team
+ *  name: the desktop set spends 226px plus its gaps on three columns holding two
+ *  digits each, which left about 46px for the name inside a 362px card and drew
+ *  every nation as one letter and an ellipsis. Below `sm` they are cut back to
+ *  what the headers themselves measure (about 32 / 38 / 60px at this size, plus a
+ *  couple of pixels of slack), which hands roughly 90px back to the name and is
+ *  enough for the longest of them on any phone. Nothing is abbreviated and no
+ *  figure is dropped; the padding stays at `px-4` so the rows keep their left
+ *  edge in line with the card headers above them. */
 const STAT_GRID = FEATURES.stickerAlbum
-    ? 'grid grid-cols-[minmax(0,1fr)_58px_64px_104px] items-center gap-2 px-4'
-    : 'grid grid-cols-[minmax(0,1fr)_58px_64px] items-center gap-2 px-4';
+    ? 'grid grid-cols-[minmax(0,1fr)_36px_42px_64px] items-center gap-1.5 px-4 sm:grid-cols-[minmax(0,1fr)_58px_64px_104px] sm:gap-2'
+    : 'grid grid-cols-[minmax(0,1fr)_36px_42px] items-center gap-1.5 px-4 sm:grid-cols-[minmax(0,1fr)_58px_64px] sm:gap-2';
 
 /** The trailing header labels (rating / players / collectibles), right-aligned. */
 function StatHeaders() {
