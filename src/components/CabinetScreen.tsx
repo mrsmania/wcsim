@@ -44,7 +44,7 @@ function ShelfTile({ cup }: { cup: ShelfCup }) {
             >
                 <Cup />
                 <span
-                    className={`font-mono text-[9px] font-bold uppercase tracking-[0.1em] ${
+                    className={`font-mono text-[9px] font-bold ${
                         dark ? 'text-white/80' : 'text-muted'
                     }`}
                 >
@@ -118,7 +118,7 @@ function BadgeTile({ row }: { row: BadgeRow }) {
             </span>
             <span className="min-w-0">
                 <span
-                    className={`block font-display text-[13.5px] font-extrabold leading-tight tracking-[-0.01em] ${
+                    className={`block font-display text-[13.5px] font-bold leading-tight tracking-[-0.01em] ${
                         row.done ? 'text-ink' : 'text-dim'
                     }`}
                 >
@@ -215,7 +215,7 @@ type LeaderMetric = 'apps' | 'goals' | 'cups';
  *  head that drifted off its column would leave the numbers unlabelled. */
 function LeaderHead({ metric }: { metric: LeaderMetric }) {
     return (
-        <div className="flex items-baseline gap-2.5 border-b border-line pb-1.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.12em] text-muted">
+        <div className="flex items-baseline gap-2.5 border-b border-line pb-1.5 font-mono text-[8.5px] font-bold text-muted">
             <span className={LEADER_COL.rank} />
             <span className={LEADER_COL.flag} />
             <span className={LEADER_COL.name}>Player</span>
@@ -243,7 +243,7 @@ function BlockHead({
 }) {
     return (
         <div className="flex flex-wrap items-baseline gap-2.5 border-b border-hair px-3.5 pb-2.5 pt-3">
-            <h3 className="font-display text-[14.5px] font-extrabold tracking-[-0.01em]">
+            <h3 className="font-display text-[14.5px] font-bold tracking-[-0.01em]">
                 {title}
             </h3>
             {count && (
@@ -254,7 +254,7 @@ function BlockHead({
             {link && (
                 <Link
                     to={link.to}
-                    className="ml-auto font-display text-[10.5px] font-extrabold uppercase tracking-[0.05em] text-accent transition hover:underline"
+                    className="ml-auto font-display text-[10.5px] font-bold text-accent transition hover:underline"
                 >
                     {link.label} &rarr;
                 </Link>
@@ -464,7 +464,7 @@ export default function CabinetScreen({
                         />
                     </div>
 
-                    <div className="mb-2 mt-[15px] flex items-baseline gap-2.5 font-mono text-[9.5px] font-bold uppercase tracking-[0.15em] text-muted">
+                    <div className="mb-2 mt-[15px] flex items-baseline gap-2.5 font-mono text-[9.5px] font-bold text-muted">
                         Cups won with
                         <span className="tracking-normal text-[11px] text-ink">
                             {v.formations.filter((f) => f.won).length} of {v.formations.length}{' '}
@@ -497,10 +497,10 @@ export default function CabinetScreen({
             </Card>
                 {v.complete && (
                     <div className={`${CARD_SM} mb-3.5 p-[16px_15px]`}>
-                        <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-accent">
+                        <span className="font-mono text-[9px] font-bold text-accent">
                             Complete
                         </span>
-                        <h3 className="mt-1 flex items-center gap-2 font-display text-[15px] font-extrabold">
+                        <h3 className="mt-1 flex items-center gap-2 font-display text-[15px] font-bold">
                             <Cup size={18} /> Nothing left to win
                         </h3>
                         <p className="mt-1.5 text-[12.5px] text-muted">

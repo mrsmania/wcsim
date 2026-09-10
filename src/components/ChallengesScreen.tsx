@@ -103,7 +103,7 @@ export default function ChallengesScreen({
           <div className={PAGE_EYEBROW}>
             Completed
           </div>
-          <div className="mb-3 mt-1.5 font-display font-black leading-none tracking-[-0.02em]">
+          <div className="mb-3 mt-1.5 font-display font-bold leading-none tracking-[-0.01em]">
             <span className="text-[44px]">{progress.completed}</span>
             <span className="text-[18px] font-extrabold text-muted"> / {progress.total} honours</span>
           </div>
@@ -150,7 +150,7 @@ export default function ChallengesScreen({
             type="button"
             onClick={() => setFilter(f.key)}
             aria-pressed={filter === f.key}
-            className={`rounded-full border px-3.5 py-1.5 font-display text-[11px] font-extrabold uppercase tracking-[0.05em] transition ${
+            className={`rounded-full border px-3.5 py-1.5 font-display text-[11px] font-bold transition ${
               filter === f.key ? CHIP_ON : CHIP_OFF
             }`}
           >
@@ -221,7 +221,7 @@ export default function ChallengesScreen({
                 aria-expanded={!folded}
                 className="group flex w-full flex-wrap items-center gap-2.5 pb-1.5 text-left"
               >
-                <span className="font-display text-[15px] font-extrabold tracking-[-0.01em]">
+                <span className="font-display text-[15px] font-bold tracking-[-0.01em]">
                   {FAMILY_NAME[family]}
                 </span>
                 <span className="ml-auto font-mono text-[11.5px] font-semibold text-muted">

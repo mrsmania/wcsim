@@ -30,7 +30,7 @@ export default function RunEndStickerSummary({ newPlayerIds, allPlayers, onClose
 
   return (
     <Overlay onClose={onClose} ariaLabel="New stickers added">
-      <div className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-pitch-ink">
+      <div className="font-mono text-[10.5px] font-semibold text-pitch-ink">
         Run complete
       </div>
       {/* The count is IN the heading, and the line under it is gone (authenticity pass
@@ -38,7 +38,7 @@ export default function RunEndStickerSummary({ newPlayerIds, allPlayers, onClose
           stickers added to your album this run", which is the heading again with a figure
           in it - so the figure moved up and the restatement went. Where they went is
           answered by the "View album" button rather than by a sentence. */}
-      <h3 className="mb-4 mt-1 font-display text-2xl font-black leading-tight tracking-[-0.02em]">
+      <h3 className="mb-4 mt-1 font-display text-2xl font-bold leading-tight tracking-[-0.01em]">
         {cards.length} new sticker{cards.length === 1 ? '' : 's'}
       </h3>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">

@@ -533,7 +533,7 @@ export default function App({
                     (four of eleven destinations, 11px, below the fold - finding F1) is gone;
                     the tabs reach everything. */}
                 <footer className="mt-16 flex flex-col items-center gap-2.5 border-t border-line pt-5 sm:flex-row sm:justify-center">
-                    <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                    <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 font-mono text-[10px] text-muted">
                         <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
                             Made in Switzerland
                             <img

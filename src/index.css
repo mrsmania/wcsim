@@ -1,5 +1,14 @@
 @import 'tailwindcss';
 
+/* THE FIGURES STILL LINE UP, and this is the rule that does it rather than the face.
+   Tabular numerals give every digit one width, which is all a column of ratings, prices
+   or scorelines ever needed; a monospace also fixes the LETTERS, and that is the part
+   that read as a terminal. `font-mono` marks every such site (see the token note in
+   the theme block below), so one rule serves all of them. */
+.font-mono {
+    font-variant-numeric: tabular-nums;
+}
+
 /* Turf design tokens. Tailwind v4 generates utilities from these (bg-pitch,
    text-ink, border-line, shadow-soft, ...). Single source of truth for the
    palette; see docs/turf-design.html for the visual target. */
@@ -110,9 +119,24 @@
        one page, where the full 6px offset stops reading as depth and starts reading as
        clutter. */
     --shadow-hard-sm: 4px 4px 0 var(--color-pitch-dark);
-    --font-sans: 'Schibsted Grotesk', system-ui, sans-serif;
-    --font-mono: 'Spline Sans Mono', ui-monospace, monospace;
-    --font-display: 'Archivo', system-ui, sans-serif;
+    /* THE THREE FACES. Rubik for display type, Inter for everything else.
+       Chosen from docs/redesign-2026/typography-compare.html, which renders four screens
+       twice and holds every other variable still, so the pairing was picked against the
+       real game rather than against a specimen.
+
+       `--font-mono` IS THE ONE TO READ BEFORE CHANGING ANYTHING HERE. It is Inter today,
+       which is to say the `font-mono` utility is no longer monospaced - and the name is
+       kept deliberately, because it is the MARKER for "this is a figure or a data label"
+       on about 210 sites. Point it at a real monospace and every one of them becomes
+       monospaced again in one line, which is exactly the option the owner asked to keep
+       open (Recursive Mono is the candidate; it would need adding to index.html's font
+       link and `font-variation-settings: 'MONO' 1` beside the rule below, since its
+       monospace is an axis on the same family rather than a separate file).
+
+       So: do not "tidy" `font-mono` out of the components. It is the seam. */
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'Inter', system-ui, sans-serif;
+    --font-display: 'Rubik', system-ui, sans-serif;
 }
 
 /* Dark theme. Overrides the palette tokens under [data-theme="dark"] (set on
@@ -349,8 +373,6 @@ button:not(:disabled) {
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
     color: var(--color-muted);
 }
 .bkt-h.now {
@@ -514,8 +536,6 @@ button.bkt-match:focus-visible {
     font-family: var(--font-mono);
     font-size: 9px;
     font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
     /* See --color-amber-on-green. The surface amber measured 3.25 here in the light theme
        against the 4.5 a 9px label needs. */
     color: var(--color-amber-on-green);
@@ -531,7 +551,7 @@ button.bkt-match:focus-visible {
 }
 .bkt-cup .bkt-cup-nm {
     font-family: var(--font-display);
-    font-weight: 800;
+    font-weight: 700;
     font-size: 14px;
     line-height: 1.1;
     margin-top: 2px;
@@ -635,8 +655,6 @@ button.bkt-match:focus-visible {
     font-family: var(--font-mono);
     font-size: 9px;
     font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
     color: var(--color-muted);
 }
 /* narrow connectors - top half flows DOWN */

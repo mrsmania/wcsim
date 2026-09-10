@@ -20,18 +20,18 @@ const ST_GRID =
   'grid grid-cols-[26px_minmax(0,1fr)_30px_38px_40px] sm:grid-cols-[34px_minmax(0,1fr)_32px_26px_26px_26px_46px_38px_40px] items-center gap-1 px-4 py-[11px]';
 const ST_NUM = 'text-center font-mono text-[13px] text-muted';
 const ST_HEAD =
-  'text-center font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted';
+  'text-center font-mono text-[10px] font-semibold text-muted';
 
 /** Numeric header columns after the # / Team labels. W / D / L / +/- are desktop
  *  only; PL / GD / PTS always show. (+/- is goals scored:conceded.) */
 const NUM_HEADS: { label: string; desktopOnly?: boolean }[] = [
-  { label: 'PL' },
+  { label: 'Pl' },
   { label: 'W', desktopOnly: true },
   { label: 'D', desktopOnly: true },
   { label: 'L', desktopOnly: true },
   { label: '+/-', desktopOnly: true },
   { label: 'GD' },
-  { label: 'PTS' },
+  { label: 'Pts' },
 ];
 
 interface Props {
@@ -52,7 +52,7 @@ export default function StandingsTable({ group, groupFinished, advanced }: Props
     <div className={`mt-1.5 overflow-hidden ${CARD}`}>
       <div className={`${ST_GRID} border-b-2 border-ink bg-chalk`}>
         <span className={ST_HEAD}>#</span>
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+        <span className="font-mono text-[10px] font-semibold text-muted">
           Team
         </span>
         {NUM_HEADS.map((h) => (
@@ -132,7 +132,7 @@ export default function StandingsTable({ group, groupFinished, advanced }: Props
         <div className="border-t border-line px-2 py-2">
           {Array.from({ length: GROUP_MATCHDAYS }, (_, idx) => idx + 1).map((md) => (
             <div key={md} className="mb-2 last:mb-0">
-              <div className="mb-0.5 px-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+              <div className="mb-0.5 px-1 font-mono text-[10px] font-semibold text-muted">
                 Matchday {md}
               </div>
               {fixturesForMatchday(group, md).map((f) => {

@@ -154,13 +154,13 @@ export default function BoostOffer({
                 className="absolute h-px w-px opacity-0"
               />
               <span
-                className={`font-mono text-[9px] font-bold uppercase tracking-[0.12em] ${
+                className={`font-mono text-[9px] font-bold ${
                   on ? 'text-white' : RARITY_INK[b.rarity]
                 }`}
               >
                 {b.rarity}
               </span>
-              <span className="font-display text-[14px] font-extrabold leading-tight">
+              <span className="font-display text-[14px] font-bold leading-tight">
                 {b.name}
               </span>
               <span className={`text-[11.5px] leading-snug ${on ? 'text-white/85' : 'text-muted'}`}>

@@ -20,10 +20,10 @@ export default function TradeModal({ targetTier, costDuplicates, options, onPick
   const meta = TIER_META[targetTier];
   return (
     <Overlay onClose={onCancel} ariaLabel="Trade duplicates">
-      <div className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-pitch-ink">
+      <div className="font-mono text-[10.5px] font-semibold text-pitch-ink">
         Trade duplicates
       </div>
-      <h3 className="mt-1 font-display text-2xl font-black leading-tight tracking-[-0.02em]">
+      <h3 className="mt-1 font-display text-2xl font-bold leading-tight tracking-[-0.01em]">
         Choose one {meta.name} sticker
       </h3>
       <p className="mb-4 mt-1.5 text-[13.5px] text-muted">

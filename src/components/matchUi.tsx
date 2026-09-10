@@ -97,7 +97,7 @@ export const BTN_SURFACES = ['light', 'dark'] as const;
 export type BtnSurface = (typeof BTN_SURFACES)[number];
 
 const BTN_SHAPE =
-    'inline-flex items-center justify-center gap-2 rounded-[5px] border font-display font-extrabold uppercase tracking-[0.04em] transition disabled:cursor-not-allowed disabled:opacity-50';
+    'inline-flex items-center justify-center gap-2 rounded-[5px] border font-display font-bold transition disabled:cursor-not-allowed disabled:opacity-50';
 
 const BTN_SIZE: Record<BtnSize, string> = {
     normal: 'px-5 py-3 text-[13px]',
@@ -155,7 +155,7 @@ export const CARD_SM = `${CARD_FLAT} shadow-hard-sm`;
  *  string that repeats across screens; reuse rather than re-typing the utilities. */
 /** Muted mono caption used inside cards. */
 export const MONO_CAP =
-    'font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted';
+    'font-mono text-[10px] font-semibold text-muted';
 
 /** The green mono caption, a point larger than MONO_CAP and with wider tracking.
  *
@@ -165,7 +165,7 @@ export const MONO_CAP =
  *  challenge ledger's counter and the group draw. Do not reintroduce it above a page
  *  title. */
 export const PAGE_EYEBROW =
-    'font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-pitch-ink';
+    'font-mono text-[11px] font-semibold text-pitch-ink';
 
 /** The gap between the chrome and whatever a page opens with.
  *
@@ -279,7 +279,7 @@ function StripCell({
             className={`border-r border-line px-3 py-3.5 last:border-r-0 ${ovr ? 'bg-pitch-dark' : 'bg-panel'}`}
         >
             <div
-                className={`font-mono text-[10px] font-semibold uppercase tracking-[0.16em] ${ovr ? 'text-white/70' : 'text-muted'}`}
+                className={`font-mono text-[10px] font-semibold ${ovr ? 'text-white/70' : 'text-muted'}`}
             >
                 {label}
             </div>
@@ -532,7 +532,7 @@ export function StageCrumb({
     disabled,
     className = 'mb-3',
 }: StageCrumbProps) {
-    const cls = `group inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted transition hover:text-pitch-ink ${disabled ? 'pointer-events-none opacity-40' : ''} ${className}`;
+    const cls = `group inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold text-muted transition hover:text-pitch-ink ${disabled ? 'pointer-events-none opacity-40' : ''} ${className}`;
     const inner = (
         <>
             {dir === 'back' && (
@@ -616,7 +616,7 @@ export function StageHeader({
             className={`${PAGE_TOP} mb-[18px] flex flex-wrap items-end justify-between gap-4`}
         >
             <div>
-                <h2 className="font-display text-[30px] font-extrabold leading-none tracking-[-0.02em] max-sm:text-2xl">
+                <h2 className="font-display text-[30px] font-bold leading-none tracking-[-0.01em] max-sm:text-2xl">
                     {title}
                 </h2>
                 {crumb && <StageCrumb {...crumb} className="mt-2.5" />}
@@ -630,7 +630,7 @@ export function StageHeader({
 export function ResultTag({ kind, label }: { kind: ResultKind; label: string }) {
     if (kind === 'next') {
         return (
-            <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.1em] text-amber-ink">
+            <span className="font-mono text-[9.5px] font-bold text-amber-ink">
                 {label}
             </span>
         );
@@ -643,7 +643,7 @@ export function ResultTag({ kind, label }: { kind: ResultKind; label: string }) 
               : 'bg-chalk text-muted';
     return (
         <span
-            className={`rounded-[3px] px-2 py-[3px] font-mono text-[9.5px] font-bold uppercase tracking-[0.06em] ${tone}`}
+            className={`rounded-[3px] px-2 py-[3px] font-mono text-[9.5px] font-bold ${tone}`}
         >
             {label}
         </span>
@@ -698,7 +698,7 @@ export function FixtureHead({
                 )}
                 {status && (
                     <span
-                        className={`font-mono text-[8.5px] font-semibold uppercase tracking-[0.1em] ${
+                        className={`font-mono text-[8.5px] font-semibold ${
                             statusDim ? 'text-muted' : 'text-amber-ink'
                         }`}
                     >
@@ -723,7 +723,7 @@ export function FixtureHead({
 /** The amber "live" line shown at the foot of a feed while a match plays. */
 export function LiveLine({ label }: { label: string }) {
     return (
-        <div className="flex items-center gap-[7px] pt-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-ink">
+        <div className="flex items-center gap-[7px] pt-1 font-mono text-[10px] font-semibold text-amber-ink">
             <span className="h-[7px] w-[7px] rounded-full bg-amber" />
             {label}
         </div>
@@ -767,13 +767,13 @@ export function Banner({
                 surface is dark green in both themes rather than paper in one of them. See
                 --color-amber-on-green in index.css, which does not flip. */}
             <div
-                className={`relative font-mono text-[10px] font-semibold uppercase tracking-[0.2em] ${
+                className={`relative font-mono text-[10px] font-semibold ${
                     champion ? 'text-amber-on-green' : 'text-loss'
                 }`}
             >
                 {eyebrow}
             </div>
-            <h3 className="relative mt-1 font-display text-2xl font-black tracking-[-0.02em] max-sm:text-xl">
+            <h3 className="relative mt-1 font-display text-2xl font-bold tracking-[-0.01em] max-sm:text-xl">
                 {heading}
             </h3>
             {body && (

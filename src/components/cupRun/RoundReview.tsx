@@ -41,7 +41,7 @@ export default function RoundReview({ record, onBack }: { record: RoundRecord; o
               const res = r.us > r.them ? 'text-pitch-ink' : r.us < r.them ? 'text-loss' : 'text-muted';
               return (
                 <div key={i} className="flex items-center gap-2 text-[13px]">
-                  <span className="w-[74px] shrink-0 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
+                  <span className="w-[74px] shrink-0 font-mono text-[10px] text-muted">
                     Matchday {i + 1}
                   </span>
                   <span className="font-semibold">Your XI</span>

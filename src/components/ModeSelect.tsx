@@ -92,7 +92,7 @@ function Beat({
                 {icon}
             </span>
             <div>
-                <h3 className="font-display text-[16px] font-extrabold tracking-[-0.01em]">{title}</h3>
+                <h3 className="font-display text-[16px] font-bold tracking-[-0.01em]">{title}</h3>
                 <p className="mt-1 text-[13px] text-muted">{children}</p>
             </div>
         </div>
@@ -166,7 +166,7 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
                 />
 
                 <div className="relative max-w-[620px] flex-1">
-                    <h2 className="font-display text-[clamp(34px,6.4vw,60px)] font-black leading-none tracking-[-0.03em] [text-wrap:balance]">
+                    <h2 className="font-display text-[clamp(34px,6.4vw,60px)] font-bold leading-none tracking-[-0.03em] [text-wrap:balance]">
                         Draft your dream XI.
                         <br />
                         <span className="text-amber">Win the World Cup.</span>
@@ -280,7 +280,7 @@ export default function ModeSelect({ continueAction, buildTo, onNewXi, allPlayer
                 <section className="mt-10">
                     <div className="mb-4 flex items-baseline justify-between gap-3">
                         <div>
-                            <h2 className="font-display text-[22px] font-extrabold tracking-[-0.02em]">
+                            <h2 className="font-display text-[22px] font-bold tracking-[-0.01em]">
                                 Chase the legends
                             </h2>
                             <p className="mt-1 text-[13.5px] text-muted">

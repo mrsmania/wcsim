@@ -45,7 +45,7 @@ export default function GroupCell({
 
   const body = (
     <>
-      <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted">
+      <span className="font-mono text-[9.5px] font-semibold text-muted">
         Group
       </span>
       <Users size={13} strokeWidth={2.4} className="shrink-0 text-muted" />
@@ -53,7 +53,7 @@ export default function GroupCell({
         Finished {ordinal(record.groupPos)} of {record.groupSize}
       </span>
       <span
-        className={`ml-auto shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.1em] ${
+        className={`ml-auto shrink-0 font-mono text-[10px] font-bold ${
           record.won ? 'text-pitch-ink' : 'text-loss'
         }`}
       >

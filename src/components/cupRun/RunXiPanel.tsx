@@ -24,7 +24,7 @@ export default function RunXiPanel({
   return (
     <section className={`self-start overflow-hidden ${CARD}`}>
       <div className="flex items-center border-b-2 border-ink px-4 py-3">
-        <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
+        <span className="font-display text-base font-bold tracking-[-0.01em]">
           Your XI
         </span>
       </div>
@@ -39,7 +39,7 @@ export default function RunXiPanel({
         ).map(([label, val, hero]) => (
           <div key={label} className={hero ? 'bg-pitch-dark py-2 text-white' : 'bg-panel py-2'}>
             <div
-              className={`font-mono text-[9px] font-semibold uppercase tracking-[0.12em] ${hero ? 'text-white/70' : 'text-muted'}`}
+              className={`font-mono text-[9px] font-semibold ${hero ? 'text-white/70' : 'text-muted'}`}
             >
               {label}
             </div>
@@ -68,7 +68,7 @@ export default function RunXiPanel({
                       ? 'Brought in by a boost - earns no sticker'
                       : 'Brought in by a boost'
                   }
-                  className="shrink-0 rounded-[3px] border border-amber/40 bg-amber/[0.16] px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.04em] text-amber-ink"
+                  className="shrink-0 rounded-[3px] border border-amber/40 bg-amber/[0.16] px-1.5 py-0.5 font-mono text-[8px] font-bold text-amber-ink"
                 >
                   Boost
                 </span>
@@ -81,7 +81,7 @@ export default function RunXiPanel({
       </ul>
       {activeBoons.length > 0 && (
         <div className="border-t border-line p-3">
-          <div className="mb-2 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-muted">
+          <div className="mb-2 font-mono text-[9.5px] font-semibold text-muted">
             Active boosts
           </div>
           <div className="flex flex-wrap gap-1.5">

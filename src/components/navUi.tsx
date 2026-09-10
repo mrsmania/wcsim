@@ -127,7 +127,7 @@ export function TabRow({ items, locked }: { items: TabItem[]; locked?: boolean }
                             inert ? 'pointer-events-none opacity-40' : '',
                         ].join(' ')}
                     >
-                        <span className="block font-display text-[13.5px] font-extrabold uppercase tracking-[0.03em]">
+                        <span className="block font-display text-[13.5px] font-bold">
                             {t.label}
                         </span>
                     </Link>
@@ -140,7 +140,7 @@ export function TabRow({ items, locked }: { items: TabItem[]; locked?: boolean }
                 revealed is worse than a header that explains itself only when there is
                 room. The phone bar has never carried it at all, for the same reason. */}
             {locked && (
-                <span className="ml-auto self-center whitespace-nowrap pl-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-ink max-[1120px]:hidden">
+                <span className="ml-auto self-center whitespace-nowrap pl-2 font-mono text-[10px] font-semibold text-amber-ink max-[1120px]:hidden">
                     Match in play
                 </span>
             )}
@@ -180,7 +180,7 @@ export function TabBottomBar({ items, locked }: { items: TabItem[]; locked?: boo
                     >
                         {ICONS[t.key]}
                         <span
-                            className={`max-w-full truncate font-mono text-[8.5px] uppercase tracking-[0.02em] ${
+                            className={`max-w-full truncate font-mono text-[8.5px] ${
                                 t.active ? 'font-bold' : ''
                             }`}
                         >
@@ -215,7 +215,7 @@ export function SubTabs({
                     to={it.to}
                     aria-current={it.active ? 'page' : undefined}
                     className={[
-                        'flex-1 border-l border-line px-[14px] py-[9px] text-center font-display text-[12px] font-bold uppercase tracking-[0.04em] transition first:border-l-0',
+                        'flex-1 border-l border-line px-[14px] py-[9px] text-center font-display text-[12px] font-bold transition first:border-l-0',
                         it.active
                             ? 'bg-pitch-dark text-white'
                             : 'text-muted hover:bg-ink/5 hover:text-ink',
@@ -242,4 +242,4 @@ export function SubTabs({
  * below itself.
  */
 export const ROOM_STRIP =
-    'my-4 flex items-center justify-between gap-3 rounded-md border border-pitch bg-pitch/10 px-3.5 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-pitch-ink transition hover:bg-pitch/20';
+    'my-4 flex items-center justify-between gap-3 rounded-md border border-pitch bg-pitch/10 px-3.5 py-2 font-mono text-[11px] font-semibold text-pitch-ink transition hover:bg-pitch/20';

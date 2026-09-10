@@ -318,8 +318,9 @@ is a reason to revisit the name; the crowded ground is.
 - Flags from `country-flag-icons`; icons from `lucide-react`; the win-celebration
   confetti is a small self-contained canvas renderer (`Confetti.tsx`, no dependency);
   routing from `react-router-dom`.
-- Fonts: **Archivo** (display), **Schibsted Grotesk** (body), **Spline Sans Mono**
-  (data/numerals), loaded via a Google Fonts `<link>` in `index.html`.
+- Fonts: **Rubik** (display) and **Inter** (everything else), loaded via a Google Fonts
+  `<link>` in `index.html`. Read "Type" below before touching any of it, and in particular
+  before "tidying" the `font-mono` utility out of anything.
 
 ## Visual design (turf-flat)
 
@@ -395,6 +396,102 @@ The comps (`home`, `selected-xi`, `tournament`, `index` launcher) carry a live
 5-scheme colour switcher that is deliberately **comp-only**; the app ships the single
 default green scheme. Earlier explorations live alongside: `option-{1,2,3}-*.html`
 and the brutalist `tifo/` set (the hard-shadow idea came from there).
+
+## Type: Rubik and Inter, and NO CAPITALS
+
+Changed 2026-09-11, on the owner's reading that the app looked machine-made and that the
+fonts and the all-caps labels were the tell. Both halves of that were right and they are
+separable, which is why `docs/redesign-2026/typography-compare.html` exists: it renders
+four whole screens (a finished XI, a group won with the first boost on offer, the honours
+ledger, the cabinet) twice from ONE generated copy of the markup, so colour, spacing,
+borders and the tifo shadow are identical by construction and the only variable is type.
+Six pairings, and a separate switch for the capitals so the two halves can be told apart.
+**Rubik + Inter with sentence-case labels is what shipped**; keep that page working,
+because it is how the next question of this shape gets answered.
+
+**WHAT CHANGED, and it is only these four things:**
+
+- **The faces.** Archivo becomes **Rubik** for display type, Schibsted Grotesk becomes
+  **Inter** for text, and Spline Sans Mono is retired.
+- **Every label is sentence case.** `uppercase` and the positive letter-spacing that only
+  exists to make capitals legible (0.02em to 0.3em) came off together, everywhere. Negative
+  tracking is a display-type decision and stayed, except that the titles' `-0.02em` eased
+  to `-0.01em` for the lighter face.
+- **The display face dropped a step**: 900 and 800 became 700 wherever `font-display` sits
+  on the same element. Body and figure weights are untouched, because they were never what
+  read as heavy: the pitch badge numbers and the name plates are still 800 on purpose.
+- Nothing else. No colour, no spacing, no layout, no copy.
+
+**`--font-mono` IS THE SEAM, AND IT IS THE MOST IMPORTANT LINE IN THIS SECTION.** It points
+at Inter today, so the `font-mono` utility is not monospaced any more - and **the name is
+kept deliberately**, because it is the MARKER for "this is a figure or a data label" on
+about 210 sites. Point the token at a real monospace and every one of them turns over in
+one line. That is the option the owner asked to keep open, **Recursive Mono for the figures
+later**, and it needs three things and nothing else: the token, `Recursive` added to
+`index.html`'s font link, and `font-variation-settings: 'MONO' 1` beside the `.font-mono`
+rule, since Recursive's monospace is an AXIS on the same family rather than a separate
+file. So do **not** strip `font-mono` out of the components on the grounds that it no
+longer names a monospace. It names the seam.
+
+**THE FIGURES STILL LINE UP, and tabular numerals are what does that rather than the face.**
+One rule in `index.css` (`.font-mono { font-variant-numeric: tabular-nums }`) covers every
+standings column, price, rating, percentage and scoreline, because all of them already
+carried that utility. Worth stating precisely, since it is what makes the choice a real
+one: **tabular figures give every DIGIT one width, which is all a column ever needed, and a
+monospace also fixes the LETTERS** - which is the half that reads as a terminal.
+
+**FOUR THINGS KEPT THEIR CAPITALS**, and every one is an abbreviation or a marker rather
+than a label somebody wrote in caps:
+
+- **The MONDIALINO wordmark.** A logotype is a fixed asset: it changed face and weight and
+  never case. Same in the boot cover, which copies it by hand.
+- **The red YOU badge** (`Flag isUser`, the standings row, the versus tree's seat tag).
+- **Position codes** (GK, LB, CB and the rest) and three-letter country codes, which are
+  the data's own spelling - the `uppercase` class on those cells was a no-op anyway.
+- **Room codes**, which keep their wide letter-spacing because that is what makes six
+  characters readable out loud.
+
+**THE SWEEP WAS SCRIPTED, and that was the point**: 121 lines across 41 files is not a
+change anybody reviews as a hundred separate decisions. It skipped comment lines, or the
+prose explaining the change would have been edited by it - the same trap
+`scripts/checks/ui.ts` already documents about its own explanation.
+
+**THE HEADER GOT MUCH NARROWER, AND THE WRAP BREAKPOINT IS NOW CONSERVATIVE.** The tab row
+measured **581px** in Archivo with capitals and tracking and measures **445px** now; the
+header is still 45px and still one line. So the `max-[1040px]` wrap in `navUi.tsx` fires
+about 140px earlier than it has to: the crest, the nav and the two buttons now fit from
+roughly **900px** (172 + 445 + 128, plus the gaps, the 22px page padding and the 64px the
+account label can still grow by). **It was deliberately NOT moved in the same pass**,
+because whether a one-line chrome is wanted at 900px is a layout decision rather than a
+consequence of the fonts, and it is one token away when somebody wants it.
+
+**THE LABELS WERE NOT SIZED UP, and the comparison page did size them up.** Lowercase reads
+smaller than capitals at the same pixel size, so the comp raised every caption six per cent
+(`--lc: 1.06`). That was skipped here: at 9 to 11px it is half a pixel, Inter's x-height is
+much larger than Spline Sans Mono's, and applying it meant rounding sixty arbitrary sizes
+inside layouts that are sized to fit. If the small labels ever read too quiet, that is the
+knob, and it belongs in the shared atoms (`MONO_CAP`, `PAGE_EYEBROW`) rather than at sixty
+call sites.
+
+**THE BUTTON SWEEP'S DETECTOR HAD TO MOVE WITH THE VOICE, or it would have gone vacuous.**
+`scripts/checks/ui.ts` catches a bespoke button by reading every class-list literal in
+`src/`, and it keyed on `font-display` plus **`uppercase`** - a class the app no longer
+writes anywhere, so it would have reported zero for ever, which is exactly the failure this
+repo keeps re-learning. It keys on the display face in a rounded box with its own padding
+on BOTH axes at a tap size now (`py-0.5` and `py-[3px]` are the mono badges and do not
+count). Mutation-tested: a planted `rounded-lg border px-5 py-2.5 font-display font-bold`
+is reported, and a badge, a card and a bare display heading are not.
+
+**THREE THINGS OUTSIDE THE APP STILL CARRY THE OLD FACES**, each a separate small job:
+
+- **`docs/players.html`** (via `scripts/players-page.template.html`), which keeps its own
+  copy of the tokens and the styling by design and would want the same casing pass.
+- **`docs/missing-sticker-art.html`** (via `scripts/build-art-worklist.py`).
+- **The link-preview share card** (`scripts/build-share-card.py`), which is the one that
+  needs a decision rather than an edit: it draws with real font FILES from `art/fonts/`,
+  and that directory holds Archivo and Spline Sans Mono only, so moving it means adding
+  the Rubik and Inter TTFs to the repo. It is the first thing anybody sees of the game in
+  a chat client, so the mismatch is worth closing.
 
 ## Commands
 
@@ -822,9 +919,11 @@ onto a second row below the fold. Do not add a seventh without a reason of that 
   share one line; the chrome is **45px** where it was **89**, and the page's own title
   starts 44px higher on every screen in the game. Four things about it, each a decision
   rather than a detail:
-  - **The tagline paid for it, and that is arithmetic.** The tab row needs **581px** and
+  - **The tagline paid for it, and that is arithmetic.** The tab row needed **581px** and
     the crest row had **575px** spare, so the tabs missed fitting beside the crest by SIX
-    pixels; "Draft a random XI. Win the cup." was 196 of them. It never cost any HEIGHT
+    pixels; "Draft a random XI. Win the cup." was 196 of them. (Those are the ARCHIVO
+    figures. Sentence case in Rubik took the row to **445px**, so the six pixels are about
+    140 now - see "Type" above, which also says why the wrap breakpoint stayed put.) It never cost any HEIGHT
     (it sat beside the crest, which sets the row height on its own), so removing it buys
     width and nothing else - which is exactly what was short. It was already hidden below
     640px, so no phone lost anything.
@@ -3139,7 +3238,10 @@ rendered where they have to go, and they are the two axes `btn` takes after the 
 
 - **`normal` / `compact`** - a page or card action, and one inside a row or a toolbar. Same
   colours, same shape, same face; padding and type scale only. The old middle size went:
-  its ten call sites were all card actions, so they are `normal`.
+  its ten call sites were all card actions, so they are `normal`. THE LABEL IS SENTENCE
+  CASE in the display face at 700 since the Rubik + Inter pass, where it was uppercase at
+  800 with 0.04em of tracking - and that `uppercase` is what the bespoke-button sweep used
+  to key on, so read "Type" before changing the voice again.
 - **`light` / `dark`** (`btn(tone, size, 'dark')`) - the app's paper, and the ONE dark
   surface it has, the front page's turf hero. The primary's `pitch-dark` fill measures
   **1.27** against the scrimmed grass, so on the turf the button would simply not be there;

@@ -173,7 +173,7 @@ export default function RunPhasePanel({
 
         {run.phase === 'match' && run.nextOpponent && (
           <div className="text-center">
-            <p className="mb-1 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+            <p className="mb-1 font-mono text-[11px] font-semibold text-muted">
               {KO_ROUNDS[run.koRound]}
             </p>
             <p className="mb-4 inline-flex items-center gap-2 text-[15px] font-semibold">

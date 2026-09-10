@@ -95,7 +95,7 @@ export default function MatchdayCard({
   return (
     <div className="mt-[26px]">
       <div className="mb-[9px] flex items-center gap-2.5">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+        <span className="font-mono text-[11px] font-semibold text-muted">
           {label}
         </span>
         {tag}

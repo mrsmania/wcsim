@@ -384,7 +384,7 @@ export default function BudgetMarket({
         <div className="p-3">
           {/* Buying + view toggle */}
           <div className="flex items-center justify-between gap-2 px-1">
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+            <span className="font-mono text-[11px] font-semibold text-muted">
               {/* The guard above tests `targetSlot`, not the `position` derived from it -
                   a derived value discards the narrowing and left this asserting what the
                   guard had already proved (hygiene H21). */}
@@ -507,7 +507,7 @@ export default function BudgetMarket({
               a price. Hidden only if the pool somehow holds one rating. */}
           {eloCeil > eloFloor && (
             <div className="mt-2 flex items-center gap-2 px-1">
-              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+              <span className="font-mono text-[10px] font-semibold text-muted">
                 Rating
               </span>
               <div className="mkt-rng">

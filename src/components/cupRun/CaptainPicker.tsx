@@ -30,7 +30,7 @@ export default function CaptainPicker({
   return (
     <div>
       <div className="mb-3">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+        <span className="font-mono text-[11px] font-semibold text-muted">
           {boon?.name ?? 'Choose a player'}
         </span>
         <p className="mt-1 text-[13px] text-muted">{boon?.description}</p>

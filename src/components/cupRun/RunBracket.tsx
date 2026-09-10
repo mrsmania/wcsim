@@ -50,7 +50,7 @@ const SHORT: Record<string, string> = {
 };
 
 const CELL = 'rounded-[5px] border px-2.5 py-2 min-w-0';
-const LABEL = 'font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em]';
+const LABEL = 'font-mono text-[9.5px] font-semibold';
 
 /** One round of the user's path: the tie, its score, or a placeholder if not reached.
  *  A played round is a button that opens its round review (the one thing lost when the
@@ -122,13 +122,13 @@ function PathCell({
                         <>
                             {res.homeGoals}&ndash;{res.awayGoals}
                             {res.decided !== 'reg' && (
-                                <span className="ml-1 font-normal text-[9px] uppercase text-muted">
+                                <span className="ml-1 font-normal text-[9px] text-muted">
                                     {res.decided === 'pens' ? 'pens' : 'aet'}
                                 </span>
                             )}
                         </>
                     ) : (
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-ink">
+                        <span className="text-[10px] font-semibold text-amber-ink">
                             to play
                         </span>
                     )}
@@ -214,10 +214,10 @@ export default function RunBracket({
                 aria-expanded={open}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-pitch/[0.04]"
             >
-                <span className="font-display text-[13px] font-extrabold uppercase tracking-[0.06em]">
+                <span className="font-display text-[13px] font-bold">
                     The bracket
                 </span>
-                <span className="ml-auto font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-pitch-ink">
+                <span className="ml-auto font-mono text-[10.5px] font-semibold text-pitch-ink">
                     <span className="max-sm:hidden">
                         {open ? 'Hide the full bracket' : 'Show the full bracket'}
                     </span>
@@ -260,7 +260,7 @@ export default function RunBracket({
                         />
                     ))}
                     {toCome.length > 0 && (
-                        <div className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-dim sm:hidden">
+                        <div className="font-mono text-[10.5px] text-dim sm:hidden">
                             {toCome.join(', ')} to come
                         </div>
                     )}

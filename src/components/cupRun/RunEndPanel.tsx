@@ -24,7 +24,7 @@ export default function RunEndPanel({
 }) {
   return (
     <div className="text-center">
-      <div className="font-display text-2xl font-black">Final score {score}</div>
+      <div className="font-display text-2xl font-bold">Final score {score}</div>
       {reward && (
         <div className="mt-1.5 font-mono text-[12px] text-muted">
           +{reward.xpGained} XP &middot;{' '}
@@ -44,7 +44,7 @@ export default function RunEndPanel({
       {!!reward?.challenges.length && (
         <div className={`mx-auto mt-4 max-w-[420px] ${CARD} p-3 text-left`}>
           <div className="mb-2 flex items-baseline justify-between gap-3">
-            <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-accent">
+            <span className="font-mono text-[10.5px] font-semibold text-accent">
               Challenges completed
             </span>
             {AWARDS_ON && (

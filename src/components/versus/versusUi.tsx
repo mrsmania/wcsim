@@ -200,7 +200,7 @@ export function KickoffCountdown({ secondsLeft }: { secondsLeft: number }) {
                 so the fade plays again on each tick rather than once. */}
             <div
                 key={secondsLeft}
-                className="animate-kickoff font-display text-[120px] font-extrabold leading-none tabular-nums text-pitch-ink"
+                className="animate-kickoff font-display text-[120px] font-bold leading-none tabular-nums text-pitch-ink"
             >
                 {secondsLeft}
             </div>
@@ -236,8 +236,8 @@ export function SeatRow({
                     />
                 )}
                 {member.name}
-                {you && <span className="ml-1.5 font-mono text-[10px] text-pitch-ink">YOU</span>}
-                {host && <span className="ml-1.5 font-mono text-[10px] text-muted">HOST</span>}
+                {you && <span className="ml-1.5 font-mono text-[10px] text-pitch-ink">You</span>}
+                {host && <span className="ml-1.5 font-mono text-[10px] text-muted">Host</span>}
             </span>
             {detail}
         </li>
@@ -259,7 +259,7 @@ export function EmptySeat() {
                 />
                 Empty seat
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-dim">
+            <span className="font-mono text-[10px] text-dim">
                 Waiting
             </span>
         </li>
@@ -269,11 +269,11 @@ export function EmptySeat() {
 /** Ready / not ready, as the lobby's own two states. */
 export function ReadyMark({ ready }: { ready: boolean }) {
     return ready ? (
-        <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-pitch-ink">
+        <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-pitch-ink">
             <Check size={13} strokeWidth={3} /> Ready
         </span>
     ) : (
-        <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-dim">
+        <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-dim">
             <Clock size={13} /> Choosing
         </span>
     );
@@ -313,7 +313,7 @@ export function RemoveSeat({ name, onRemove }: { name: string; onRemove: () => v
         );
     }
     return (
-        <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.1em]">
+        <span className="flex items-center gap-2 font-mono text-[10px]">
             <button
                 type="button"
                 className="font-bold text-loss"
@@ -398,7 +398,7 @@ export function InviteRoom({ code, url }: { code: string; url: string }) {
             </div>
             {said && (
                 <p
-                    className={`mt-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] ${
+                    className={`mt-1.5 font-mono text-[10px] font-bold ${
                         said === 'copied' ? 'text-pitch-ink' : 'text-loss'
                     }`}
                 >
@@ -474,7 +474,7 @@ export function RefereeProblem({
                 </p>
             )}
             {message.raw && (
-                <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-dim">
+                <p className="mt-1.5 font-mono text-[10px] text-dim">
                     {message.raw}
                 </p>
             )}

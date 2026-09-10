@@ -40,7 +40,7 @@ export default function TeamRoster({ squad }: { squad: Squad }) {
             {/* Squad header */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b-2 border-ink px-4 py-3.5">
                 <Flag code={squad.code} className="h-6 w-9" />
-                <span className="font-display text-lg font-extrabold uppercase leading-none tracking-[-0.01em]">
+                <span className="font-display text-lg font-bold leading-none tracking-[-0.01em]">
                     {squad.nation}
                 </span>
                 <span className="font-mono text-[13px] font-semibold text-muted">{squad.year}</span>
@@ -68,7 +68,7 @@ export default function TeamRoster({ squad }: { squad: Squad }) {
                 if (group.length === 0) return null;
                 return (
                     <div key={cat}>
-                        <div className="border-b border-line bg-ground/60 px-4 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-pitch-ink">
+                        <div className="border-b border-line bg-ground/60 px-4 py-1.5 font-mono text-[10px] font-semibold text-pitch-ink">
                             {CATEGORY_LABEL[cat]}
                             <span className="ml-1.5 text-muted">&middot; {group.length}</span>
                         </div>

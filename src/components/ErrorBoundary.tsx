@@ -39,8 +39,8 @@ function reloadOnce(): boolean {
 /** THE MAIN BUTTON, in inline styles because this file has none of Tailwind's (see the
  *  note at the top: it must render even if what it wraps took the app down with it). So it
  *  is a copy of `btn('primary')`'s VALUES rather than of its classes - pitch-dark fill,
- *  white label, a 5px radius, the 13px extrabold uppercase label and the 0.04em tracking -
- *  and `npm run checks` holds it against the real tokens. It used to be its own green
+ *  white label, a 5px radius and the 13px bold label - and `npm run checks` holds it
+ *  against the real tokens. It used to be its own green
  *  (#1e5631 on #16391f), its own 6px radius and its own weight, which is to say a look
  *  the app has nowhere else, on the one screen nobody proof-reads. */
 const reload: React.CSSProperties = {
@@ -50,9 +50,7 @@ const reload: React.CSSProperties = {
   background: '#0e5c34',
   color: '#fff',
   borderRadius: 5,
-  fontWeight: 800,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
+  fontWeight: 700,
   fontSize: 13,
   cursor: 'pointer',
 };
@@ -85,7 +83,7 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
     const stale = isStaleChunk(error);
     return (
       <div style={box}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, textTransform: 'uppercase' }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700 }}>
           {stale ? 'New version available' : 'Something broke'}
         </h1>
         <p style={{ marginTop: 12, fontSize: 14, lineHeight: 1.5 }}>

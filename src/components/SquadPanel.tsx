@@ -50,7 +50,7 @@ interface Props {
 function Header({ squad, scrambling }: { squad: Squad; scrambling: boolean }) {
     return (
         <div className="px-3 pt-1">
-            <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-muted">
+            <div className="text-[11px] font-bold text-muted">
                 Drawn squad
             </div>
             {/* The squad text cycles rapidly while rolling (that IS the scramble);
@@ -119,7 +119,7 @@ export default function SquadPanel({
         return (
             <div className={`flex flex-col gap-4 ${CARD} p-3`}>
                 <Header squad={squad} scrambling />
-                <p className="px-1 text-sm font-semibold uppercase tracking-wide text-muted">
+                <p className="px-1 text-sm font-semibold text-muted">
                     Drawing a squad…
                 </p>
             </div>

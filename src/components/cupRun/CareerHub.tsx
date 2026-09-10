@@ -51,7 +51,7 @@ function CardHead({
 }) {
     return (
         <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-b border-hair px-3.5 pb-2.5 pt-3">
-            <h3 className="font-display text-[14.5px] font-extrabold tracking-[-0.01em]">
+            <h3 className="font-display text-[14.5px] font-bold tracking-[-0.01em]">
                 {title}
             </h3>
             {count && (
@@ -64,7 +64,7 @@ function CardHead({
             {link && (
                 <Link
                     to={link.to}
-                    className="ml-auto font-display text-[10.5px] font-extrabold uppercase tracking-[0.05em] text-accent transition hover:underline"
+                    className="ml-auto font-display text-[10.5px] font-bold text-accent transition hover:underline"
                 >
                     {link.label} &rarr;
                 </Link>
@@ -82,7 +82,7 @@ function CardHead({
 function StateChip({ label, held }: { label: string; held?: boolean }) {
     return (
         <div
-            className={`mt-2 w-full rounded-[5px] px-2 py-1.5 text-center font-mono text-[11px] font-bold uppercase tracking-[0.06em] ${
+            className={`mt-2 w-full rounded-[5px] px-2 py-1.5 text-center font-mono text-[11px] font-bold ${
                 held ? 'bg-pitch/10 text-pitch-ink' : 'border border-line bg-chalk text-muted'
             }`}
         >
@@ -159,10 +159,10 @@ export default function CareerHub({
                             ] as const
                         ).map(([label, val]) => (
                             <div key={label} className="bg-panel px-2 py-4 text-center">
-                                <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">
+                                <div className="font-mono text-[9px] font-semibold text-muted">
                                     {label}
                                 </div>
-                                <div className="mt-0.5 font-display text-[15px] font-extrabold leading-tight">
+                                <div className="mt-0.5 font-display text-[15px] font-bold leading-tight">
                                     {val}
                                 </div>
                             </div>
@@ -191,7 +191,7 @@ export default function CareerHub({
                         return (
                             <div key={perk.id} className={`${CARD_FLAT} p-3`}>
                                 <div className="flex items-center justify-between gap-2">
-                                    <span className="font-display text-[13.5px] font-extrabold">
+                                    <span className="font-display text-[13.5px] font-bold">
                                         {perk.name}
                                         {lvl > 0 && (
                                             <span className="ml-1.5 rounded bg-pitch/10 px-1.5 py-[1px] align-middle font-mono text-[10px] font-bold text-accent">
@@ -265,7 +265,7 @@ export default function CareerHub({
                                     <span
                                         className={`inline-block h-2 w-2 shrink-0 rounded-full ${RARITY_DOT[b.rarity]}`}
                                     />
-                                    <span className="font-display text-[13.5px] font-extrabold">
+                                    <span className="font-display text-[13.5px] font-bold">
                                         {b.name}
                                     </span>
                                 </span>

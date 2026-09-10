@@ -61,7 +61,7 @@ export default function XiTable({
 
     return (
         <div className={`overflow-hidden ${CARD}`}>
-            <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3 font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted">
+            <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3 font-mono text-[10.5px] font-semibold text-muted">
                 <span>Line-up</span>
             </div>
             {ordered.map((slot) => {

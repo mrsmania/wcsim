@@ -89,7 +89,7 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
                     <div className={PAGE_EYEBROW}>
                         Collected
                     </div>
-                    <div className="mb-3 mt-1.5 font-display font-black leading-none tracking-[-0.02em]">
+                    <div className="mb-3 mt-1.5 font-display font-bold leading-none tracking-[-0.01em]">
                         <span className="text-[44px]">{stats.collected}</span>
                         <span className="text-[18px] font-extrabold text-muted">
                             {' '}
@@ -135,10 +135,10 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
                         color: GOLD_INK,
                     }}
                 >
-                    <div className="font-mono text-[11px] font-bold uppercase tracking-[0.22em]">
+                    <div className="font-mono text-[11px] font-bold">
                         &#9733; Album complete &#9733;
                     </div>
-                    <h3 className="mt-1.5 font-display text-3xl font-black tracking-[-0.02em]">
+                    <h3 className="mt-1.5 font-display text-3xl font-bold tracking-[-0.01em]">
                         All {stats.total} collected
                     </h3>
                     {/* A third line read "Every Legendary, Iconic and Monumental sticker. A
@@ -165,7 +165,7 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
                                 className="inline-block h-2.5 w-2.5 rounded-full"
                                 style={{ background: meta.accent }}
                             />
-                            <h3 className="font-display text-[19px] font-extrabold tracking-[-0.01em]">
+                            <h3 className="font-display text-[19px] font-bold tracking-[-0.01em]">
                                 {meta.name}
                             </h3>
                             <span className="font-mono text-[12px] font-bold text-muted">
@@ -340,7 +340,7 @@ function StickerLightbox({
             >
                 <div className="mb-1 flex w-full items-center justify-between pr-8">
                     <span
-                        className="font-mono text-[11px] font-bold uppercase tracking-[0.16em]"
+                        className="font-mono text-[11px] font-bold"
                         style={{ color: meta.accent }}
                     >
                         {meta.name}
@@ -367,7 +367,7 @@ function StickerLightbox({
                     />
                 )}
                 <Flag code={sq?.code ?? ''} className="h-6 w-9" />
-                <div className="mt-2 font-display text-2xl font-extrabold leading-tight">
+                <div className="mt-2 font-display text-2xl font-bold leading-tight">
                     {player.name}
                 </div>
                 <div className="font-mono text-[13px] text-muted">
@@ -381,7 +381,7 @@ function StickerLightbox({
                     <span className="font-mono text-3xl font-bold leading-none">
                         {player.elo}
                     </span>
-                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] opacity-80">
+                    <span className="font-mono text-[10px] font-semibold opacity-80">
                         Rating
                     </span>
                 </div>

@@ -112,7 +112,7 @@ export default function StickerCard({
         <>
             <div className="flex items-center justify-between px-2.5 pt-2">
                 <span
-                    className="font-mono text-[8.5px] font-bold uppercase tracking-[0.12em] text-muted"
+                    className="font-mono text-[8.5px] font-bold text-muted"
                     style={collected ? { color: meta.accent } : undefined}
                 >
                     {meta.name}
@@ -134,7 +134,7 @@ export default function StickerCard({
                     className={`h-5 w-[30px] ${collected ? '' : 'opacity-40 grayscale'}`}
                 />
                 <div
-                    className={`font-display text-[13.5px] font-extrabold leading-tight ${
+                    className={`font-display text-[13.5px] font-bold leading-tight ${
                         collected ? '' : 'text-muted'
                     }`}
                 >
@@ -154,7 +154,7 @@ export default function StickerCard({
                         <span className="font-mono text-[22px] font-bold leading-none">
                             {player.elo}
                         </span>
-                        <span className="font-mono text-[8px] font-semibold uppercase tracking-[0.14em] opacity-80">
+                        <span className="font-mono text-[8px] font-semibold opacity-80">
                             Rating
                         </span>
                     </>

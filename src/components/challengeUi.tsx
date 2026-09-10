@@ -73,7 +73,7 @@ export default function ChallengeRow({ challenge }: { challenge: Challenge }) {
     <div className="flex items-start gap-2.5">
       <FamilyDot family={challenge.family} />
       <span className="min-w-0 flex-1">
-        <span className="block font-display text-[14px] font-extrabold leading-tight tracking-[-0.01em]">
+        <span className="block font-display text-[14px] font-bold leading-tight tracking-[-0.01em]">
           {challenge.name}
         </span>
         <span className="block text-[12px] leading-snug text-muted">{challenge.description}</span>

@@ -688,7 +688,7 @@ export default function VersusHome({
                         <div className={MONO_CAP}>Rooms you can join</div>
                         <button
                             type="button"
-                            className="ml-auto font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-muted hover:text-pitch-ink"
+                            className="ml-auto font-mono text-[11px] font-semibold text-muted hover:text-pitch-ink"
                             onClick={refreshLobby}
                         >
                             Refresh

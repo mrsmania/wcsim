@@ -114,7 +114,7 @@ export default function BoxScore({ formation, filled, ratings = true, chemistry 
                                     <HelpCircle size={13} strokeWidth={2.5} />
                                 </Tooltip>
                             </div>
-                            <div className="mt-0.5 font-display text-lg font-extrabold leading-tight">
+                            <div className="mt-0.5 font-display text-lg font-bold leading-tight">
                                 Effective overall{' '}
                                 <span className="text-amber">
                                     {chem.placed > 0 ? overall + chem.bonus : '–'}

@@ -13,9 +13,9 @@
 // `npm run checks` asserts, because a screen nobody sees until something has gone wrong is
 // exactly the one that drifts.
 const PRIMARY =
-  'inline-flex items-center justify-center gap-2 rounded-[5px] border font-display font-extrabold uppercase tracking-[0.04em] transition disabled:cursor-not-allowed disabled:opacity-50 px-5 py-3 text-[13px] border-pitch-dark bg-pitch-dark text-white hover:bg-pitch-hover active:scale-[0.99]';
+  'inline-flex items-center justify-center gap-2 rounded-[5px] border font-display font-bold transition disabled:cursor-not-allowed disabled:opacity-50 px-5 py-3 text-[13px] border-pitch-dark bg-pitch-dark text-white hover:bg-pitch-hover active:scale-[0.99]';
 const SECONDARY =
-  'inline-flex items-center justify-center gap-2 rounded-[5px] border font-display font-extrabold uppercase tracking-[0.04em] transition disabled:cursor-not-allowed disabled:opacity-50 px-5 py-3 text-[13px] border-ink bg-panel text-ink hover:border-pitch hover:text-pitch-ink';
+  'inline-flex items-center justify-center gap-2 rounded-[5px] border font-display font-bold transition disabled:cursor-not-allowed disabled:opacity-50 px-5 py-3 text-[13px] border-ink bg-panel text-ink hover:border-pitch hover:text-pitch-ink';
 // Not matchUi's CARD_FLAT either, for the same reason.
 
 export default function UnreachableScreen({
@@ -34,7 +34,7 @@ export default function UnreachableScreen({
     return (
       <div className="fixed inset-0 z-[100] overflow-auto bg-ground">
         <div className="mx-auto max-w-[520px] px-6 py-16 text-ink">
-          <h1 className="font-display text-[22px] font-extrabold uppercase tracking-[-0.01em]">
+          <h1 className="font-display text-[22px] font-bold tracking-[-0.01em]">
             Opened somewhere else
           </h1>
           <p className="mt-3 text-[14px] leading-snug text-muted">
@@ -61,7 +61,7 @@ export default function UnreachableScreen({
   return (
     <div className="fixed inset-0 z-[100] overflow-auto bg-ground">
       <div className="mx-auto max-w-[520px] px-6 py-16 text-ink">
-        <h1 className="font-display text-[22px] font-extrabold uppercase tracking-[-0.01em]">
+        <h1 className="font-display text-[22px] font-bold tracking-[-0.01em]">
           Can&apos;t reach your account
         </h1>
         <p className="mt-3 text-[14px] leading-snug text-muted">

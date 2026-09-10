@@ -44,7 +44,7 @@ export default function CupRewardPicker({
       <div className="mb-4 flex items-center gap-3.5 rounded-md bg-pitch-dark p-4 text-white">
         <Trophy size={26} className="shrink-0 text-amber" strokeWidth={2} />
         <div>
-          <div className="font-display text-lg font-black leading-none">World Champions</div>
+          <div className="font-display text-lg font-bold leading-none">World Champions</div>
           <div className="mt-1 text-[12px] text-white/80">
             Pick any one {allDone ? '' : 'uncollected '}Legendary or Iconic sticker.
             {total > 1 && (

@@ -80,7 +80,7 @@ export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Pro
           <div className={PAGE_EYEBROW}>
             Group draw
           </div>
-          <h2 className="mt-0.5 font-display text-2xl font-extrabold leading-none tracking-[-0.02em]">
+          <h2 className="mt-0.5 font-display text-2xl font-bold leading-none tracking-[-0.01em]">
             Your group
           </h2>
         </div>
@@ -88,7 +88,7 @@ export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Pro
           <div className="flex flex-col items-center gap-2 rounded-[5px] border border-pitch/40 bg-pitch/[0.06] px-3 py-5 text-center">
             <Flag isUser code="" className="h-6 w-9" />
             <span className="text-sm font-bold text-ink">Your XI</span>
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-loss">
+            <span className="font-mono text-[10px] font-semibold text-loss">
               You
             </span>
             <RatingChip value={userTeam.strength.overall} />
@@ -105,7 +105,7 @@ export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Pro
                 {settled ? o.name : '…'}
               </span>
               {settled && o.year && (
-                <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-amber">
+                <span className="font-mono text-[10px] font-semibold text-amber">
                   WC {o.year}
                 </span>
               )}
@@ -120,7 +120,7 @@ export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Pro
               <ArrowRight size={16} strokeWidth={2.5} />
             </button>
           ) : (
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+            <p className="font-mono text-xs font-semibold text-muted">
               Drawing opponents…
             </p>
           )}

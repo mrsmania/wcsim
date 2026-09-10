@@ -23,7 +23,7 @@ export default function AccountModal({
   const title = email ? 'Account' : 'Sign in';
   return (
     <Overlay onClose={onClose} ariaLabel={title}>
-      <h2 className="mb-3 font-display text-[20px] font-extrabold uppercase tracking-[-0.01em]">
+      <h2 className="mb-3 font-display text-[20px] font-bold tracking-[-0.01em]">
         {title}
       </h2>
       <div className={`${CARD_FLAT} px-5 py-4`}>

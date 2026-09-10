@@ -67,7 +67,7 @@ export default function Masthead({
                     what the name turns on ("mondiale" is the World Cup in Italian, "-ino"
                     makes it the little one). Keeps the wordmark's signature without a
                     second word. */}
-                <h1 className="font-display text-[21px] font-black uppercase leading-none tracking-[-0.02em]">
+                <h1 className="font-display text-[21px] font-bold uppercase leading-none tracking-[-0.01em]">
                     Mondial<span className="text-pitch-ink">ino</span>
                 </h1>
             </Link>
@@ -86,7 +86,7 @@ export default function Masthead({
                     >
                         <User size={15} strokeWidth={2.2} />
                         {/* `normal-case` only when the label is an ADDRESS. The button's
-                            voice is the app's - display face, uppercase - and "Sign in"
+                            voice is the app's - display face, - and "Sign in"
                             takes it; what sits in front of somebody's `@` is a name rather
                             than a label, and MARIO.SMANIA is not an improvement on
                             mario.smania. Nothing else about the design moves. */}

@@ -113,7 +113,7 @@ export default function SquadBrowser() {
                                 to={m === 'byTeam' ? '/squads/by-team' : '/squads/by-world-cup'}
                                 onClick={() => setQuery('')}
                                 className={[
-                                    'border-r border-line px-3 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.06em] transition last:border-r-0',
+                                    'border-r border-line px-3 py-2 font-mono text-[12px] font-semibold transition last:border-r-0',
                                     mode === m
                                         ? 'bg-pitch-dark text-white'
                                         : 'bg-panel text-muted hover:text-pitch-ink',
@@ -208,7 +208,7 @@ export default function SquadBrowser() {
                         >
                             <Flag code={t.code} className="h-5 w-8" />
                             <div className="min-w-0">
-                                <div className="truncate font-display text-[15px] font-extrabold leading-tight">
+                                <div className="truncate font-display text-[15px] font-bold leading-tight">
                                     {t.nation}
                                 </div>
                             </div>
@@ -282,7 +282,7 @@ function CupTable({ squads }: { squads: Squad[] }) {
     return (
         <div className={`overflow-hidden ${CARD}`}>
             <div
-                className={`${STAT_GRID} border-b-2 border-ink py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted`}
+                className={`${STAT_GRID} border-b-2 border-ink py-2.5 font-mono text-[10px] font-semibold text-muted`}
             >
                 <span>Team</span>
                 <StatHeaders />
@@ -295,7 +295,7 @@ function CupTable({ squads }: { squads: Squad[] }) {
                 >
                     <span className="flex min-w-0 items-center gap-2.5">
                         <Flag code={sq.code} className="h-4 w-6 shrink-0" />
-                        <span className="truncate font-display text-[14.5px] font-extrabold leading-tight">
+                        <span className="truncate font-display text-[14.5px] font-bold leading-tight">
                             {sq.nation}
                         </span>
                     </span>
@@ -319,12 +319,12 @@ function TeamCups({ team }: { team: TeamGroup }) {
             <div className={`overflow-hidden ${CARD}`}>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b-2 border-ink px-4 py-3.5">
                     <Flag code={team.code} className="h-6 w-9" />
-                    <span className="font-display text-lg font-extrabold uppercase leading-none tracking-[-0.01em]">
+                    <span className="font-display text-lg font-bold leading-none tracking-[-0.01em]">
                         {team.nation}
                     </span>
                 </div>
                 <div
-                    className={`${STAT_GRID} border-b border-line py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted`}
+                    className={`${STAT_GRID} border-b border-line py-2 font-mono text-[10px] font-semibold text-muted`}
                 >
                     <span>World Cup</span>
                     <StatHeaders />
@@ -346,7 +346,7 @@ function TeamCups({ team }: { team: TeamGroup }) {
             {/* All-time legends (ranked by single best rating) */}
             <div className={`overflow-hidden ${CARD}`}>
                 <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3.5">
-                    <span className="font-display text-base font-extrabold uppercase tracking-[-0.01em]">
+                    <span className="font-display text-base font-bold tracking-[-0.01em]">
                         Best players
                     </span>
                     <span className={MONO_CAP}>Best</span>

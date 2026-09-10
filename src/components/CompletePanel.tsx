@@ -39,10 +39,10 @@ export default function CompletePanel({
     return (
         <div className={`overflow-hidden ${CARD}`}>
             <div className="border-b border-line p-[18px]">
-                <div className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-pitch-ink">
+                <div className="font-mono text-[10.5px] font-semibold text-pitch-ink">
                     Complete
                 </div>
-                <div className="mt-1.5 font-display text-[26px] font-black leading-[1.05] tracking-[-0.02em]">
+                <div className="mt-1.5 font-display text-[26px] font-bold leading-[1.05] tracking-[-0.01em]">
                     {total} of {total}
                     <br />
                     drafted

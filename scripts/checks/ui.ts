@@ -371,14 +371,13 @@ export function uiChecks(): void {
     );
     const eb = readFileSync('src/components/ErrorBoundary.tsx', 'utf8');
     // The VALUES, not the classes: pitch-dark for the fill and the border, a 5px radius,
-    // and the 13px / 800 / 0.04em label. Read out of the palette so the token is the source.
+    // and the 13px / 700 label. Read out of the palette so the token is the source.
     const wants = [
       `background: '${light['pitch-dark']}'`,
       `border: '1px solid ${light['pitch-dark']}'`,
       'borderRadius: 5,',
       'fontSize: 13,',
-      'fontWeight: 800,',
-      "letterSpacing: '0.04em',",
+      'fontWeight: 700,',
     ];
     const missing = wants.filter((w) => !eb.includes(w));
     check(
@@ -399,12 +398,19 @@ export function uiChecks(): void {
   // So this reads every class-list STRING LITERAL in `src/` - wherever it sits, a `const`
   // or a `className`, which is what makes it hard to dodge - and fails on two things:
   //
-  //   A. A BESPOKE BUTTON: the app's button voice (`font-display` + `uppercase`) in a box
-  //      (`rounded`) with its own padding (`px-`). Only a button is all four at once. The
-  //      mono badges are not (`font-mono`, and `py-0.5` rather than a tap target), a card
-  //      has no uppercase label, a text link has no box, and every SELECTOR - the year
+  //   A. A BESPOKE BUTTON: the app's button voice - the DISPLAY face in a rounded box
+  //      with its own padding on both axes, at a tap size. Only a button is all of those
+  //      at once. A card carries no `font-display` on the box itself, the mono badges are
+  //      `font-mono` at `py-0.5`, a text link has no box, and every SELECTOR - the year
   //      pills, the filter toggles, the five segmented groups, the tabs - keeps its own
   //      look on purpose and builds its class list from an array or an interpolation.
+  //
+  //      THE VOICE CHANGED ONCE AND THE DETECTOR HAD TO FOLLOW. It used to key on
+  //      `uppercase`, which was the loudest thing a button did until the Rubik + Inter
+  //      pass took the capitals out of every label in the app. A detector keyed on a
+  //      class nobody writes any anymore reports zero for ever, which is the exact vacuity
+  //      this file opens by warning about - so the vertical padding carries the weight
+  //      that `uppercase` used to, and the guards below pin both ends of it.
   //
   //   B. AN `!` OVERRIDE on a class list. Both drifted looks that were still nominally
   //      inside the token got there this way (`!rounded-full` wrapped around the button,
@@ -480,10 +486,17 @@ export function uiChecks(): void {
       const t = parts(c);
       return t.length >= min && t.filter((x) => UTILITY.test(x)).length >= t.length - 1;
     };
+    /** A tap target rather than a badge: `py-0.5` and `py-px` are the mono chips, and
+     *  the arbitrary form is read as pixels so `py-[3px]` cannot pass for a button. */
+    const TAP_Y = /^py-(?:1|1\.5|2|2\.5|3|3\.5|4|5|6)$|^py-\[(?:[6-9]|[1-9][0-9])(?:\.\d+)?px\]$/;
     const bespokeButton = (c: string): boolean => {
-      const j = parts(c).join(' ');
+      const t = parts(c);
+      const j = t.join(' ');
       return (
-        j.includes('font-display') && /\buppercase\b/.test(j) && /\bpx-/.test(j) && j.includes('rounded')
+        j.includes('font-display') &&
+        j.includes('rounded') &&
+        /\bpx-/.test(j) &&
+        t.some((x) => TAP_Y.test(x))
       );
     };
     const overridden = (c: string): boolean =>
@@ -519,8 +532,12 @@ export function uiChecks(): void {
         // is the failure mode a sweep like this dies of.
         files.length > 40 &&
         lists > 400 &&
-        bespokeButton('rounded-lg border px-[22px] py-[14px] font-display uppercase') &&
-        !bespokeButton('rounded-[3px] border px-1.5 py-0.5 font-mono uppercase text-[8px]') &&
+        bespokeButton('rounded-lg border px-[22px] py-[14px] font-display font-bold') &&
+        // A mono badge, a card, and a display heading with no box of its own: none is a
+        // button, and each is a shape the app really writes.
+        !bespokeButton('rounded-[3px] border px-1.5 py-0.5 font-mono text-[8px]') &&
+        !bespokeButton('rounded-md border border-line bg-panel px-4 py-3 shadow-hard') &&
+        !bespokeButton('font-display text-[15px] font-bold tracking-[-0.01em]') &&
         overridden('!rounded-full ${x}') &&
         overridden('${x} hover:!border-loss hover:!text-loss') &&
         overridden('rounded-full! border px-2') &&

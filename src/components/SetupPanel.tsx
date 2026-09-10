@@ -11,7 +11,7 @@ const STRENGTH_TIERS: { value: TeamStrength; label: string; hint: string }[] = [
     { value: 'very-strong', label: 'Very strong', hint: 'rating 88+' },
 ];
 
-const SEGLBL = 'mb-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-muted';
+const SEGLBL = 'mb-2 font-mono text-[10.5px] font-semibold text-muted';
 
 /** The two build-your-XI primary buttons share this sizing/disabled layout on top of
  *  the shared primary-button identity; they differ only in width (flex-1 vs w-full). */

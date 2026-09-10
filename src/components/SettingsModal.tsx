@@ -9,7 +9,7 @@ import type { SettingsApi } from '../hooks/useSettings';
 import type { Pool } from '../hooks/usePool';
 
 const GROUP = 'border-t border-line px-5 py-4 first:border-t-0';
-const GH = 'font-display text-[14px] font-extrabold';
+const GH = 'font-display text-[14px] font-bold';
 const HINT = 'mt-0.5 text-[12px] leading-snug text-muted';
 
 const DIFFICULTIES: { value: Difficulty; label: string }[] = [
@@ -101,7 +101,7 @@ export default function SettingsModal({
 
     return (
         <Overlay onClose={onClose} ariaLabel="Settings">
-            <h2 className="mb-3 font-display text-[20px] font-extrabold uppercase tracking-[-0.01em]">
+            <h2 className="mb-3 font-display text-[20px] font-bold tracking-[-0.01em]">
                 Settings
             </h2>
             <div className={`overflow-hidden ${CARD_FLAT}`}>

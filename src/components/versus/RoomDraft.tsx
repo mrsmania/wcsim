@@ -500,7 +500,7 @@ export default function RoomDraft({
                     </span>
                 ))}
                 {!ratings && (
-                    <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.12em] text-amber-ink">
+                    <span className="ml-auto font-mono text-[10px] text-amber-ink">
                         Ratings hidden
                     </span>
                 )}
