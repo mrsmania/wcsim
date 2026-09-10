@@ -567,6 +567,7 @@ export default function CupRunScreen({
                     <div>
                       {reveal.kind === 'group' ? (
                         <GroupRevealPanel
+                          atkDefDelta={diffDelta}
                           reveal={reveal}
                           drawOpen={drawOpen}
                           onDismissDraw={() => setDrawOpen(false)}
@@ -594,6 +595,7 @@ export default function CupRunScreen({
                     </div>
                   ) : (
                     <RunPhasePanel
+                      atkDefDelta={diffDelta}
                       run={run}
                       lastKoMatch={lastKoMatch}
                       endedKoRecord={endedKoRecord}

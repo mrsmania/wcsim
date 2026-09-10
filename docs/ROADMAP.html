@@ -361,19 +361,32 @@
   <summary>
     <span class="num">65</span>
     <span class="title">The boost cards do not look pressable
-      <span class="sub"><b>MERGED INTO ITEM 05 on 2026-09-09</b> and tracked there. Reported
-      2026-09-09: the three boosts you pick between "don't appear like real buttons". Two
-      passes of options were drawn before the merge; the record is
-      <a class="dl" href="redesign-2026/turf-flat/boost-buttons-mock.html" target="_blank" rel="noopener"><code>docs/redesign-2026/turf-flat/boost-buttons-mock.html</code></a>.</span>
+      <span class="sub"><b>SHIPPED 2026-09-10 as part of item 05</b>, which is where the
+      detail lives. Reported 2026-09-09: the three boosts you pick between "don't appear like
+      real buttons". Two passes of options were drawn before the merge; the record is
+      <a class="dl" href="redesign-2026/turf-flat/boost-buttons-mock.html" target="_blank" rel="noopener"><code>boost-buttons-mock.html</code></a>. The rarity word's contrast shipped with
+      it.</span>
     </span>
     <span class="tag">Cup Run</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
-    <p><strong>This item is not open. Item 05 carries it</strong>, along with the odds
-    readout it was merged with, and
-    <a class="dl" href="redesign-2026/turf-flat/boost-pick-mock.html" target="_blank" rel="noopener"><code>boost-pick-mock.html</code></a> is the comp. Kept as an entry so references to 65
+    <p><strong>Shipped inside item 05 on 2026-09-10</strong>, which carries what was
+    built; <a class="dl" href="redesign-2026/turf-flat/boost-pick-mock.html" target="_blank" rel="noopener"><code>boost-pick-mock.html</code></a> is the comp. Kept as an entry so references to 65
     resolve, and because two findings in its own comp are worth reaching directly.</p>
+
+    <p><strong>What the button half turned into:</strong> a card is a <code>&lt;label&gt;</code>
+    around a radio rather than a button, since choosing one of four is what a radio group is,
+    and the visible control is one <code>btn('primary')</code> below named for the card it
+    will take. It wears <code>CHIP_ON</code> / <code>CHIP_OFF</code> rather than
+    <code>CARD_FLAT</code>, which is a cascade fact and not a taste: <code>CARD_FLAT</code>
+    carries <code>bg-panel</code>, and <code>bg-panel</code> and <code>bg-pitch-dark</code>
+    are utilities of equal specificity, so which one won came down to their order in the
+    generated stylesheet - the chosen card rendered WHITE, caught by looking at the real
+    screen. <b>A stateful card cannot wear an atom that hard-codes one state's fill.</b>
+    And the rarity contrast shipped: <code>--color-gold-ink</code> joins
+    <code>amber-ink</code> and <code>pitch-ink</code>, the word takes the ink classes and the
+    strip keeps the tier accent.</p>
 
     <p><strong>The problem.</strong> At rest a boost card is <code>CARD_FLAT</code>, the
     app's shadowless card, and the only two things that say "control" are a 2px hover lift
@@ -965,16 +978,54 @@
   <summary>
     <span class="num">05</span>
     <span class="title">The boost pick: a real button, and what each boost is worth
-      <span class="sub"><b>MERGED WITH ITEM 65 on 2026-09-09</b>, at the owner's call: the
-      numbers are what makes a second tap worth taking, so the two are one job. Comp:
-      <a class="dl" href="redesign-2026/turf-flat/boost-pick-mock.html" target="_blank" rel="noopener"><code>docs/redesign-2026/turf-flat/boost-pick-mock.html</code></a>, which draws the merge
-      three ways and recommends the third. Both halves are mocked and measured; <b>needs one
-      decision from the owner</b>, and the odds half needs a new sim path.</span>
+      <span class="sub"><b>SHIPPED 2026-09-10</b>, as option 3a of
+      <a class="dl" href="redesign-2026/turf-flat/boost-pick-mock.html" target="_blank" rel="noopener"><code>boost-pick-mock.html</code></a>, merged with item 65 the day before. Choose a card and
+      the panel prices it over two horizons (<code>31% -> 41%</code> on the tie, the same for
+      the cup), then one primary button named for the card takes it. The odds are
+      position-aware, which is the finding that reopened this item: the build-page reading
+      prices a next-opponent card at +0.4 where the tie it exists for is worth +10.7. 503
+      checks green.</span>
     </span>
     <span class="tag">Career</span>
     <span class="chev">&#9656;</span>
   </summary>
   <div class="detail">
+    <div class="callout">
+      <span class="ct">What shipped, 2026-09-10</span>
+      <b><code>domain/odds.ts</code> gained <code>simulateRunOdds</code></b>, which starts
+      from the bracket the run is standing in and asks the caller for the user's side PER
+      ROUND, so a card with a window lasts exactly as long as its text says. The bracket is
+      closed - all sixteen teams are already in it - so it needs no squad pool and cannot
+      draw an opponent the tree does not show. <b><code>domain/run.ts</code> gained
+      <code>runOddsNow</code> and <code>boostOdds</code></b>, the second of which goes through
+      <code>commitBoon</code>, the same path the real pick takes: that is what prices the
+      levers that do not touch the XI at all, since Away Days and Man-Marking weaken the
+      OPPONENT, Kind Draw re-draws them and Loan Deal borrows one, and a hand-rolled version
+      reads all four as doing nothing. <b>A random card is averaged over
+      <code>ODDS_SAMPLES</code> (5) independent commits</b>, because which legend Wildcard
+      deals moves the answer by more than the simulation's own noise, so the figure prices the
+      CARD rather than one draw of it. <b><code>Boon.priced</code></b> is a required field on
+      all 32 entries. <b>Measured cost: about 110ms per card</b> at 6,000 simulations, one
+      card at a time, into a panel that has just opened - against the ~950ms for a whole
+      offer that had this item costed as needing a web worker. <b>No worker was needed.</b>
+    </div>
+
+    <div class="callout">
+      <span class="ct">The bug that only driving the real app could find</span>
+      <b><code>boostOdds</code> resolves the card from the catalogue by ID.</b> A
+      <code>RunState</code> is persisted to localStorage and a <code>Boon</code> carries
+      FUNCTIONS - <code>plan</code> and <code>apply</code> - which a JSON round trip does not,
+      so a run resumed mid-offer holds cards whose rarity, name and description are intact and
+      whose behaviour is gone. Every consumer that existed before this was safe by accident,
+      because the pick path passes an id and <code>chooseBoon</code> looks it up; this was the
+      first caller to reach for a function on one, and it threw
+      <code>eff.plan is not a function</code> the first time a reloaded run met it. No fixture
+      built in memory can fail that way, because live boons work, so the check round-trips a
+      stop through JSON and prices a card off it with the revived card's deadness as the
+      vacuity guard. <b>The lesson generalises past this item:</b> anything reached off
+      <code>RunState</code> after a reload is DATA, and only the ids survive.
+    </div>
+
     <div class="callout">
       <span class="ct">Merged with item 65 on 2026-09-09, and each half pays the other's bill</span>
       Item 65 (reported: the boosts "don't appear like real buttons") landed on

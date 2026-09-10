@@ -21,6 +21,7 @@ export default function GroupRevealPanel({
   drawOpen,
   onDismissDraw,
   userRating,
+  atkDefDelta,
   speed,
   onMatchEnd,
   onPickBoost,
@@ -36,6 +37,9 @@ export default function GroupRevealPanel({
   drawOpen: boolean;
   onDismissDraw: () => void;
   userRating: number;
+  /** The difficulty setting's own rating delta, for the boost offer's odds. Not the
+   *  Ascension handicap, which the odds pass reads off the run itself. */
+  atkDefDelta: number;
   speed: MatchSpeed;
   onMatchEnd: () => void;
   /** The first boost, picked right here rather than on a screen of its own. */
@@ -119,6 +123,8 @@ export default function GroupRevealPanel({
           {advanced && reveal.next.offer ? (
             <div className={`mt-4 ${CARD} p-5`}>
               <BoostOffer
+                run={reveal.next}
+                atkDefDelta={atkDefDelta}
                 offer={reveal.next.offer}
                 nextOpponent={reveal.next.nextOpponent}
                 roundName={KO_ROUNDS[0]}

@@ -22,6 +22,7 @@ export default function RunPhasePanel({
   lastKoMatch,
   endedKoRecord,
   userRating,
+  atkDefDelta,
   reward,
   banking,
   boostRef,
@@ -41,6 +42,9 @@ export default function RunPhasePanel({
    *  a run ends. Null for a group-stage exit, which has no knockout tie. */
   endedKoRecord: Extract<RunState['history'][number], { stage: number }> | null;
   userRating: number;
+  /** The difficulty setting's own rating delta, for the boost offer's odds. Not the
+   *  Ascension handicap, which the odds pass reads off the run itself. */
+  atkDefDelta: number;
   reward: Reward | null;
   banking: boolean;
   /** The boost card, scrolled into view when a run enters the boost phase. */
@@ -149,6 +153,8 @@ export default function RunPhasePanel({
           ) : (
             run.offer && (
               <BoostOffer
+                run={run}
+                atkDefDelta={atkDefDelta}
                 offer={run.offer}
                 nextOpponent={run.nextOpponent}
                 roundName={KO_ROUNDS[run.koRound]}

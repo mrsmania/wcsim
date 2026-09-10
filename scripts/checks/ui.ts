@@ -212,6 +212,36 @@ export function uiChecks(): void {
     );
   }
 
+  // --- The rarity word on a boost card, which is the THIRD of that family ----
+  // `gold-ink` was added with the boost offer's odds (roadmap 05 + 65). The offer prints
+  // its rarity in the sticker tier accents, and those are surface colours: at 9px bold on
+  // the panel the top tier's gold measured 2.57 and the amber 2.49, against the 4.5 a
+  // label that size needs - the relaxed 3:1 is for 18.66px bold and larger. The tier RAMP
+  // keeps the surface values, which is right, because a strip across a card is a surface.
+  {
+    const surfaces = ['ground', 'panel', 'chalk'] as const;
+    const bad: string[] = [];
+    for (const s of surfaces) {
+      if (contrast(light['gold-ink']!, light[s]!) < AA) bad.push(`gold-ink on ${s} light`);
+      if (contrast(dark['gold-ink']!, dark[s]!) < AA) bad.push(`gold-ink on ${s} dark`);
+    }
+    // Vacuity, and the reason the token exists at all: the tier's own gold does NOT pass
+    // as text on paper. If it ever did, this token would be dead weight.
+    const TIER_GOLD = '#c99a3a';
+    if (contrast(TIER_GOLD, light['panel']!) >= AA) bad.push('the tier gold already passes light');
+    // And on graphite it converges with the surface value, exactly as amber-ink does, so
+    // the dark override is the tier gold itself.
+    if (dark['gold-ink'] !== TIER_GOLD) bad.push('gold-ink should be the tier gold in dark');
+    check(
+      'ui: gold-ink clears AA where the sticker tier gold does not, and converges with it in dark',
+      () => bad.length === 0,
+      () =>
+        bad.join(', ') +
+        ` (tier gold on panel ${contrast(TIER_GOLD, light['panel']!).toFixed(2)} light, ` +
+        `${contrast(TIER_GOLD, dark['panel']!).toFixed(2)} dark)`,
+    );
+  }
+
   // --- Gold on the green, which is a surface that does NOT flip -------------
   // `amber-on-green` exists because `amber-ink` was used here and `amber-ink` FLIPS: deep
   // amber on paper, bright amber on graphite. The champion banner and the bracket's cup

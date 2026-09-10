@@ -48,6 +48,7 @@ import {
   type BracketState,
 } from './bracket';
 import { ascensionAt } from './ascension';
+import { simulateRunOdds, type RunOdds } from './odds';
 
 // ---------------------------------------------------------------------------
 // Cup Run - prototype run state machine. Pure over Math.random via
@@ -1292,6 +1293,111 @@ function commitBoon(run: RunState, boon: Boon, ctx: BoonContext, pool: readonly 
     swappedIn,
     swappedOut,
   };
+}
+
+/* ---------------------------------------------------------------------------
+ * Odds at a boost stop (roadmap item 05, merged with 65).
+ *
+ * Two entry points, both of which answer the question the offer asks: what are you worth
+ * now, and what would you be worth with this card. The figures are position-aware, which
+ * is the whole finding of the item - see `simulateRunOdds` for why the build-page reading
+ * is the wrong one here.
+ * ------------------------------------------------------------------------- */
+
+/** Simulations behind one figure. At 6,000 the standard error is around 0.6pp, which is
+ *  what lets the screen print whole percentages and mean them; a decimal at any count this
+ *  side of a minute of work would be inventing precision. */
+export const ODDS_SIMS = 6000;
+
+/** How many independent draws of a card its figure is averaged over.
+ *
+ *  A card whose effect is RANDOM - Wildcard Legend deals a legend, Transfer finds a better
+ *  player, Kind Draw re-draws the opponent - would otherwise be priced on one sample of
+ *  itself, and which legend you happen to be dealt moves the answer by more than the
+ *  simulation's own noise. So the card is committed afresh for each batch and the batches
+ *  are averaged: the figure prices the CARD rather than one draw of it. Deterministic
+ *  cards are unaffected, since every batch commits the same thing. */
+export const ODDS_SAMPLES = 5;
+
+/** The odds for a run in whatever state it is in. Null when there is no bracket to
+ *  simulate, which is every stop before the group is survived. */
+function oddsOfRun(run: RunState, atkDefDelta: number, sims: number): RunOdds | null {
+  const bracket = run.bracket;
+  if (!bracket) return null;
+  const asc = ascensionAt(run.ascension);
+  const delta = atkDefDelta + asc.userDelta;
+  const roster = run.roster ?? run.xi;
+  const effects = run.effects ?? [];
+  return simulateRunOdds({
+    bracket,
+    // Per ROUND, so a card with a window lasts exactly as long as its text says. This is
+    // the same team `prepareKnockoutRound` builds, deliberately: an odds figure that does
+    // not agree with the tie it is predicting is worse than no figure.
+    teamAt: (round) => {
+      const xi = xiOf(roster, effects, round);
+      return userGroupTeam(
+        xi,
+        chemistryOf(xi),
+        delta,
+        run.penBonus ?? 0,
+        run.penBonusTop ?? 0,
+      );
+    },
+    sims,
+  });
+}
+
+/** What the run is worth as it stands: the "from" figure on every row of the offer. */
+export function runOddsNow(
+  run: RunState,
+  atkDefDelta = 0,
+  sims = ODDS_SIMS,
+): RunOdds | null {
+  return oddsOfRun(run, atkDefDelta, sims);
+}
+
+/**
+ * What the run would be worth with this card taken: the "to" figure.
+ *
+ * It goes through `commitBoon`, the same path the real pick takes, rather than applying the
+ * card's rating plan by hand. That is what prices every lever the catalogue has rather than
+ * only the ones that touch the XI: Away Days and Man-Marking weaken the OPPONENT, Kind Draw
+ * re-draws them, Loan Deal borrows one of them, and a hand-rolled version would read all
+ * four as doing nothing at all - which is exactly the mispricing the item was reopened over.
+ *
+ * Null for a card the simulation cannot price, which the offer renders as a label rather
+ * than a figure.
+ */
+export function boostOdds(
+  run: RunState,
+  offered: Boon,
+  atkDefDelta = 0,
+  sims = ODDS_SIMS,
+  pool: readonly Squad[] = SQUADS,
+): RunOdds | null {
+  // THE CARD IS RESOLVED FROM THE CATALOGUE BY ID, never used as handed over, and this was
+  // a real crash rather than a precaution. `RunState` is persisted to localStorage, and a
+  // `Boon` carries FUNCTIONS - `plan` and `apply` - which a JSON round trip does not: a run
+  // resumed mid-offer holds cards whose data is intact and whose behaviour is gone. Every
+  // consumer that existed before this was safe by accident, because the pick path passes an
+  // id and `chooseBoon` looks it up; this is the first caller to reach for a function on
+  // one, and it threw `eff.plan is not a function` the first time a resumed run met it.
+  const boon = boonById(offered.id) ?? offered;
+  if (boon.priced !== 'sim') return null;
+  if (!run.bracket) return null;
+  const per = Math.max(1, Math.round(sims / ODDS_SAMPLES));
+  let tie = 0;
+  let cup = 0;
+  let total = 0;
+  for (let i = 0; i < ODDS_SAMPLES; i++) {
+    const after = commitBoon(run, boon, boonContext(run), pool).next;
+    const o = oddsOfRun(after, atkDefDelta, per);
+    if (!o) return null;
+    tie += o.tie * o.sims;
+    cup += o.cup * o.sims;
+    total += o.sims;
+  }
+  return { sims: total, tie: tie / total, cup: cup / total };
 }
 
 /** A single knockout tie via the shared resolver (reg -> ET -> shootout), with

@@ -1,6 +1,8 @@
 import type { Player, Squad } from '../data/types';
 import { SQUADS } from '../data/squads';
+import type { GroupTeam } from './tournament';
 import {
+  USER_ID,
   userGroupTeam,
   createGroup,
   playWholeGroup,
@@ -9,6 +11,7 @@ import {
   pickOpponents,
   GROUP_OPPONENTS,
 } from './tournament';
+import type { BracketState } from './bracket';
 import { buildBracket, playRound, recordRound } from './bracket';
 import { KO_ROUNDS, LOST_IN, type Finish } from './knockout';
 
@@ -106,4 +109,85 @@ export function simulateTitleOdds(
     advanced: 1 - distribution.group,
     distribution,
   };
+}
+
+/* ---------------------------------------------------------------------------
+ * The POSITION-AWARE pass: odds for the run as it actually stands.
+ *
+ * `simulateTitleOdds` above answers "how strong is this build" by replaying a fresh random
+ * tournament from a group, which is the right question for the build page and the wrong one
+ * at a boost stop. Roadmap item 05 measured how wrong: a card aimed at the next opponent
+ * reads +0.4 there against +10.7 on the tie it exists for, and a card that lasts one round
+ * is priced as five. Both faults are the same fault, and it is not a UI fault: the odds have
+ * to start from THIS bracket, THIS next opponent and the rounds that are actually left.
+ *
+ * Two things make that honest. The bracket is closed - every one of the sixteen teams is
+ * already in it - so this needs no squad pool and cannot draw an opponent the tree does not
+ * show. And the user's side is asked for PER ROUND, so a card with a window
+ * (`appliesFrom` / `expiresAfter`) lasts exactly as long as it says: that is the whole
+ * reason the caller hands over a function rather than one team.
+ * ------------------------------------------------------------------------- */
+
+/** What the run is worth from here. Fractions of 1, like `TitleOdds`. */
+export interface RunOdds {
+  sims: number;
+  /** Chance of winning the tie the run is about to play. */
+  tie: number;
+  /** Chance of going on to lift the cup. */
+  cup: number;
+}
+
+export interface RunOddsInput {
+  /** The bracket as it stands, with the user's next tie in `rounds[current]`. */
+  bracket: BracketState;
+  /** The user's side as it would be in that round. Called once per round, never per
+   *  simulation, so an expensive XI derivation is paid four times rather than 24,000. */
+  teamAt: (round: number) => GroupTeam;
+  sims: number;
+}
+
+/**
+ * Monte-Carlo the rest of a Cup Run from the bracket it is standing in, and report the
+ * chance of winning the next tie and of lifting the cup.
+ *
+ * The two figures deliberately disagree, and that disagreement is the point: a card worth
+ * +27 on this tie and nothing over the run is a card whose text says exactly that, and until
+ * this existed the screen could not.
+ */
+export function simulateRunOdds({ bracket, teamAt, sims }: RunOddsInput): RunOdds {
+  if (bracket.outcome !== 'alive') {
+    return { sims: 0, tie: 0, cup: bracket.outcome === 'champion' ? 1 : 0 };
+  }
+  // The team a round is played with does not vary between simulations, so derive each
+  // one once. `xiOf` replays the whole effect ledger and `chemistryOf` scores eleven
+  // players, and both would otherwise run inside the hot loop.
+  const teams: GroupTeam[] = [];
+  for (let r = bracket.current; r < KO_ROUNDS.length; r++) teams[r] = teamAt(r);
+
+  let tieWins = 0;
+  let cups = 0;
+  for (let i = 0; i < sims; i++) {
+    let b = bracket;
+    let firstRound = true;
+    let wonTie = false;
+    // Structural bound, like `simulateFinish`: a bracket resolves in at most one pass per
+    // round, so overrunning means `recordRound` stopped advancing.
+    let guard = 0;
+    while (b.outcome === 'alive' && guard++ <= KO_ROUNDS.length) {
+      const withUser: BracketState = {
+        ...b,
+        teams: { ...b.teams, [USER_ID]: teams[b.current] },
+      };
+      b = recordRound(withUser, playRound(withUser));
+      if (firstRound) {
+        // `recordRound` sets 'out' the moment the user loses, so surviving the first
+        // round it plays IS winning the tie in front of them.
+        wonTie = b.outcome !== 'out';
+        firstRound = false;
+      }
+    }
+    if (wonTie) tieWins++;
+    if (b.outcome === 'champion') cups++;
+  }
+  return { sims, tie: tieWins / sims, cup: cups / sims };
 }

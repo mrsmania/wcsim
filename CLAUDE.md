@@ -510,8 +510,17 @@ src/
                chemistry.ts  (cohesion scoring -> strength bonus; gated by a flag)
                album.ts      (sticker collectibility/tiers, trade, run-end apply;
                               pure; gated by a flag - see below)
-               odds.ts       (simulateTitleOdds: Monte-Carlo an XI's cup-win % over
-                              many simulated tournaments; drives the Cup Run readout)
+               odds.ts       (TWO passes, and using the wrong one is the whole finding of
+                              roadmap item 05. `simulateTitleOdds` Monte-Carlos an XI's
+                              cup-win % over many FRESH random tournaments, which measures
+                              the strength of a BUILD and drives the Cup Run readout.
+                              `simulateRunOdds` starts from the bracket the run is standing
+                              in and asks for the user's side PER ROUND, which is the only
+                              honest question at a boost stop: the blind reading prices a
+                              next-opponent card at +0.4 where the tie it exists for is
+                              worth +10.7, and a card that lasts one round as five. The
+                              bracket is closed, so it needs no squad pool and cannot draw
+                              an opponent the tree does not show)
                pricing.ts    (budget-draft price by rating; convex; BUDGET from config)
                budget.ts     (the market's randomized "Auto-fill & spend")
                boons.ts      (Cup Run boons: rating PLANS + roster transforms)
@@ -1783,9 +1792,59 @@ deleted with the plain World Cup it used to gate). Design:
   navigation rework gave it its own route, after which the run screen simply stopped
   mounting it (see the three cards below). The XI panel lists **active boosts** as chips and
   tags players a roster boost brought in (`RunState.boostedIds`, an amber "Boost" mark).
-- **Boost pick flow.** A boost is picked right after each round's games (except the final /
-  a group exit), so the shared `BoostOffer` (the 3 rarity-topped cards + a "Next: flag name
-  **year** in round" line) shows in two places: on the **group-results screen** (the first
+- **THE BOOST PICK IS CHOOSE-THEN-CONFIRM, AND THE FIGURES ARE WHAT THE FIRST TAP BUYS**
+  (roadmap items 05 and 65 merged and shipped 2026-09-10, option 3a of
+  `docs/redesign-2026/turf-flat/boost-pick-mock.html`). Two complaints met by one shape,
+  which is why the two items became one. **65:** the cards did not look pressable - a
+  full-width panel with a heading and a line of grey text is what CONTENT looks like in this
+  app, and every signal that they were controls fired on hover, which does not exist on a
+  phone. **05:** a pick was a guess. Neither fix is worth much alone: choose-then-confirm is
+  friction bought with nothing but safety, and odds on every card put two rows of bar on the
+  screen that can least afford them and cost a baseline plus a simulation per card before
+  anything can be shown. Together the first tap stops being ceremony and becomes the request
+  for the numbers.
+  - **A card is a `<label>` around a radio**, not a button. Choosing one of four is what a
+    radio group is, so the arrow keys move between the boosts and the group is one tab stop.
+    The visible control is one `btn('primary')` below, which NAMES what it will take
+    ("Take Away Days") so it can never be pressed blind.
+  - **It uses `CHIP_ON` / `CHIP_OFF`, not `CARD_FLAT`**, and that is a cascade fact rather
+    than a taste: `CARD_FLAT` carries `bg-panel`, and `bg-panel` and `bg-pitch-dark` are
+    utilities of equal specificity, so which one won came down to their order in the
+    generated stylesheet and the chosen card rendered WHITE. A stateful card cannot wear an
+    atom that hard-codes one state's fill.
+  - **Two horizons, from `domain/odds.ts`'s position-aware pass**: the chance of winning the
+    tie in front of you and of lifting the cup, each as `31% -> 41%` rather than a delta.
+    **A delta and a from-to cannot both be printed at whole precision** - decimals are ruled
+    out because the standard error is around 0.6pp, and at whole points the two figures
+    contradict each other (Away Days is +2 by the measurement and +3 by the printed
+    figures). The bar runs **0 to 100%**, so a full track is a certainty; it was drawn
+    cropped to the biggest figure on the board first, which is a chart convention for an
+    axis with no meaningful end, and cropped that way a 58% chance filled the track and read
+    as near-certain. A card can move the cup DOWN (Sold Out Stadium's debt lands in the next
+    round), which draws in `loss` rather than being left off.
+  - **`Boon.priced` decides between figures and a label** (`'sim' | 'payout' | 'album' |
+    'hidden'`, required so a new card has to say). Four cards pay outside the simulation and
+    would print a figure a whisker off the baseline, which reads as "worth nothing" about a
+    card worth a level: Sponsorship, Youth Development and All or Nothing say "Pays after the
+    run", Double Print "Album, on a cup win". **The Coin Toss and The Armband are `hidden`
+    for two different reasons** - the Coin Toss is derived from the XI and the opponent so a
+    reload cannot re-roll it, which means an honest figure would say heads or tails before
+    the card is taken, and the Armband's worth depends on a captain the user has not named.
+  - **`boostOdds` resolves the card from the catalogue BY ID, and that was a crash.** A
+    `RunState` is persisted to localStorage and a `Boon` carries FUNCTIONS (`plan`, `apply`)
+    which a JSON round trip does not, so a run resumed mid-offer holds cards whose data is
+    intact and whose behaviour is gone. Every consumer before this was safe by accident,
+    because the pick path passes an id and `chooseBoon` looks it up; this was the first to
+    reach for a function on one and it threw `eff.plan is not a function` the first time a
+    reloaded run met it. `npm run checks` round-trips a stop through JSON and prices a card
+    off it, with the deadness of the revived card as the vacuity guard.
+  - **The odds switch was designed and then deleted** (owner, 2026-09-09). It would have let
+    a player leave the pick a guess, and it collided with the merge: if the numbers are what
+    the second tap buys, turning them off leaves the tap and takes the payment. What goes
+    with it is the hedge - if a solved offer turns out duller than an unsolved one there is
+    no switch to reach for and the answer is to change or revert the feature.
+- **Boost pick flow.** The shared `BoostOffer` (the cards, the panel, the confirm button and
+  a "Next: flag name **year** in round" line) shows in two places: on the **group-results screen** (the first
   boost, before the Round of 16) and, for later rounds, in the `boon` phase after a knockout
   tie. `chooseBoon` stamps the chosen boost onto the **most recent history record** (the round
   just played), so `RoundRecord.boostId` reads as "the boost taken after this round" - the group
@@ -3094,6 +3153,19 @@ tokens** (`scripts/checks/ui.ts`) and fails on any tone below 4.5 in either them
 or hovered; putting the primary back on `pitch` reads `primary light 4.00, primary dark
 3.25`. The 4.5 is deliberate and written down there: the relaxed 3:1 is for text at 18.66px
 bold or larger, and the biggest label in this app is 13px.
+
+**AND `--color-gold-ink` IS THE THIRD OF THAT FAMILY** (added 2026-09-10 with the boost
+odds). The boost offer prints its rarity in the sticker tier accents, and those are SURFACE
+colours: at 9px bold on the panel the top tier's `#c99a3a` measured **2.57** and the amber
+**2.49**, with the common green at **4.00 light / 4.17 dark** - all three under the 4.5 a
+label that size needs, since the relaxed 3:1 is for 18.66px bold and larger. So the rarity
+WORD takes `RARITY_INK` (`text-gold-ink` / `text-amber-ink` / `text-pitch-ink`, spent as
+classes rather than hexes because an `-ink` token flips per theme and a hex in a JS map
+cannot) while the STRIP across the card keeps `RARITY_COLOR`, which is right: a strip is a
+surface. `--color-gold-ink` is `#7d5f10` on paper (5.97 panel, 5.14 chalk, 5.33 ground) and
+converges with the tier gold on graphite, exactly as amber-ink does. `npm run checks`
+computes all of it from the real tokens and carries the tier gold's own failure as the
+vacuity guard.
 
 **`--color-pitch-ink` IS GREEN AS TEXT, exactly as `--color-amber-ink` is amber as text**,
 and it was added for the same measured reason: the surface green is 4.00 on panel, so every

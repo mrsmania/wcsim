@@ -13,6 +13,23 @@ import { STICKER_TIERS } from '../config';
 export const RARITIES = ['common', 'rare', 'legendary'] as const;
 export type Rarity = (typeof RARITIES)[number];
 
+/**
+ * Whether a card's worth can be SIMULATED, and when it cannot, why not. This is what
+ * decides between a pair of odds figures and a label on the boost offer, and it is the
+ * thing that stops a card which pays outside the simulation reading as worthless: four of
+ * these would print "6% to 6%" and be telling the truth about the wrong question.
+ *
+ * `sim`    - the simulation prices it, so the offer shows figures.
+ * `payout` - it pays in XP, Prestige or a future run, none of which the sim can see.
+ * `album`  - it pays into the sticker album.
+ * `hidden` - a figure would be a spoiler or a guess. The Coin Toss is derived from the XI
+ *            and the opponent so that a reload cannot re-roll it, which means an honest
+ *            figure would say heads or tails before the card is taken, and the card is
+ *            nothing else. The Armband is the other kind: its worth depends on which
+ *            player the user names, which has not happened yet.
+ */
+export type Priced = 'sim' | 'payout' | 'album' | 'hidden';
+
 /** Run context a boon may read. Everything here is resolved by `domain/run.ts` and handed
  *  in, so the catalogue can key off the run without importing it. */
 export interface BoonContext {
@@ -118,6 +135,10 @@ export interface Boon {
   id: string;
   name: string;
   rarity: Rarity;
+  /** Whether the boost offer can put odds on this card. Required rather than defaulted:
+   *  a new card that pays outside the simulation and forgets to say so would print a
+   *  figure that reads as "worth nothing". */
+  priced: Priced;
   description: string;
   /** In the offer pool from the start (no Prestige unlock needed). Locked boons are
    *  bought into the pool via career Prestige (see `BOON_UNLOCK_COST` / `unlockBoon`). */
@@ -242,6 +263,7 @@ export const BOONS: readonly Boon[] = [
     id: 'golden-generation',
     name: 'Golden Generation',
     rarity: 'legendary',
+    priced: 'sim',
     description: '+2 rating to your entire XI.',
     effects: [{ kind: 'rating', plan: (xi) => planAll(xi, 2) }],
   },
@@ -251,6 +273,7 @@ export const BOONS: readonly Boon[] = [
     // Was legendary. One player can only move an average so far: +12 to a single
     // player is about +2 on his side, which a common already beats.
     rarity: 'rare',
+    priced: 'sim',
     // Retargeted 2026-08-22 from the BEST player to the WORST. On the best it was
     // usually wasted - a top XI's star is near the 99 ceiling, so most of the +12
     // evaporated - and it duplicated Galacticos. On the worst it is the same card as
@@ -263,6 +286,7 @@ export const BOONS: readonly Boon[] = [
     name: 'Star Signing',
     // Was rare, for about a common's worth of movement.
     rarity: 'common',
+    priced: 'sim',
     starter: true,
     description: '+6 to your weakest player.',
     effects: [{ kind: 'rating', plan: (xi) => planLowest(xi, 1, 6) }],
@@ -271,6 +295,7 @@ export const BOONS: readonly Boon[] = [
     id: 'veteran-core',
     name: 'Veteran Core',
     rarity: 'common',
+    priced: 'sim',
     starter: true,
     description: '+3 to your three lowest-rated players.',
     effects: [{ kind: 'rating', plan: (xi) => planLowest(xi, 3, 3) }],
@@ -279,6 +304,7 @@ export const BOONS: readonly Boon[] = [
     id: 'attacking-masterclass',
     name: 'Attacking Masterclass',
     rarity: 'common',
+    priced: 'sim',
     starter: true,
     description: '+2 to your midfielders and forwards.',
     effects: [{ kind: 'rating', plan: (xi) => planWhere(xi, isAttacker, 2) }],
@@ -287,6 +313,7 @@ export const BOONS: readonly Boon[] = [
     id: 'defensive-drills',
     name: 'Defensive Drills',
     rarity: 'common',
+    priced: 'sim',
     starter: true,
     description: '+2 to your goalkeeper and defenders.',
     effects: [{ kind: 'rating', plan: (xi) => planWhere(xi, isDefender, 2) }],
@@ -295,6 +322,7 @@ export const BOONS: readonly Boon[] = [
     id: 'transfer',
     name: 'Transfer',
     rarity: 'rare',
+    priced: 'sim',
     starter: true,
     description: 'Swap your weakest player for one at least 8 rating better, same position.',
     effects: [
@@ -320,6 +348,7 @@ export const BOONS: readonly Boon[] = [
     id: 'poach',
     name: 'Poach',
     rarity: 'rare',
+    priced: 'sim',
     description: "Steal your next opponent's best player.",
     effects: [
       {
@@ -341,6 +370,7 @@ export const BOONS: readonly Boon[] = [
     id: 'wildcard',
     name: 'Wildcard Legend',
     rarity: 'legendary',
+    priced: 'sim',
     description: `Add a random ${LEGEND_MIN}+ legend to your XI.`,
     effects: [
       {
@@ -364,6 +394,7 @@ export const BOONS: readonly Boon[] = [
     id: 'keeper-coach',
     name: 'Keeper Coach',
     rarity: 'common',
+    priced: 'sim',
     starter: true,
     description: '+6 to your goalkeeper.',
     effects: [{ kind: 'rating', plan: (xi) => planWhere(xi, (p) => catOf(p) === 'GK', 6) }],
@@ -372,6 +403,7 @@ export const BOONS: readonly Boon[] = [
     id: 'catenaccio',
     name: 'Catenaccio',
     rarity: 'rare',
+    priced: 'sim',
     description: '+4 to your defence, -2 to your attack.',
     effects: [
       {
@@ -386,6 +418,7 @@ export const BOONS: readonly Boon[] = [
     id: 'underdog-spirit',
     name: 'Underdog Spirit',
     rarity: 'rare',
+    priced: 'sim',
     description: '+3 to your entire XI, but only against a stronger opponent.',
     effects: [
       {
@@ -404,6 +437,7 @@ export const BOONS: readonly Boon[] = [
     id: 'galacticos',
     name: 'Galacticos',
     rarity: 'legendary',
+    priced: 'sim',
     description: '+6 to your three best players.',
     effects: [{ kind: 'rating', plan: (xi) => planHighest(xi, 3, 6) }],
   },
@@ -411,6 +445,7 @@ export const BOONS: readonly Boon[] = [
     id: 'legends-reunion',
     name: "Legends' Reunion",
     rarity: 'legendary',
+    priced: 'sim',
     // One swap, but from a rarer shelf than Wildcard's Legendary floor, so the two are distinct
     // without stacking to twice a Golden Generation (which two 90+ swaps measured at).
     description: `Your weakest player is replaced by a ${ICON_MIN}+ icon.`,
@@ -430,6 +465,7 @@ export const BOONS: readonly Boon[] = [
     id: 'prime-years',
     name: 'Prime Years',
     rarity: 'legendary',
+    priced: 'sim',
     description: 'Every player is replaced by his own best tournament.',
     // Walks `personId`, which links the same human across tournaments and which nothing
     // else has ever read. The XI keeps its identity and gets better, which feels quite
@@ -450,6 +486,7 @@ export const BOONS: readonly Boon[] = [
     id: 'in-form',
     name: 'In Form',
     rarity: 'rare',
+    priced: 'sim',
     description: '+12 to your leading scorer this run.',
     // Names a player the RUN chose rather than the draft: whoever has actually been
     // scoring. Worth nothing before a goal is scored, which is only the first stop.
@@ -469,6 +506,7 @@ export const BOONS: readonly Boon[] = [
     // Legendary, like Wildcard Legend: adding one strong player to the XI is the same
     // shape and the same size. It measured 4.8 as a rare.
     rarity: 'legendary',
+    priced: 'sim',
     description: "Your career's all-time top scorer joins the XI.",
     // The first card that reaches back into the CAREER. Different for every player, and
     // better the longer they have played - progression that is earned rather than bought.
@@ -491,6 +529,7 @@ export const BOONS: readonly Boon[] = [
     id: 'armband',
     name: 'The Armband',
     rarity: 'rare',
+    priced: 'hidden',
     // The first card that asks a question. Everything else in the pool decides for you.
     choice: 'player',
     description: 'Name your captain: +6 to him, +1 to everyone else.',
@@ -514,6 +553,7 @@ export const BOONS: readonly Boon[] = [
     id: 'away-days',
     name: 'Away Days',
     rarity: 'common',
+    priced: 'sim',
     starter: true,
     description: "-5 to your next opponent's defence.",
     // Weakening THEM is not the same card as strengthening you: it helps in exactly one
@@ -525,6 +565,7 @@ export const BOONS: readonly Boon[] = [
     id: 'man-marking',
     name: 'Man-Marking',
     rarity: 'common',
+    priced: 'sim',
     starter: true,
     description: "-5 to your next opponent's attack.",
     // Away Days' mirror, and the pair is the point: which of the two you want depends on
@@ -535,6 +576,7 @@ export const BOONS: readonly Boon[] = [
     id: 'double-print',
     name: 'Double Print',
     rarity: 'rare',
+    priced: 'album',
     description: 'Win the cup and pick two stickers instead of one.',
     // Reaches the sticker album, which no other card touches, and pays nothing at all
     // unless the run is won - so it is a card you take when you already believe.
@@ -544,6 +586,7 @@ export const BOONS: readonly Boon[] = [
     id: 'kind-draw',
     name: 'Kind Draw',
     rarity: 'rare',
+    priced: 'sim',
     description: 'Re-draw your next opponent and keep the weaker of the two.',
     // Acts on the DRAW. Two cards read the next opponent (Poach did, Familiar Foes did
     // before it was cut); none changed it. Worth nothing when the draw was already kind,
@@ -558,6 +601,7 @@ export const BOONS: readonly Boon[] = [
     // it lasts it is worth more than twice a legendary, and taken before the Final that
     // round is the one that matters. The duration is the price, not a discount.
     rarity: 'rare',
+    priced: 'sim',
     description: '+4 to your entire XI, for this round only.',
     // The first card in the game that wears off. A big number you have to spend at the
     // right moment rather than bank, which is a different decision from every permanent
@@ -568,6 +612,7 @@ export const BOONS: readonly Boon[] = [
     id: 'sold-out-stadium',
     name: 'Sold Out Stadium',
     rarity: 'rare',
+    priced: 'sim',
     description: '+6 to your XI this round, then -6 in the round after it.',
     // Borrow from your future self. Take it in the semi-final and you play the Final
     // weakened - which is exactly the point, and why it is exempt: it gives the points
@@ -586,6 +631,7 @@ export const BOONS: readonly Boon[] = [
     id: 'coin-toss',
     name: 'The Coin Toss',
     rarity: 'rare',
+    priced: 'hidden',
     description: 'Heads +8 to your XI, tails -4. The coin is already in the air.',
     // Genuine variance in a game that otherwise has none. The result is DERIVED from the
     // run rather than rolled (see `coinFor`), so a reload cannot change it - the whole
@@ -607,6 +653,7 @@ export const BOONS: readonly Boon[] = [
     // common starter it is instead the cheap version you have from run one, and Poach is
     // the rare you unlock to keep him.
     rarity: 'common',
+    priced: 'sim',
     starter: true,
     description: "Borrow your next opponent's best player for this round. He then goes back.",
     // Poach without keeping him. The first TEMPORARY roster change in the game: the
@@ -644,6 +691,7 @@ export const BOONS: readonly Boon[] = [
     id: 'siege-mentality',
     name: 'Siege Mentality',
     rarity: 'legendary',
+    priced: 'sim',
     description: '+1 to your XI for every goal you have conceded this run.',
     // Reads the DAMAGE. Every card in the pool is taken at a stop, and you only reach a
     // stop by going through, so the whole catalogue is priced for a run that is going
@@ -668,6 +716,7 @@ export const BOONS: readonly Boon[] = [
     id: 'underdogs-purse',
     name: "Underdog's Purse",
     rarity: 'legendary',
+    priced: 'sim',
     description: '+2 to your XI for every round you went in as the lower-rated side.',
     // Pays a run that has been SURVIVING rather than dominating, and it is the first card
     // that reads the run's own history rather than its XI or its next opponent. Worth
@@ -686,6 +735,7 @@ export const BOONS: readonly Boon[] = [
     id: 'sponsorship',
     name: 'Sponsorship',
     rarity: 'common',
+    priced: 'payout',
     starter: true,
     description: 'Double the XP this run pays. Prestige is unchanged.',
     // The only card that touches the LEVEL rather than the wallet, which matters because
@@ -699,6 +749,7 @@ export const BOONS: readonly Boon[] = [
     id: 'youth-development',
     name: 'Youth Development',
     rarity: 'rare',
+    priced: 'payout',
     description: 'This run pays no Prestige. Your next run starts with an extra boost.',
     // Spends this run's wallet on the next run's kickoff. The extra boost is dealt the
     // way Scout Network's are, from COMMONS only, for the reason that perk already
@@ -711,6 +762,7 @@ export const BOONS: readonly Boon[] = [
     id: 'all-or-nothing',
     name: 'All or Nothing',
     rarity: 'rare',
+    priced: 'payout',
     description: 'Triple the payout if you win the cup. Lose the FINAL and it pays nothing.',
     // Mortgage the Future with the failure condition narrowed to one round and the reward
     // raised to match: every exit but the final pays exactly what it would have, so the
@@ -722,6 +774,7 @@ export const BOONS: readonly Boon[] = [
     id: 'mortgage-future',
     name: 'Mortgage the Future',
     rarity: 'legendary',
+    priced: 'sim',
     description: '+4 to your XI. The run pays nothing at all unless you win the cup.',
     // The only card whose cost lands on the CAREER rather than inside the run, so what it
     // is worth depends on how the run is already going: cheap when you were winning the

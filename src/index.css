@@ -57,6 +57,12 @@
        BRIGHT green on graphite, where the surface value already clears AA and a dark green
        would vanish; that flip is the whole point of an `-ink` token. */
     --color-pitch-ink: #0e5c34;
+    /* GOLD AS TEXT, the third of the same family as `amber-ink` and `pitch-ink` and added
+       for the same measured reason. The boost offer prints its rarity word in the sticker
+       tier accents, and the top tier's #c99a3a is 2.57 against panel: a 9px bold label
+       needs 4.5. This is 5.97 on panel, 5.14 on chalk and 5.33 on ground. The tier RAMP
+       keeps the surface value, which is right - a strip is a surface. */
+    --color-gold-ink: #7d5f10;
     /* THE PRIMARY BUTTON'S HOVER, and the reason it is not just `pitch`: the fill rests on
        pitch-dark (which is what makes it pass AA at all), so the hover has to lift without
        going as far as the bright green, which carries white at only 4.00. This is the one
@@ -145,6 +151,9 @@
     /* Same story as amber: on graphite the surface green clears AA, so the text variant is
        the surface value. The dark theme therefore renders identically to before. */
     --color-pitch-ink: #22a35d;
+    /* On graphite the surface gold clears AA (6.49 on panel), so the text variant is the
+       surface value, the same convergence amber-ink has. */
+    --color-gold-ink: #c99a3a;
 }
 :root[data-theme='dark'] body {
     /* Faint green glow at the very top, tying the accent into the neutral base. */
