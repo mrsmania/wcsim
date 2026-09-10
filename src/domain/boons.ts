@@ -1,7 +1,7 @@
 import type { Player } from '../data/types';
 import { categoryOf, isAttacker, isDefender, primaryPosition } from '../data/types';
 import { ALL_PLAYERS, SQUAD_BY_ID } from '../data/squads';
-import { bump } from './effects';
+import { bump, type LiveElo } from './effects';
 import { pick } from './random';
 import { bestEleven } from './tournament';
 import { STICKER_TIERS } from '../config';
@@ -124,7 +124,10 @@ export type RunModifier =
  *    not retroactively bumped - which is exactly what the old baked-in version did. */
 export type BoonEffect =
   | { kind: 'rating'; plan: (xi: Player[], ctx: BoonContext) => RatingPlan[] }
-  | { kind: 'roster'; apply: (roster: Player[], ctx: BoonContext) => Player[] }
+  /** `live` reads a player's rating AS PLAYED (see `liveEloOf`). A roster card judges by
+   *  it and returns DATASET players: the ledger folds its deltas over what comes back, so
+   *  handing bumped players in would double-count them. */
+  | { kind: 'roster'; apply: (roster: Player[], ctx: BoonContext, live: LiveElo) => Player[] }
   | { kind: 'run'; mod: RunModifier };
 
 /** A boon chosen between rounds of a Cup Run.
@@ -208,10 +211,22 @@ const TRANSFER_MIN_GAIN = 8;
 const RARITY_WEIGHT: Record<Rarity, number> = { common: 6, rare: 3, legendary: 1 };
 
 const catOf = (p: Player) => categoryOf(primaryPosition(p));
-const weakest = (xi: Player[]) => xi.reduce((lo, p) => (p.elo < lo.elo ? p : lo), xi[0]);
-const weakestOfCat = (xi: Player[], cat: ReturnType<typeof catOf>): Player | null => {
+
+/** The rating an unbumped player reads at, which is his own. What the measurement path
+ *  and every caller with no ledger to consult passes. */
+const DATASET_ELO: LiveElo = (p) => p.elo;
+
+/** Weakest AS PLAYED, never as drafted: a card that hands +20 to the man at the bottom has
+ *  moved him off it, and every roster card here used to go on naming him anyway. */
+const weakest = (xi: Player[], live: LiveElo) =>
+  xi.reduce((lo, p) => (live(p) < live(lo) ? p : lo), xi[0]);
+const weakestOfCat = (
+  xi: Player[],
+  cat: ReturnType<typeof catOf>,
+  live: LiveElo,
+): Player | null => {
   const inCat = xi.filter((p) => catOf(p) === cat);
-  return inCat.length ? inCat.reduce((lo, p) => (p.elo < lo.elo ? p : lo), inCat[0]) : null;
+  return inCat.length ? inCat.reduce((lo, p) => (live(p) < live(lo) ? p : lo), inCat[0]) : null;
 };
 const swap = (xi: Player[], outId: string, inP: Player) =>
   xi.map((p) => (p.id === outId ? inP : p));
@@ -245,14 +260,14 @@ const planAll = (xi: Player[], d: number): RatingPlan[] => [{ ids: xi.map((p) =>
 
 /** Replace the `n` weakest players with picks from `pool`, cheapest slot first. Used by
  *  the legend boons; skips anyone already in the XI (by person, not card). */
-function replaceWeakest(xi: Player[], n: number, pool: Player[]): Player[] {
+function replaceWeakest(xi: Player[], n: number, pool: Player[], live: LiveElo): Player[] {
   let out = xi;
   for (let i = 0; i < n; i++) {
     const used = new Set(out.map((p) => p.personId));
     const cands = pool.filter((p) => !used.has(p.personId));
     if (!cands.length) break;
     const inP = pick(cands);
-    const target = weakestOfCat(out, catOf(inP)) ?? weakest(out);
+    const target = weakestOfCat(out, catOf(inP), live) ?? weakest(out, live);
     out = swap(out, target.id, inP);
   }
   return out;
@@ -323,20 +338,28 @@ export const BOONS: readonly Boon[] = [
     name: 'Transfer',
     rarity: 'rare',
     priced: 'sim',
-    starter: true,
     description: 'Swap your weakest player for one at least 8 rating better, same position.',
     effects: [
       {
         kind: 'roster',
-        apply: (roster) => {
-          const out = weakest(roster);
+        apply: (roster, _ctx, live) => {
+          const out = weakest(roster, live);
           const cat = catOf(out);
           const used = new Set(roster.map((p) => p.personId));
           // At least +8, not merely "better": a 1-point upgrade satisfied the old rule
           // and made the card read as broken. If nobody clears the bar it does nothing,
           // which is only reachable with a weakest player already near the ceiling.
+          //
+          // The bar is measured off what he is worth RIGHT NOW, which is the whole of the
+          // bug this used to have: read at his dataset rating, a man carried from 62 to 82
+          // by earlier boosts set the bar at 70, so the card swapped him out for somebody
+          // twelve points worse while promising an upgrade. His effects leave with him, so
+          // his live figure is the true cost of the swap and the only honest bar.
           const cands = ALL_PLAYERS.filter(
-            (p) => catOf(p) === cat && p.elo >= out.elo + TRANSFER_MIN_GAIN && !used.has(p.personId),
+            (p) =>
+              catOf(p) === cat &&
+              p.elo >= live(out) + TRANSFER_MIN_GAIN &&
+              !used.has(p.personId),
           );
           if (!cands.length) return roster;
           return swap(roster, out.id, pick(cands));
@@ -353,14 +376,14 @@ export const BOONS: readonly Boon[] = [
     effects: [
       {
         kind: 'roster',
-        apply: (roster, ctx) => {
+        apply: (roster, ctx, live) => {
           const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
           if (!opp) return roster;
           const used = new Set(roster.map((p) => p.personId));
           const cands = opp.players.filter((p) => !used.has(p.personId));
           if (!cands.length) return roster;
           const inP = cands.reduce((hi, p) => (p.elo > hi.elo ? p : hi), cands[0]);
-          const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
+          const out = weakestOfCat(roster, catOf(inP), live) ?? weakest(roster, live);
           return swap(roster, out.id, inP);
         },
       },
@@ -375,14 +398,14 @@ export const BOONS: readonly Boon[] = [
     effects: [
       {
         kind: 'roster',
-        apply: (roster) => {
+        apply: (roster, _ctx, live) => {
           const used = new Set(roster.map((p) => p.personId));
           const legends = ALL_PLAYERS.filter(
             (p) => p.elo >= LEGEND_MIN && !used.has(p.personId),
           );
           if (!legends.length) return roster;
           const inP = pick(legends);
-          const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
+          const out = weakestOfCat(roster, catOf(inP), live) ?? weakest(roster, live);
           return swap(roster, out.id, inP);
         },
       },
@@ -452,8 +475,8 @@ export const BOONS: readonly Boon[] = [
     effects: [
       {
         kind: 'roster',
-        apply: (roster) =>
-          replaceWeakest(roster, 1, ALL_PLAYERS.filter((p) => p.elo >= ICON_MIN)),
+        apply: (roster, _ctx, live) =>
+          replaceWeakest(roster, 1, ALL_PLAYERS.filter((p) => p.elo >= ICON_MIN), live),
       },
     ],
   },
@@ -474,10 +497,14 @@ export const BOONS: readonly Boon[] = [
     effects: [
       {
         kind: 'roster',
-        apply: (roster) =>
+        // Against the LIVE rating, and this is the card where it bites hardest: swapping
+        // a player for another card of the same person orphans every effect aimed at the
+        // card he was, so a man carried to 82 whose best tournament is a 70 would be
+        // "upgraded" to the 70 and lose the twelve. He keeps his card unless it is a gain.
+        apply: (roster, _ctx, live) =>
           roster.map((p) => {
             const best = BEST_BY_PERSON.get(p.personId);
-            return best && best.elo > p.elo ? { ...best, positions: p.positions } : p;
+            return best && best.elo > live(p) ? { ...best, positions: p.positions } : p;
           }),
       },
     ],
@@ -514,12 +541,12 @@ export const BOONS: readonly Boon[] = [
     effects: [
       {
         kind: 'roster',
-        apply: (roster, ctx) => {
+        apply: (roster, ctx, live) => {
           const id = ctx.careerTopScorerId;
           if (!id) return roster;
           const inP = PLAYER_BY_ID.get(id);
           if (!inP || roster.some((p) => p.personId === inP.personId)) return roster;
-          const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
+          const out = weakestOfCat(roster, catOf(inP), live) ?? weakest(roster, live);
           return swap(roster, out.id, { ...inP, positions: out.positions });
         },
       },
@@ -669,18 +696,19 @@ export const BOONS: readonly Boon[] = [
     effects: [
       {
         kind: 'roster',
-        apply: (roster, ctx) => {
+        apply: (roster, ctx, live) => {
           const opp = ctx.opponentSquadId ? SQUAD_BY_ID[ctx.opponentSquadId] : undefined;
           if (!opp) return roster;
           const used = new Set(roster.map((p) => p.personId));
           const cands = opp.players.filter((p) => !used.has(p.personId));
           if (!cands.length) return roster;
           const inP = cands.reduce((hi, p) => (p.elo > hi.elo ? p : hi), cands[0]);
-          const out = weakestOfCat(roster, catOf(inP)) ?? weakest(roster);
-          // Only if he is actually an upgrade. Their best is not always better than the
-          // player he would displace, and a "boost" that weakens the XI and then has to
-          // be undone a round later is the worst of both halves.
-          if (inP.elo <= out.elo) return roster;
+          const out = weakestOfCat(roster, catOf(inP), live) ?? weakest(roster, live);
+          // Only if he is actually an upgrade, measured against what the man he displaces
+          // is worth AS PLAYED. Their best is not always better than the player he would
+          // displace, and a "boost" that weakens the XI and then has to be undone a round
+          // later is the worst of both halves.
+          if (inP.elo <= live(out)) return roster;
           return swap(roster, out.id, { ...inP, positions: out.positions });
         },
       },
@@ -800,7 +828,9 @@ export function applyBoon(xi: Player[], boon: Boon, ctx: BoonContext): Player[] 
   let out = xi;
   for (const eff of boon.effects) {
     if (eff.kind === 'roster') {
-      out = eff.apply(out, ctx);
+      // No ledger to consult here: this measures a card against a plain XI, so every
+      // player reads at his own rating and `DATASET_ELO` is the truthful reader.
+      out = eff.apply(out, ctx, DATASET_ELO);
     } else if (eff.kind === 'rating') {
       // Measured at the round it is granted, so a `startsIn` plan (a debt that lands
       // later) contributes nothing here - which is correct: this measures what the card
@@ -819,12 +849,35 @@ export function applyBoon(xi: Player[], boon: Boon, ctx: BoonContext): Player[] 
 const BY_ID = new Map(BOONS.map((b) => [b.id, b]));
 export const boonById = (id: string): Boon | undefined => BY_ID.get(id);
 
-/** The offer pool for a career: the always-available starters plus everything the
- *  player has unlocked with Prestige. Pure; the caller passes its unlocked ids. */
-export function availableBoons(unlockedBoonIds: string[] = []): Boon[] {
+/** How many commons the offer pool must keep, whatever the player benches.
+ *
+ *  The library lets a career choose which of its OWN boosts a run may be offered, and
+ *  this is the one restriction on it. Commons are the cards that cost nothing to hold
+ *  (every starter is one), so the floor guarantees a pool that can still fill a stop
+ *  after Scout Network has taken its free cards off the top. Below it, a run reaches its
+ *  last stop with nothing left to offer - which is legal (the stop is simply skipped) but
+ *  is not a state a player should be able to fall into by accident. */
+export const MIN_POOL_COMMONS = 6;
+
+/** Every boost a career HOLDS: the starters, which cost nothing, plus everything bought
+ *  with Prestige. This is what the boost library lists and what the pool is chosen from -
+ *  holding a card and having it in the pool are two different things now. */
+export function ownedBoons(unlockedBoonIds: string[] = []): Boon[] {
   const unlocked = new Set(unlockedBoonIds);
   return BOONS.filter((b) => b.starter || unlocked.has(b.id));
 }
+
+/** The offer pool for a career: everything it holds, minus whatever has been benched.
+ *  An empty `benched` is the old behaviour exactly, which is what a career saved before
+ *  the library could be managed by hand loads as. */
+export function availableBoons(unlockedBoonIds: string[] = [], benched: string[] = []): Boon[] {
+  const out = new Set(benched);
+  return ownedBoons(unlockedBoonIds).filter((b) => !out.has(b.id));
+}
+
+/** Commons in the pool, which is the figure `MIN_POOL_COMMONS` is a floor on. */
+export const poolCommons = (unlockedBoonIds: string[] = [], benched: string[] = []): number =>
+  availableBoons(unlockedBoonIds, benched).filter((b) => b.rarity === 'common').length;
 
 /** Every locked (non-starter) boon, for the unlock library UI. */
 export function lockableBoons(): Boon[] {

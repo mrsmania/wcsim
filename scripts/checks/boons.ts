@@ -16,9 +16,18 @@ import {
   boonById,
   lockableBoons,
   offerBoons,
+  ownedBoons,
+  poolCommons,
+  MIN_POOL_COMMONS,
 } from '../../src/domain/boons';
 import { autoFillBudget } from '../../src/domain/budget';
-import { INITIAL_CAREER, unlockBoon } from '../../src/domain/career';
+import {
+  INITIAL_CAREER,
+  benchedOf,
+  boonUnlockState,
+  setBoonInPool,
+  unlockBoon,
+} from '../../src/domain/career';
 import { placedPlayers } from '../../src/domain/draft';
 import { FORMATIONS_DATA } from '../../src/domain/formations';
 import { groupAverages } from '../../src/domain/match';
@@ -312,7 +321,8 @@ export function boonsChecks(): void {
     // A card the run already holds is never offered again - it would either stack (xpMult
     // compounds, so Sponsorship twice was 4x XP) or be a wasted pick (Mortgage, Youth
     // Development and All or Nothing are booleans; Double Print is a Math.max). Excluding
-    // them cannot starve the offer either: 10 starters against at most four stops.
+    // them cannot starve the offer either at the pool this block plays on, which is the
+    // whole catalogue unlocked. The floors are checked two blocks down instead.
     check('boons: a card the run already holds is never offered again', () => heldOffered === 0);
     check('boons: excluding held cards never empties the offer', () => emptyOffer === 0);
     // Rarity weighting (common 6 / rare 3 / legendary 1) has to actually bite, per CARD:
@@ -365,42 +375,94 @@ export function boonsChecks(): void {
       "boons: Scout Network's free cards are not offered again at the first stop",
       () => scoutHeldOffered === 0,
     );
-    // The one risk the exclusion introduces: a THIN pool. The worst case a real career can
-    // reach is a brand-new one - starters only, no unlocks - with both perks that consume
-    // the pool at maximum: the widest offer (Extra Choice tier 2, five cards) and Scout
-    // Network tier 2, which holds two before the first stop. That is 10 starters against 2
-    // held at kickoff plus 4 stops, and the last offer draws 5 from exactly 5.
+    // The one risk the exclusion introduces: a THIN pool, and there are two floors to
+    // check rather than one now that the library can be managed by hand.
     //
-    // So the margin is now ZERO, and it used to be one card: deleting Ice Veins on
-    // 2026-08-23 took a STARTER out of the pool. It still fills every offer, but anything
-    // that consumes one more - a third Scout tier, a wider offer, a starter deleted, a
-    // Youth Development boost banked into a starters-only career - shrinks it. `offerBoons`
-    // clamps rather than throws, so that would silently narrow the choice instead of
-    // failing, which is exactly what this catches.
-    let thinnest = 99;
-    for (let i = 0; i < 120; i++) {
-      let run: RunState = prepareGroupStage(
-        runFor(i, { perkLevels: { 'extra-boon': 2, scout: 2 } }),
-      )!.next;
+    // A FRESH CAREER still fills every stop. Starters only, no unlocks, and both perks
+    // that consume the pool at maximum - the widest offer (Extra Choice tier 2, five
+    // cards) and Scout Network tier 2, which holds two before the first stop - leaves
+    // nine starters against 2 held at kickoff plus 4 stops. The last offer draws 4 of 5,
+    // which is a card short of the widest offer and was exactly 5 while Transfer was a
+    // starter. The figure is printed rather than pinned to 5 because it is the SHAPE that
+    // matters: every stop still has something on it, and nothing here strands a run.
+    //
+    // THE REAL FLOOR IS `MIN_POOL_COMMONS`, which a player can reach on purpose by
+    // benching everything else they hold. Six commons, minus Scout Network's two and a
+    // banked Youth Development grant, is three cards against four stops - so the last stop
+    // has nothing to deal. That is legal and the run must still finish: an empty offer
+    // skips the stop rather than parking the run on a screen with no card to press and no
+    // button to leave by. The vacuity guard is the point here - if no stop in the sample
+    // actually comes out empty, the skip is untested and the check is saying nothing.
+    // A stop is SKIPPED when a survived round hands back a run already in the `match`
+    // phase: that is the only way past a stop other than taking a card, so counting them
+    // here is counting empty offers. Reading `offer === null` at the match phase would
+    // count every knockout round instead, since taking a card clears the offer too - which
+    // is exactly the sort of vacuous guard this file exists to keep out.
+    //
+    // An offer that is present and EMPTY is the stranded state the skip exists to prevent,
+    // so the drain stops there rather than throwing on `offer[0]`, and the run is reported
+    // unfinished. That is what makes this check go red when the skip is removed.
+    const drainRun = (start: RunState): { thinnest: number; skipped: number; end: RunState } => {
+      const g = prepareGroupStage(start)!;
+      let run = g.next;
+      let thinnest = 99;
+      let skipped = run.phase === 'match' ? 1 : 0;
       let guard = 0;
       while (guard++ < 12) {
-        if (run.phase === 'boon' && run.offer) {
-          thinnest = Math.min(thinnest, run.offer.length);
-          run = chooseBoon(run, run.offer[0].id).next;
+        if (run.phase === 'boon') {
+          const offer = run.offer ?? [];
+          if (!offer.length) break;
+          thinnest = Math.min(thinnest, offer.length);
+          run = chooseBoon(run, offer[0].id).next;
           continue;
         }
         if (run.phase === 'match') {
           const k = prepareKnockoutRound(run);
           if (!k) break;
           run = k.next;
+          if (run.phase === 'match') skipped++;
           continue;
         }
         break;
       }
+      return { thinnest, skipped, end: run };
+    };
+
+    let thinnest = 99;
+    for (let i = 0; i < 120; i++) {
+      thinnest = Math.min(
+        thinnest,
+        drainRun(runFor(i, { perkLevels: { 'extra-boon': 2, scout: 2 } })).thinnest,
+      );
     }
     check(
-      `boons: the thinnest real pool still fills the widest offer (smallest seen ${thinnest} of 5)`,
-      () => thinnest === 5,
+      `boons: a fresh career still has a card at every stop (thinnest offer ${thinnest} of 5)`,
+      () => thinnest >= 1,
+    );
+
+    // Everything but six commons benched, both pool-consuming perks, and a Youth
+    // Development grant on top: the deepest a real career can drain its own pool.
+    const commons = availableBoons([]).filter((b) => b.rarity === 'common');
+    const floorBench = availableBoons([])
+      .filter((b) => !commons.slice(0, MIN_POOL_COMMONS).some((c) => c.id === b.id))
+      .map((b) => b.id);
+    let starved = 0;
+    let finished = 0;
+    for (let i = 0; i < 120; i++) {
+      const { skipped, end } = drainRun(
+        runFor(i, {
+          perkLevels: { 'extra-boon': 2, scout: 2 },
+          benchedBoons: floorBench,
+          kickoff: { bonusStartBoosts: 1 },
+        }),
+      );
+      starved += skipped;
+      if (end.phase === 'ended') finished++;
+    }
+    check(
+      `boons: a pool drained to the floor skips the empty stop rather than stranding the run ` +
+        `(${starved} skipped stops over ${finished} finished runs)`,
+      () => finished === 120 && starved > 0,
     );
   }
 
@@ -426,6 +488,49 @@ export function boonsChecks(): void {
     const bought = unlockBoon({ ...INITIAL_CAREER, prestige: cost }, sample.id);
     if (!bought.unlockedBoons.includes(sample.id) || bought.prestige !== 0) ok = false;
     if (unlockBoon(bought, sample.id).unlockedBoons.length !== 1) ok = false;
+
+    // The library's own rules. Holding a card and having it in the pool are two facts
+    // now, and every one of these was a way the pair could quietly come apart.
+    const rich = { ...INITIAL_CAREER, prestige: 0, unlockedBoons: lockableBoons().map((b) => b.id) };
+    // Benching takes a card out of what a run draws from, and nothing else: the career
+    // still HOLDS it, so it is never re-buyable.
+    const benchable = ownedBoons(rich.unlockedBoons).find((b) => b.rarity === 'legendary')!;
+    const out = setBoonInPool(rich, benchable.id, false);
+    if (availableBoons(out.unlockedBoons, benchedOf(out)).some((b) => b.id === benchable.id))
+      ok = false;
+    if (!boonUnlockState(out, benchable.id).owned) ok = false;
+    if (boonUnlockState(out, benchable.id).canBuy) ok = false;
+    // And putting it back is the exact inverse.
+    if (benchedOf(setBoonInPool(out, benchable.id, true)).length !== 0) ok = false;
+    // A card nobody holds cannot be benched, and a change that is not a change is a no-op
+    // by IDENTITY, which is what the hook's write skips on.
+    const unheld = lockableBoons()[0];
+    if (setBoonInPool(INITIAL_CAREER, unheld.id, false) !== INITIAL_CAREER) ok = false;
+    if (setBoonInPool(rich, benchable.id, true) !== rich) ok = false;
+    // The floor, and it is the only restriction: bench commons until six are left and the
+    // seventh is refused, while everything else stays benchable.
+    let narrowed = rich;
+    for (const b of ownedBoons(rich.unlockedBoons)) {
+      if (b.rarity === 'common') narrowed = setBoonInPool(narrowed, b.id, false);
+    }
+    if (poolCommons(narrowed.unlockedBoons, benchedOf(narrowed)) !== MIN_POOL_COMMONS) ok = false;
+    const stuck = availableBoons(narrowed.unlockedBoons, benchedOf(narrowed)).filter(
+      (b) => b.rarity === 'common',
+    );
+    for (const b of stuck) {
+      if (boonUnlockState(narrowed, b.id).canBench) ok = false;
+      if (setBoonInPool(narrowed, b.id, false) !== narrowed) ok = false;
+    }
+    // The guard is on COMMONS alone, so a rare still in the pool is still benchable - a
+    // floor that froze the whole library once it was reached would pass every line above.
+    const rare = availableBoons(narrowed.unlockedBoons, benchedOf(narrowed)).find(
+      (b) => b.rarity !== 'common',
+    )!;
+    if (!boonUnlockState(narrowed, rare.id).canBench) ok = false;
+    // A bought card joins the pool, never arrives benched.
+    const buying = { ...INITIAL_CAREER, prestige: 999 };
+    const boughtIn = unlockBoon(buying, unheld.id);
+    if (!boonUnlockState(boughtIn, unheld.id).inPool) ok = false;
 
     // Rarity weighting: over many single draws from the full pool, commons out-appear
     // legendaries (they are weighted 6:1).

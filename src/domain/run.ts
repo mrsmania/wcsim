@@ -37,7 +37,7 @@ import {
   type RatingPlan,
   type RunModifier,
 } from './boons';
-import { xiOf, type RunEffect } from './effects';
+import { liveEloOf, xiOf, type RunEffect } from './effects';
 import {
   buildBracket,
   currentGame,
@@ -118,7 +118,12 @@ function grantBoon(
   for (const eff of boon.effects) {
     if (eff.kind === 'roster') {
       const before = nextRoster;
-      nextRoster = eff.apply(before, ctx);
+      // Judged on the XI AS PLAYED, exactly as the rating branch below is. A roster card
+      // used to be handed the bare roster - dataset ratings, every boost so far invisible -
+      // so "your weakest player" and "at least 8 better" were answers about a team nobody
+      // was fielding. It still RETURNS dataset players, because the ledger folds its deltas
+      // over what comes back.
+      nextRoster = eff.apply(before, ctx, liveEloOf(before, nextEffects, atRound));
       const arrivals = nextRoster.filter((p) => !before.some((b) => b.id === p.id));
       incomingIds.push(...arrivals.map((p) => p.id));
       swappedIn = arrivals[0] ?? swappedIn;
@@ -403,6 +408,12 @@ export interface RunState {
   perkLevels: Record<string, number>;
   /** Career-unlocked boon ids, added to the offer pool alongside the starters. */
   unlockedBoons: string[];
+  /** Boost ids the career had taken OUT of its pool at kickoff. Snapshotted for the same
+   *  reason `unlockedBoons` is: what the library held when the run began is what the run
+   *  is offered, so managing the pool mid-run changes the next run rather than this one.
+   *  Optional, so a run in flight when the library became manageable finishes with the
+   *  whole of what it holds, which is exactly what it was promised. */
+  benchedBoons?: string[];
   /** Ascension tier this run is played at (0 = Base). Set at beginRun; drives the
    *  user handicap, the knockout draw strength, and the end-of-run reward multiplier. */
   ascension: number;
@@ -769,17 +780,30 @@ const offerSize = (perkLevels: Record<string, number>) =>
  * A card parked in `pendingChoice` is deliberately not excluded yet - it is not applied
  * until `resolveChoice` commits it, and the offer it came from is already gone.
  *
- * The pool fills with zero to spare, not comfortably: 10 starters against the widest
- * offer (Extra Choice tier 2) plus Scout Network tier 2 leaves the last stop of a run
- * drawing 5 from exactly 5. It was one card until Ice Veins was deleted. So do not delete
- * another starter without re-checking the figure the harness prints, and note that
- * `offerBoons` clamps its count to the pool size anyway, so a short pool shrinks the
- * offer rather than repeating or throwing.
+ * THE POOL CAN NOW RUN SHORT, AND THAT IS THE PLAYER'S OWN DOING. It used to be a floor
+ * nobody could lower: 10 starters against the widest offer (Extra Choice tier 2) plus
+ * Scout Network tier 2 left the last stop drawing 5 from exactly 5, with zero to spare.
+ * Two things have moved since. Transfer is no longer a starter, so a fresh career holds
+ * nine; and the boost library can be managed by hand, down to `MIN_POOL_COMMONS`. At that
+ * floor, with both pool-consuming perks and a banked Youth Development grant, a run really
+ * can reach its last stop with nothing left. `offerBoons` clamps to the pool size, so that
+ * is a SHORTER offer rather than a repeat or a throw, and an offer of none skips the stop
+ * (see `boonStop`) rather than stranding the run on a screen with nothing to press.
  */
 const offerPool = (run: RunState): Boon[] => {
   const held = new Set(run.activeBoons);
-  return availableBoons(run.unlockedBoons).filter((b) => !held.has(b.id));
+  return availableBoons(run.unlockedBoons, run.benchedBoons).filter((b) => !held.has(b.id));
 };
+
+/** Where a decided offer leads. A stop with cards is the `boon` phase; an empty offer is
+ *  no stop at all, and the run walks straight on to the next match. Only reachable by a
+ *  player who has narrowed their own library to the floor, which is a choice rather than
+ *  a fault - but the phase has to skip, because a boost screen with nothing on it has
+ *  nothing to press and the run would stop there for good. */
+const boonStop = (offer: Boon[]) =>
+  offer.length
+    ? ({ phase: 'boon', offer } as const)
+    : ({ phase: 'match', offer: null } as const);
 
 /** What the build page knows at kickoff and the run cannot work out later. Optional
  *  in full: a caller with nothing to hand (the checks harness) begins a run that simply
@@ -804,6 +828,9 @@ export interface BeginRunOptions {
   perkLevels?: Record<string, number>;
   /** Boosts unlocked with Prestige, which the offer pool draws from. */
   unlockedBoons?: string[];
+  /** Boosts the career holds and has taken out of its pool, which this run therefore is
+   *  never offered. */
+  benchedBoons?: string[];
   /** The Ascension tier this run is played at. */
   ascension?: number;
   /** What the build page knew and the run cannot recover later (shape, build, the career's
@@ -815,6 +842,7 @@ export function beginRun(xi: Player[], opts: BeginRunOptions = {}): RunState {
   const {
     perkLevels = {},
     unlockedBoons = [],
+    benchedBoons = [],
     ascension = 0,
     kickoff = {},
   } = opts;
@@ -851,7 +879,9 @@ export function beginRun(xi: Player[], opts: BeginRunOptions = {}): RunState {
   // a rating plan (Ice Veins is the live example) was a starter boost that did nothing.
   const startMods: RunModifier[] = [];
   if (scout > 0) {
-    const commons = availableBoons(unlockedBoons).filter((b) => b.rarity === 'common');
+    const commons = availableBoons(unlockedBoons, benchedBoons).filter(
+      (b) => b.rarity === 'common',
+    );
     for (const boon of offerBoons(commons, scout)) {
       const granted = grantBoon(roster, effects, boon, { opponentSquadId: null }, START_ROUND);
       roster = granted.roster;
@@ -871,6 +901,7 @@ export function beginRun(xi: Player[], opts: BeginRunOptions = {}): RunState {
     activeBoons,
     perkLevels,
     unlockedBoons,
+    benchedBoons,
     ascension,
     offer: null,
     // Physio Table perk: re-rolls of a boost offer available this run (0 without it).
@@ -1022,8 +1053,7 @@ export function prepareGroupStage(
   return {
     next: {
       ...run,
-      phase: 'boon',
-      offer: exit.offer,
+      ...boonStop(exit.offer),
       ...(exit.bracket ? { bracket: exit.bracket } : {}),
       group: undefined,
       groupExit: undefined,
@@ -1599,9 +1629,8 @@ export function prepareKnockoutRound(
             loan: undefined,
           }
         : {}),
-      phase: 'boon',
+      ...boonStop(offer),
       koRound: round + 1,
-      offer,
       nextOpponent: nextOpp,
       facedIds: [...run.facedIds, nextOpp.id],
       koPending: undefined,

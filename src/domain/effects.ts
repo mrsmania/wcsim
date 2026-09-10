@@ -83,3 +83,26 @@ export function xiOf(roster: Player[], effects: RunEffect[], atRound: number): P
   }
   return out;
 }
+
+/** A player's rating AS PLAYED: his dataset figure with every live effect folded in.
+ *  Anyone the ledger has never touched - a candidate from the dataset, an opponent -
+ *  reads at his own `elo`, which is exactly right, since nothing has been done to him. */
+export type LiveElo = (p: Player) => number;
+
+/**
+ * The reader a ROSTER boon has to judge by.
+ *
+ * A rating boon resolves its plan against `xiOf(...)`, so it has always seen the XI as it
+ * is actually played. A roster boon was handed the bare roster instead - who is in the XI
+ * at DATASET ratings - and every card that asks "who is my weakest player" or "is this an
+ * upgrade" was therefore answering about a team nobody was fielding. Reported from the
+ * game: a player boosted from 62 to 82 was still read as 62, so Transfer's "at least 8
+ * better" bar sat at 70 and swapped a man out for one twelve points worse than him.
+ *
+ * The card still RETURNS dataset players, because the ledger folds its deltas over the top
+ * and a bumped roster would double-count. Only the judgement moves.
+ */
+export function liveEloOf(roster: Player[], effects: RunEffect[], atRound: number): LiveElo {
+  const live = new Map(xiOf(roster, effects, atRound).map((p) => [p.id, p.elo]));
+  return (p) => live.get(p.id) ?? p.elo;
+}

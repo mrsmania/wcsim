@@ -1,6 +1,13 @@
 import type { Player } from '../data/types';
 import { runTotals, type RunOutcome, type RunState, type RunTally } from './run';
-import { boonById, BOON_UNLOCK_COST } from './boons';
+import {
+  availableBoons,
+  boonById,
+  poolCommons,
+  BOON_UNLOCK_COST,
+  MIN_POOL_COMMONS,
+  type Boon,
+} from './boons';
 import { ascensionAt, MAX_ASCENSION } from './ascension';
 import { completedIn, prestigeFor } from './challenges';
 import type { AlbumState } from './album';
@@ -51,6 +58,18 @@ export interface CareerStats {
   prestigeSpent: number;
   /** Distinct formations a cup has been won with (needs RunState.shape, slice B). */
   cupFormations: string[];
+  /** Boosts the career HOLDS and has taken out of the offer pool by hand. Ids, so a
+   *  card that leaves the catalogue takes its entry with it and benches nothing.
+   *
+   *  On `stats` for the same reason `bonusStartBoosts` is, and it is the whole reason the
+   *  library could be made manageable with no SQL: `save_career` persists `stats` as one
+   *  merged jsonb column and drops top-level keys it does not know, so a new field HERE
+   *  survives a signed-in save and a new field on `CareerState` would not.
+   *
+   *  Stored as what is OUT rather than what is in, so an empty list is the old behaviour
+   *  exactly - a career saved before this loads with its whole library in the pool, and a
+   *  boost bought later joins the pool by default rather than arriving benched. */
+  benchedBoons?: string[];
   /** Starter boosts owed to the NEXT run by a Youth Development taken in an earlier one.
    *  On `stats` rather than on `CareerState` for the reason the block below records: a
    *  merged jsonb column survives a signed-in save, a new top-level key does not.
@@ -700,19 +719,83 @@ export function perkPurchaseState(
   return { owned, next, affordable, levelOk, canBuy, reason };
 }
 
-/** The same for a boost unlock, which `unlockBoon` enforces. A starter or an
- *  already-unlocked card is `inPool`, and only price stands between the rest and the
- *  offer pool - there is no level gate on the boost library. */
+/** The ids a career has taken out of its offer pool, read defensively: it arrives from
+ *  a storage blob or a jsonb column through a merge that validates nothing, and a pool
+ *  that cannot be read is a run that cannot be played. */
+export const benchedOf = (career: CareerState): string[] =>
+  Array.isArray(career.stats.benchedBoons)
+    ? career.stats.benchedBoons.filter((id): id is string => typeof id === 'string')
+    : [];
+
+/** The offer pool a run started now would draw from. */
+export const boonPoolOf = (career: CareerState): Boon[] =>
+  availableBoons(career.unlockedBoons, benchedOf(career));
+
+/**
+ * The same for a boost, which `unlockBoon` and `setBoonInPool` enforce.
+ *
+ * Three separate facts, and the library had been collapsing the first two into one:
+ * `owned` is whether the career HOLDS the card (a starter, or bought with Prestige),
+ * `inPool` is whether a run may be offered it, and `canBench` is whether it may be taken
+ * out - which is everything held and in the pool except the sixth common, since the pool
+ * keeps `MIN_POOL_COMMONS` of those whatever else is benched. There is no level gate on
+ * the library, so only price stands between an unheld card and being held.
+ */
 export function boonUnlockState(
   career: CareerState,
   boonId: string,
-): { cost: number; inPool: boolean; starter: boolean; affordable: boolean; canBuy: boolean } {
+): {
+  cost: number;
+  owned: boolean;
+  starter: boolean;
+  inPool: boolean;
+  affordable: boolean;
+  canBuy: boolean;
+  canBench: boolean;
+} {
   const boon = boonById(boonId);
   const starter = !!boon?.starter;
-  const inPool = !boon || starter || career.unlockedBoons.includes(boonId);
+  const owned = !boon || starter || career.unlockedBoons.includes(boonId);
+  const benched = benchedOf(career);
+  const inPool = owned && !benched.includes(boonId);
   const cost = boon ? BOON_UNLOCK_COST[boon.rarity] : 0;
   const affordable = career.prestige >= cost;
-  return { cost, inPool, starter, affordable, canBuy: !inPool && affordable };
+  const spare =
+    !!boon &&
+    (boon.rarity !== 'common' ||
+      poolCommons(career.unlockedBoons, benched) > MIN_POOL_COMMONS);
+  return {
+    cost,
+    owned,
+    starter,
+    inPool,
+    affordable,
+    canBuy: !owned && affordable,
+    canBench: inPool && spare,
+  };
+}
+
+/**
+ * Put a boost the career holds into the offer pool, or take it out.
+ *
+ * Returns the career unchanged - by identity, which is what the hook's write skips on -
+ * for anything it refuses: a card nobody holds, a change that is not a change, and the
+ * one restriction the library has, which is that the pool keeps `MIN_POOL_COMMONS`
+ * commons. Nothing else is refused: benching every legendary you own, or holding a card
+ * you never want offered, is the point of the feature rather than a mistake to guard.
+ */
+export function setBoonInPool(career: CareerState, boonId: string, inPool: boolean): CareerState {
+  const st = boonUnlockState(career, boonId);
+  if (!boonById(boonId) || !st.owned || st.inPool === inPool) return career;
+  if (!inPool && !st.canBench) return career;
+  const benched = benchedOf(career);
+  return {
+    ...career,
+    stats: {
+      ...career.stats,
+      benchedBoons: inPool ? benched.filter((id) => id !== boonId) : [...benched, boonId],
+    },
+  };
 }
 
 export function buyPerkTier(career: CareerState, perkId: string): CareerState {
@@ -727,7 +810,12 @@ export function buyPerkTier(career: CareerState, perkId: string): CareerState {
 }
 
 /** Unlock a locked (non-starter) boon into the offer pool with Prestige. Refuses
- *  starters, already-owned boons, and unaffordable buys (returns the career unchanged). */
+ *  starters, already-owned boons, and unaffordable buys (returns the career unchanged).
+ *
+ *  A card bought here joins the POOL as well as the library, which is why the benched
+ *  list is cleared of it: buying a boost and then having to switch it on would be a
+ *  second step nobody asked for, and a card re-bought after being benched (which cannot
+ *  happen today, since nothing sells one back) would otherwise arrive switched off. */
 export function unlockBoon(career: CareerState, boonId: string): CareerState {
   const boon = boonById(boonId);
   if (!boon || boon.starter || career.unlockedBoons.includes(boonId)) return career;
@@ -737,6 +825,10 @@ export function unlockBoon(career: CareerState, boonId: string): CareerState {
     ...career,
     prestige: career.prestige - cost,
     unlockedBoons: [...career.unlockedBoons, boonId],
-    stats: { ...career.stats, prestigeSpent: career.stats.prestigeSpent + cost },
+    stats: {
+      ...career.stats,
+      prestigeSpent: career.stats.prestigeSpent + cost,
+      benchedBoons: benchedOf(career).filter((id) => id !== boonId),
+    },
   };
 }

@@ -2236,20 +2236,42 @@ deleted with the plain World Cup it used to gate). Design:
   data-driven off `PERKS`, so a new perk or tier appears by being added there; what needs
   wiring is only its effect. A trophy record (runs/cups/best) sits in
   the `CupRunScreen` hub. Separate storage from the game + album.
-- **THE CAREER PAGE IS THREE CARDS, one per thing you came for** (`cupRun/CareerHub`,
-  2026-09-02, asked for from the game: everything sat in one card, so telling the boosts
-  from the perks was hard). **Standing** (level, wallet, XP to the next level, runs / cups /
-  best, and the link to the trophy cabinet), **Perks**, and the **Boost library**. It was
-  one card with those as `border-t` separated bands, which put a lot of unlike things under
-  one shadow - and the two SHOPS in particular ran straight into each other, since a perk
-  tile and a boost tile are the same tile and the only thing telling them apart was the
-  caption above the grid. Each card has a head strip saying what it is, what you can spend
-  (the Prestige chip, deliberately repeated on both shops - it is the price context of the
-  card you are reading, not a duplicated headline) and what you already hold (the boost
-  library counts its own pool, which is the one number that says how much of it you have
-  bought). The head is the trophy cabinet's `BlockHead` shape rather than a new one, so the
-  two career surfaces read alike; the two are worth folding into `matchUi` once the
-  cabinet's own rework lands. Three things went with the split:
+- **THE CAREER PAGE IS ONE CARD AND TWO SECTIONS** (`cupRun/CareerHub`, 2026-09-10,
+  asked for: the level and the Prestige to spend were not visible enough). It is the
+  ALBUM'S shape - one card for the overview at the top, then plain sections under a
+  `border-b-2 border-ink` rule - which is what the owner pointed at, and what makes the two
+  figures a player comes for the loudest things on the page. **Standing** (a 44px level
+  numeral over the XP meter, and the wallet as a 38px figure in a chalk cell beside it),
+  then **Perks** and the **Boost library** as sections rather than cards. Three of a card,
+  each wrapping a grid of cards, meant the eye got past two frames to reach a perk.
+  - **The trophy cabinet link, and runs / cups / best, all went.** All four are the
+    cabinet's own subject, one tab away, and they were sharing a card with the two numbers
+    the rest of the page spends.
+  - **The wallet chip stays on BOTH shop headings**, which is not a repeat of the standing
+    card: it is the price context of the tiles directly under it, and the library is thirty
+    two tiles tall.
+  - **A price says what it is IN.** Every unbought tile carried a bare amber numeral, which
+    is legible to somebody who already knows this game has one currency; it is a "25
+    Prestige" pill now, on the perks and the boosts alike, and the blocked chip reads "Need
+    25 Prestige" rather than "Need 25".
+  - **The three explaining sentences went** ("to spend on perks and boosts", "Every tier
+    you buy applies to all your future runs", "Unlocked boosts join the three a run offers
+    between rounds"). Each taught the reader something the tiles under it demonstrate.
+  - **A boost tile wears the OFFER'S rarity**, the 3px strip in `RARITY_COLOR` and the word
+    itself in `RARITY_INK`, rather than the 2px dot in three colours of its own it used to
+    have. A player learning what gold means at a boost stop was learning it twice, because
+    the shop and the shelf were not the same object.
+  - **Dim is "not in your pool", and it is the whole state signal** - thirty-two tiles each
+    carrying a chip saying so is the field-of-colour the honours ledger exists to avoid.
+    **The dim is on the tile's TEXT and never on its button**: fading a live control is the
+    same mistake `StateChip` exists to avoid from the other side, and half-strength white
+    on green is exactly where the contrast pass found this app failing.
+
+  It was one card with everything as `border-t` separated bands before 2026-09-02, which
+  put a lot of unlike things under one shadow - and the two SHOPS in particular ran
+  straight into each other, since a perk tile and a boost tile are the same tile and the
+  only thing telling them apart was the caption above the grid. Three things went with
+  that split:
   - **The challenge overview** - the counter, the Prestige earned and the last three
     completed. `/records` is the honours ledger, so it was a second, smaller answer to a
     question that has a whole page (and the ledger's own counter says more).
@@ -2260,14 +2282,15 @@ deleted with the plain World Cup it used to gate). Design:
     a step of play cannot be the same address) and the run screen stopped mounting it, which
     left every one of those permanently at "open" - including the effect, which was
     collapsing something nothing rendered. The Cabinet link had been INSIDE that dead
-    branch, so it survived the split by moving to the standing card's head.
+    branch, so it survived the split by moving to the standing card's head - and then went
+    for good on 2026-09-10, see above.
   - **Two buttons that had never met AA**, `bg-pitch text-white` in both shops - the exact
     pre-rework primary the contrast pass measured at 4.00 / 3.25. They are `btn()` now, and
     the not-yet-buyable state stopped being a button at all: `btn()` dims a disabled button
     to half opacity, which put "Need 25" and "Reach level 3" - the most informative label on
     the tile - at the faintest contrast on the page. A full-strength chip states the reason
-    instead, the same chip "Maxed", "In pool" and "Starter" already use, since none of the
-    five is an action. **A disabled button is not a good way to say why you cannot buy
+    instead, the same chip "Maxed" and the pool's own floor already use, since none of
+    them is an action. **A disabled button is not a good way to say why you cannot buy
     something.**
   **Two perks reach outside the run**, both read in `App`:
   `transfer-budget` -> `BUDGET_BY_TIER` -> the
@@ -2300,11 +2323,43 @@ deleted with the plain World Cup it used to gate). Design:
   and the reward multiplier. Not to be confused with `domain/difficulty.ts`, the player's
   own casual/normal/hard **setting** (+3/0/-3 to the user's attack and defense, nothing
   else), which is orthogonal and applies in both modes.
-- **Prestige also unlocks boosts.** 10 of the 32 boons are `starter`s; the rest are bought
-  into the offer pool with Prestige (`BOON_UNLOCK_COST` common 15 / rare 30 / legendary 55,
-  `unlockBoon`, the pool shown in `CareerHub`), and `availableBoons(unlockedBoons)` is what
-  an offer draws from. So Prestige has two sinks, perk tiers and boost unlocks, and
-  challenge awards are its second faucet.
+- **Prestige also unlocks boosts.** 9 of the 32 boons are `starter`s and all nine are
+  commons; the rest are bought with Prestige (`BOON_UNLOCK_COST` common 15 / rare 30 /
+  legendary 55, `unlockBoon`, the library shown in `CareerHub`). So Prestige has two sinks,
+  perk tiers and boost unlocks, and challenge awards are its second faucet.
+  **Transfer was the tenth starter and the only non-common one, and it came out on
+  2026-09-10** (owner's call, so a fresh career is dealt commons alone). It is an ordinary
+  30-Prestige rare now, which does mean an existing career has to buy a card it used to
+  hold; that was accepted on the standing "there are no production users yet" rule.
+- **HOLDING A BOOST AND HAVING IT IN THE POOL ARE TWO DIFFERENT THINGS** (2026-09-10, asked
+  for: manual pool management). Every boost a career holds - starters included - can be
+  taken out of the offer pool and put back, from the library on `/career`. The single
+  restriction is **`MIN_POOL_COMMONS` (6)**: the pool keeps six commons whatever else is
+  benched, which with nine commons in the catalogue means three of them are removable.
+  Nothing else is refused, and that is deliberate - benching every legendary you own, or
+  keeping a card you never want offered, is the feature rather than a mistake to guard.
+  - **`ownedBoons` is the library and `availableBoons(unlocked, benched)` is the pool.**
+    Every offer, and Scout Network's free commons at kickoff, draw from the second.
+  - **The benched list is stored as what is OUT, on `CareerStats`**, which is the whole
+    reason this needed **no SQL at all**: `save_career` persists `stats` as one merged
+    jsonb column and drops top-level keys it does not know, so a new field there survives
+    a signed-in save and a new field on `CareerState` would not - the same trick the
+    challenge counters and the run archive used. Storing the benched half rather than the
+    kept half is what makes an empty list the old behaviour exactly: a career saved before
+    this loads with its whole library in the pool, and a boost bought later joins the pool
+    rather than arriving switched off.
+  - **A run snapshots it at kickoff** (`RunState.benchedBoons`), exactly as it snapshots
+    `unlockedBoons`, so managing the pool changes the NEXT run rather than the one in
+    flight. Optional, so a run already under way finishes with what it was promised.
+  - **AN OFFER CAN NOW COME OUT EMPTY, AND THE STOP IS SKIPPED** (`boonStop` in
+    `domain/run.ts`). At the floor, with both pool-consuming perks and a banked Youth
+    Development grant, a run really can reach its last stop with nothing left to deal - and
+    a boost screen with no card on it has nothing to press and no way off, which would
+    strand the run for good. So an empty offer means no stop: the run walks straight on to
+    the next match, and the group-results screen falls back to its Continue button, which
+    it already had for a group exit. `npm run checks` drives a pool drained to the floor
+    and asserts every such run still finishes, with the count of skipped stops as its
+    vacuity guard.
 - **An offer never contains a card the run already holds** (`offerPool` in `domain/run.ts`,
   decided 2026-08-23, roadmap 32). Before it, a card came round again on 3.7% of offer
   slots and landed one of three ways, two of them bad: it **stacked**, sometimes
@@ -2319,12 +2374,15 @@ deleted with the plain World Cup it used to gate). Design:
   already given is the same dead slot. A card parked in `pendingChoice` is not excluded
   until `resolveChoice` commits it. All three offer sites go through the helper, the
   Physio Table reroll included, and `npm run checks` asserts every one of them. **The pool
-  has no margin left**, which is worth knowing before deleting another starter: the thinnest
-  a real career reaches is **10** starters with the widest offer (Extra Choice tier 2) and
-  Scout Network tier 2, and the last stop of a run then draws 5 from exactly 5. It fills, with
-  zero to spare - it was one card until Ice Veins (a starter) was deleted on 2026-08-23.
-  `offerBoons` clamps rather than throws, so going short would quietly narrow the choice
-  instead of failing; `npm run checks` watches the figure.
+  used to have no margin at all and now has none by design.** With ten starters, the widest
+  offer (Extra Choice tier 2) plus Scout Network tier 2 left the last stop drawing 5 from
+  exactly 5 - zero spare, and one card until Ice Veins was deleted on 2026-08-23. Two things
+  have moved since: Transfer left the starter set, so a fresh career holds nine and the last
+  stop draws 4 of 5; and the library can be benched down to `MIN_POOL_COMMONS`, where a stop
+  can come out empty. `offerBoons` clamps rather than throws, so a short pool narrows the
+  offer, and an empty one skips the stop (see the bullet above). The check no longer pins a
+  figure - it asserts that every stop still has a card for a fresh career, and that a pool
+  drained to the floor still finishes its run.
 - Known gaps (prototype): the layer is deeper than it looks from `CareerState` alone, but
   Ascension's tuning is a first pass (`ASCENSIONS` is marked tunable, and the odds sim in
   `domain/odds.ts` is the tool for it), and level does nothing beyond gating.
@@ -2520,6 +2578,38 @@ ones, not about small cards.
   old rule was "any stronger player", which a 1-point swap satisfied and which read as
   broken.
 - **Catenaccio's "Win it 1-0." dropped** from its description.
+
+## A ROSTER BOOST READS THE XI AS PLAYED, NOT AS DRAFTED
+
+Reported from the game and fixed 2026-09-10. Transfer promises "one at least 8 rating
+better" and was measuring the 8 off the DATASET row, so **a player carried from 62 to 82 by
+earlier boosts was still read as 62**: the bar sat at 70 and the card sold him for somebody
+twelve points worse, while saying it was an upgrade.
+
+**It was every roster card, not just Transfer, and the cause is one line.** A `rating`
+boost has always resolved its plan against `xiOf(...)` - the XI as it is actually played -
+and a `roster` boost was handed the bare `roster`, which is who is in the XI at DATASET
+ratings. So every "your weakest player" and every "is this an upgrade" in the catalogue was
+an answer about a team nobody was fielding: **Transfer, Poach, Wildcard Legend, Legends'
+Reunion, Prime Years, Old Guard and Loan Deal** all named their man or set their bar that
+way. Prime Years was the worst of them, because it swaps a player for another card of the
+same person and that ORPHANS every effect aimed at the card he was - so a man lifted to 82
+whose best tournament is a 70 was "upgraded" to the 70 and lost the twelve.
+
+- **`liveEloOf` (domain/effects.ts) is the fix, and it is handed in.** A roster card's
+  `apply` takes a third argument reading a player's rating as played, and still RETURNS
+  dataset players, because the ledger folds its deltas over what comes back and bumped
+  players would double-count. Anyone the ledger has never touched - a candidate from the
+  dataset, an opponent's man - reads at his own `elo`, which is right.
+- **Nothing else was affected.** Rating boosts already read the played XI; the perks are
+  ledger effects, not roster cards; and the balance harness measures against a plain XI, so
+  the boon-power table is unchanged, card for card.
+- **`npm run checks` pins it**, on a sample built to separate the two readings twice over:
+  the bottom man of the dataset order is lifted clear of his team-mates so the readings name
+  a DIFFERENT PLAYER, and the whole XI is lifted so they set a DIFFERENT BAR. One of those
+  alone catches only half of it - without the second, the man who leaves has no effect on
+  him, his two ratings agree, and a bar computed off the dataset row passes happily. Both
+  halves were mutation-tested red.
 
 ## The effect ledger
 

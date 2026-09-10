@@ -1,84 +1,84 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { FEATURES } from '../../config';
+import { BOONS, MIN_POOL_COMMONS, type Boon } from '../../domain/boons';
 import {
     PERKS,
-    FINISH_LABEL,
     boonUnlockState,
     perkPurchaseState,
     type CareerState,
 } from '../../domain/career';
-import { BOONS, type Rarity } from '../../domain/boons';
-import { btn, CARD_FLAT, CARD_SM, Meter, MONO_CAP } from '../matchUi';
-
-/** Rarity dot colour in the boost library (reuses the palette tokens). */
-const RARITY_DOT: Record<Rarity, string> = {
-    common: 'bg-muted',
-    rare: 'bg-pitch',
-    legendary: 'bg-amber',
-};
+import { btn, CARD, CARD_FLAT, Meter, MONO_CAP, PAGE_EYEBROW } from '../matchUi';
+import { RARITY_COLOR, RARITY_INK } from './types';
 
 /** Owned-tier numeral shown next to a perk name (tiers are small). */
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 
-/** The amber Prestige chip. */
-function PrestigeChip({ prestige }: { prestige: number }) {
+/** A price, and what the price is IN.
+ *
+ *  It used to be a bare amber numeral in the corner of every unbought tile - "25" - which
+ *  is perfectly legible to somebody who already knows this game has one currency and
+ *  where it is spent. To anybody else it is a number with no unit, sitting beside a name
+ *  and a description that are full of other numbers. So the word is on it. */
+function PricePill({ cost }: { cost: number }) {
     return (
-        <span className="rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[11px] font-semibold text-amber-ink">
+        <span className="shrink-0 rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[10.5px] font-semibold text-amber-ink">
+            {cost} Prestige
+        </span>
+    );
+}
+
+/** The wallet, on each shop's own heading: not a repeat of the standing card above but the
+ *  price context of the tiles directly under it, which is the same reason a shelf edge
+ *  carries prices when the till also has a display. */
+function WalletChip({ prestige }: { prestige: number }) {
+    return (
+        <span className="rounded-full bg-amber/[0.14] px-2.5 py-1 font-mono text-[11.5px] font-semibold text-amber-ink">
             {prestige} Prestige
         </span>
     );
 }
 
-/** One card's head strip: the title, an optional count, the wallet chip, a sentence
- *  saying what the card is for, and an optional link on the right.
+/** A shop section's heading rule.
  *
- *  It is deliberately the trophy cabinet's own `BlockHead` shape, so the two career
- *  surfaces read alike. It is not shared yet only because that copy is mid-rework in
- *  another session's tree; folding the two into `matchUi` is the obvious next step. */
-function CardHead({
+ *  THE CARDS ARE GONE FROM EVERYTHING BUT THE STANDING. The page was three stacked cards,
+ *  and two of them were a shadowed panel wrapped round a grid of shadowed panels, so the
+ *  eye had to get past two frames to reach a perk. It is the album's and the honours
+ *  ledger's shape now - one card for the overview at the top, then plain sections under a
+ *  heavy rule - which is also what makes the level and the wallet the loudest things on
+ *  the page rather than the third and fourth loudest.
+ *
+ *  No explaining sentence. Each of the three carried one ("to spend on perks and boosts",
+ *  "Every tier you buy applies to all your future runs", "Unlocked boosts join the three a
+ *  run offers between rounds") and each was a caption teaching the reader something the
+ *  tiles under it demonstrate. */
+function SectionHead({
     title,
     count,
-    chip,
-    hint,
-    link,
+    prestige,
 }: {
     title: string;
     count?: string;
-    chip?: ReactNode;
-    hint?: string;
-    link?: { to: string; label: string };
+    prestige: number;
 }) {
     return (
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-b border-hair px-3.5 pb-2.5 pt-3">
-            <h3 className="font-display text-[14.5px] font-bold tracking-[-0.01em]">
-                {title}
-            </h3>
+        <div className="mb-4 flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b-2 border-ink pb-2.5">
+            <h3 className="font-display text-[19px] font-bold tracking-[-0.01em]">{title}</h3>
             {count && (
-                <span className="font-mono text-[11.5px] font-bold tabular-nums text-muted">
+                <span className="font-mono text-[12px] font-bold tabular-nums text-muted">
                     {count}
                 </span>
             )}
-            {chip}
-            {hint && <span className="text-[12px] leading-snug text-muted">{hint}</span>}
-            {link && (
-                <Link
-                    to={link.to}
-                    className="ml-auto font-display text-[10.5px] font-bold text-accent transition hover:underline"
-                >
-                    {link.label} &rarr;
-                </Link>
-            )}
+            <span className="flex-1" />
+            <WalletChip prestige={prestige} />
         </div>
     );
 }
 
-/** A shop tile's bottom line when there is nothing to press: either you already hold it
- *  ("Maxed", "In pool", "Starter") or something is still in the way ("Need 25", "Reach
- *  level 3"). A chip rather than a disabled button in BOTH cases, and the second one is
- *  why: `btn()` dims a disabled button to half opacity, which put the most informative
- *  label on the card - the reason you cannot buy it - at the faintest contrast on the
- *  page. Nothing here is an action, so nothing here is a button. */
+/** A tile's bottom line when there is nothing to press: either you already hold it, or
+ *  something is in the way ("Need 25 Prestige", "Reach level 3", the pool's own floor). A
+ *  chip rather than a disabled button in every case, and the blocked ones are why:
+ *  `btn()` dims a disabled button to half opacity, which put the most informative label on
+ *  the tile - the reason you cannot press it - at the faintest contrast on the page.
+ *  Nothing here is an action, so nothing here is a button. */
 function StateChip({ label, held }: { label: string; held?: boolean }) {
     return (
         <div
@@ -91,94 +91,120 @@ function StateChip({ label, held }: { label: string; held?: boolean }) {
     );
 }
 
-/** The career page: three cards rather than one.
+/** A boost's tile, wearing the same rarity as the cards a run actually offers.
  *
- *  It used to be a single card holding the standing, a challenge overview, the perk shop
- *  and the boost library as `border-t` separated bands - a lot of unlike things under one
- *  shadow, and the two SHOPS in particular ran straight into each other, so telling a
- *  perk tier from a boost unlock meant reading the caption above the grid rather than
- *  seeing it. One card per thing instead, each with a head saying what it is, what it
- *  costs and what you already hold.
+ *  It used to be a 2px dot in three of its own colours beside the name. The boost stop
+ *  marks rarity with a 3px strip across the top of the card and the word itself in the
+ *  `-ink` token of that tier, so a player learning what gold means at a stop was learning
+ *  it twice - the shop and the shelf were not the same object. Same strip, same word, same
+ *  two colour maps (`RARITY_COLOR` for the strip, which is a surface; `RARITY_INK` for the
+ *  word, which at 9px bold needs a token that meets AA in both themes).
  *
- *  The challenge overview went with the split: `/records` is the honours ledger, and a
- *  counter plus the last three earned was a second, smaller answer to the same question.
+ *  DIM IS "NOT IN YOUR POOL", and it is the whole state signal. Thirty-two tiles each
+ *  carrying a chip saying whether it is in the pool is the field-of-colour the honours
+ *  ledger exists to avoid; full strength for a card a run may be offered and quiet for
+ *  everything else reads across the grid at a glance, and the price pill is what tells an
+ *  unbought card apart from a benched one. */
+function BoostTile({
+    boon,
+    dim,
+    price,
+    children,
+}: {
+    boon: Boon;
+    dim: boolean;
+    price: number | null;
+    children: ReactNode;
+}) {
+    return (
+        <div
+            className={`${CARD_FLAT} p-3`}
+            style={{ borderTop: `3px solid ${RARITY_COLOR[boon.rarity]}` }}
+        >
+            {/* The dim is on the CARD'S TEXT, never on what follows it. Fading a live
+                control is the same mistake `StateChip` exists to avoid from the other
+                direction: the button is the one thing on a quiet tile you might want to
+                press, and half-strength white on green is exactly where the contrast pass
+                found the app failing. */}
+            <div className={dim ? 'opacity-60' : ''}>
+                <div className="flex items-baseline justify-between gap-2">
+                    <span className={`font-mono text-[9px] font-bold ${RARITY_INK[boon.rarity]}`}>
+                        {boon.rarity}
+                    </span>
+                    {price !== null && <PricePill cost={price} />}
+                </div>
+                <div className="mt-1 font-display text-[13.5px] font-bold leading-tight">
+                    {boon.name}
+                </div>
+                <p className="mt-1 text-[11.5px] leading-snug text-muted">{boon.description}</p>
+            </div>
+            {children}
+        </div>
+    );
+}
+
+/** The career page: the standing, the perk shop and the boost library.
  *
- *  It was also collapsible, and that machinery went too, because it was dead. The hub was
- *  split off the run screen by the navigation rework (a shop and a step of play cannot be
- *  the same address), so it only ever renders on the Career tab, always fully open: the
- *  toggle branch, the animated body and their four props had no caller left. */
+ *  WHAT IT NO LONGER SHOWS. The standing card carried runs / cups / best finish and a link
+ *  to the trophy cabinet; all four are the cabinet's own subject, one tab away, and they
+ *  were sharing a card with the two figures a player comes to this page to act on. It also
+ *  carried a challenge overview once, which went the same way for the same reason: the
+ *  honours ledger has its own tab.
+ *
+ *  It was one card holding everything as `border-t` separated bands before that, and the
+ *  two SHOPS in particular ran straight into each other. It was also collapsible, and that
+ *  machinery was dead: the navigation rework split the hub onto its own route, so the
+ *  toggle, the animated body and their four props had no caller left. */
 export default function CareerHub({
     career,
     prog,
     onPurchase,
     onUnlockBoost,
+    onSetInPool,
 }: {
     career: CareerState;
     prog: { into: number; needed: number };
     onPurchase: (perkId: string) => void;
     onUnlockBoost: (boonId: string) => void;
+    /** Move a boost the career holds in or out of the offer pool. */
+    onSetInPool: (boonId: string, inPool: boolean) => void;
 }) {
-    // Derived once: the head strip counts what is already in the offer pool, and each
-    // tile reads its own price and state off the same answer.
+    // Derived once: the heading counts what a run would be offered, and each tile reads
+    // its own price and state off the same answer.
     const boosts = BOONS.map((b) => ({ boon: b, ...boonUnlockState(career, b.id) }));
     const inPool = boosts.filter((b) => b.inPool).length;
     return (
         <>
-            {/* Standing: the level, the wallet, the XP to the next one, and what the
-                career has to show for itself so far. */}
-            <section className={`mb-3.5 mt-1 overflow-hidden ${CARD_SM}`}>
-                <CardHead
-                    title={`Level ${career.level}`}
-                    chip={<PrestigeChip prestige={career.prestige} />}
-                    hint="to spend on perks and boosts"
-                    link={
-                        FEATURES.trophyCabinet
-                            ? { to: '/records/cabinet', label: 'Trophy cabinet' }
-                            : undefined
-                    }
-                />
-                <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-[minmax(0,1fr)_auto]">
-                    <div className="bg-panel p-4">
-                        <div className={`mb-1.5 ${MONO_CAP}`}>Progress</div>
-                        <Meter pct={(prog.into / prog.needed) * 100} height={8} />
-                        <div className="mt-1 font-mono text-[10px] text-muted">
-                            {prog.into} / {prog.needed} XP to level {career.level + 1}
-                        </div>
+            {/* The standing: the two figures the rest of the page spends. It is the album's
+                counter card - a big numeral over a meter, and the currency in a chalk cell
+                beside it - because that is the shape this page was asked to borrow and
+                because the level and the wallet are what a player opens it to see. */}
+            <section
+                className={`grid grid-cols-1 overflow-hidden ${CARD} sm:grid-cols-[minmax(0,1fr)_210px]`}
+            >
+                <div className="p-[22px]">
+                    <div className={PAGE_EYEBROW}>Level</div>
+                    <div className="mb-3 mt-1.5 font-display font-bold leading-none tracking-[-0.01em]">
+                        <span className="text-[44px]">{career.level}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-px bg-line sm:w-[300px]">
-                        {(
-                            [
-                                ['Runs', String(career.stats.runs)],
-                                ['Cups', String(career.stats.cups)],
-                                [
-                                    'Best',
-                                    career.stats.bestFinish
-                                        ? FINISH_LABEL[career.stats.bestFinish]
-                                        : '-',
-                                ],
-                            ] as const
-                        ).map(([label, val]) => (
-                            <div key={label} className="bg-panel px-2 py-4 text-center">
-                                <div className="font-mono text-[9px] font-semibold text-muted">
-                                    {label}
-                                </div>
-                                <div className="mt-0.5 font-display text-[15px] font-bold leading-tight">
-                                    {val}
-                                </div>
-                            </div>
-                        ))}
+                    <Meter pct={(prog.into / prog.needed) * 100} height={9} />
+                    <div className="mt-3 font-mono text-[12px] text-muted">
+                        <b className="text-ink">{prog.needed - prog.into}</b> XP to level{' '}
+                        {career.level + 1}
+                    </div>
+                </div>
+                <div className="border-t border-line bg-chalk p-[22px] sm:border-l sm:border-t-0">
+                    <div className={MONO_CAP}>Prestige</div>
+                    <div className="mt-1 font-mono text-[38px] font-bold leading-none text-amber-ink">
+                        {career.prestige}
                     </div>
                 </div>
             </section>
 
             {/* Perk shop: six tracks, each tiered and level-gated. */}
-            <section className={`mb-3.5 overflow-hidden ${CARD_SM}`}>
-                <CardHead
-                    title="Perks"
-                    chip={<PrestigeChip prestige={career.prestige} />}
-                    hint="Every tier you buy applies to all your future runs."
-                />
-                <div className="grid gap-2.5 p-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            <section className="mt-8">
+                <SectionHead title="Perks" prestige={career.prestige} />
+                <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                     {PERKS.map((perk) => {
                         // The rule and the label's precedence both come from the
                         // domain now: the component picks only the words.
@@ -199,11 +225,7 @@ export default function CareerHub({
                                             </span>
                                         )}
                                     </span>
-                                    {next && (
-                                        <span className="font-mono text-[11px] font-semibold text-amber-ink">
-                                            {next.cost}
-                                        </span>
-                                    )}
+                                    {next && <PricePill cost={next.cost} />}
                                 </div>
                                 {/* What you have right now (or, if unowned, what the first tier unlocks). */}
                                 <p className="mt-1 text-[11.5px] leading-snug text-muted">
@@ -239,7 +261,7 @@ export default function CareerHub({
                                         label={
                                             reason === 'level'
                                                 ? `Reach level ${next.levelReq}`
-                                                : `Need ${next.cost}`
+                                                : `Need ${next.cost} Prestige`
                                         }
                                     />
                                 )}
@@ -249,48 +271,49 @@ export default function CareerHub({
                 </div>
             </section>
 
-            {/* Boost library: unlock more boosts into every future run's offer pool. */}
-            <section className={`mb-4 overflow-hidden ${CARD_SM}`}>
-                <CardHead
+            {/* Boost library: what the career holds, and which of it a run may be offered.
+                Buying is only half of it now - every boost you hold can be taken out of the
+                pool and put back, so a career that wants a narrow, reliable offer can have
+                one. The single restriction is `MIN_POOL_COMMONS`, which is what keeps a
+                run's last stop from having nothing to deal. */}
+            <section className="mt-8 mb-4">
+                <SectionHead
                     title="Boost library"
                     count={`${inPool} / ${boosts.length} in the pool`}
-                    chip={<PrestigeChip prestige={career.prestige} />}
-                    hint="Unlocked boosts join the three a run offers between rounds."
+                    prestige={career.prestige}
                 />
-                <div className="grid gap-2.5 p-3.5 sm:grid-cols-2 lg:grid-cols-3">
-                    {boosts.map(({ boon: b, cost, inPool: held, starter, affordable }) => (
-                        <div key={b.id} className={`${CARD_FLAT} p-3`}>
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="flex items-center gap-1.5">
-                                    <span
-                                        className={`inline-block h-2 w-2 shrink-0 rounded-full ${RARITY_DOT[b.rarity]}`}
-                                    />
-                                    <span className="font-display text-[13.5px] font-bold">
-                                        {b.name}
-                                    </span>
-                                </span>
-                                {!held && (
-                                    <span className="font-mono text-[11px] font-semibold text-amber-ink">
-                                        {cost}
-                                    </span>
-                                )}
-                            </div>
-                            <p className="mt-1 text-[11.5px] leading-snug text-muted">
-                                {b.description}
-                            </p>
-                            {held ? (
-                                <StateChip label={starter ? 'Starter' : 'In pool'} held />
-                            ) : affordable ? (
+                <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                    {boosts.map(({ boon: b, cost, owned, inPool: held, affordable, canBench }) => (
+                        <BoostTile key={b.id} boon={b} dim={!held} price={owned ? null : cost}>
+                            {!owned ? (
+                                affordable ? (
+                                    <button
+                                        onClick={() => onUnlockBoost(b.id)}
+                                        className={`mt-2 w-full ${btn('primary', 'compact')}`}
+                                    >
+                                        Unlock
+                                    </button>
+                                ) : (
+                                    <StateChip label={`Need ${cost} Prestige`} />
+                                )
+                            ) : !held ? (
                                 <button
-                                    onClick={() => onUnlockBoost(b.id)}
+                                    onClick={() => onSetInPool(b.id, true)}
                                     className={`mt-2 w-full ${btn('primary', 'compact')}`}
                                 >
-                                    Unlock
+                                    Add to pool
+                                </button>
+                            ) : canBench ? (
+                                <button
+                                    onClick={() => onSetInPool(b.id, false)}
+                                    className={`mt-2 w-full ${btn('secondary', 'compact')}`}
+                                >
+                                    Take out of pool
                                 </button>
                             ) : (
-                                <StateChip label={`Need ${cost}`} />
+                                <StateChip label={`${MIN_POOL_COMMONS} commons must stay`} />
                             )}
-                        </div>
+                        </BoostTile>
                     ))}
                 </div>
             </section>

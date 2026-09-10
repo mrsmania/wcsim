@@ -74,7 +74,7 @@ export default function App({
     // to be state inside the run screen, which is why two memos here re-read it from the
     // store on every navigation with an eslint-disable each, just to price the market,
     // offer the right Ascension tiers and colour the challenge ledger.
-    const { career, buyPerk, unlockBoost, startRun, rememberAscension, bankRun } =
+    const { career, buyPerk, unlockBoost, setBoostInPool, startRun, rememberAscension, bankRun } =
         useCareer(snapshot.career);
 
     // THE BUILD (hooks/useBuild). The reducer, its two effects, the three interaction
@@ -389,6 +389,7 @@ export default function App({
                             career={career}
                             buyPerk={buyPerk}
                             unlockBoost={unlockBoost}
+                            setBoostInPool={setBoostInPool}
                             startRun={startRun}
                             rememberAscension={rememberAscension}
                             bankRun={bankRun}

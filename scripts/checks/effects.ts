@@ -136,4 +136,98 @@ export function effectsChecks(): void {
     check(`effects: run.xi always equals xiOf(roster, effects, koRound) (${checked} states)`, () => ok);
   }
 
+  // --- A ROSTER CARD JUDGES BY THE XI AS PLAYED, NOT AS DRAFTED ---------------
+  //
+  // Reported from the game: a player carried from 62 to 82 by earlier boosts was still
+  // read at 62, so Transfer's "at least 8 better" bar sat at 70 and the card swapped him
+  // out for somebody twelve points worse while promising an upgrade. A rating card has
+  // always resolved its plan against `xiOf(...)`; a roster card was handed the bare roster,
+  // which is who is in the XI at DATASET ratings, so every "your weakest player" and every
+  // "is this an upgrade" in the catalogue was an answer about a team nobody was fielding.
+  //
+  // The sample is built to separate the two readings TWICE OVER, because there are two
+  // halves to get wrong and one sample shape only catches one of them. The bottom man of
+  // the dataset order is lifted clear of several team-mates, so the two readings name a
+  // DIFFERENT PLAYER; and the whole XI is lifted as well, so whoever does leave is worth
+  // more than the dataset says and the two readings set a DIFFERENT BAR. Without the
+  // second lift, the man who leaves has no effect on him, his two ratings agree, and a
+  // bar computed off the dataset figure passes happily.
+  //
+  // `dodged` is the discrimination guard - if no sample in the run actually separates the
+  // readings, this check is passing on nothing.
+  {
+    let ok = true;
+    let dodged = 0;
+    let tested = 0;
+    let bad = '';
+    const transfer = BOONS.find((b) => b.id === 'transfer')!;
+    withSeed(0x51ed270b, () => {
+      for (let i = 0; i < 120; i++) {
+        const roster = xiFor(i * 17);
+        const bottom = roster.reduce((lo, p) => (p.elo < lo.elo ? p : lo), roster[0]!);
+        const effects: RunEffect[] = [
+          // +12 to everyone, so the man who ends up leaving is worth more than his row says.
+          {
+            id: 'all',
+            source: 'test',
+            label: 'Test',
+            target: { ids: roster.map((pl) => pl.id) },
+            delta: 12,
+            appliedAt: 0,
+          },
+          // +20 more to the bottom of the dataset order, so he is emphatically not the
+          // weakest man on the pitch any more and the card must stop naming him.
+          {
+            id: 'lift',
+            source: 'test',
+            label: 'Test',
+            target: { ids: [bottom.id] },
+            delta: 20,
+            appliedAt: 0,
+          },
+        ];
+        const played = xiOf(roster, effects, 0);
+        const live = (pl: { id: string; elo: number }) =>
+          played.find((q) => q.id === pl.id)?.elo ?? pl.elo;
+        const trueWeakest = played.reduce((lo, p) => (p.elo < lo.elo ? p : lo), played[0]!);
+        // Only counts as a test when the lift really did move him off the bottom.
+        if (trueWeakest.id === bottom.id) continue;
+        tested++;
+        const eff = transfer.effects[0]!;
+        if (eff.kind !== 'roster') {
+          ok = false;
+          break;
+        }
+        const after = eff.apply(roster, { opponentSquadId: null }, live);
+        const out = roster.find((p) => !after.some((q) => q.id === p.id));
+        const inP = after.find((p) => !roster.some((q) => q.id === p.id));
+        if (!out || !inP) continue;
+        // The man who leaves is the weakest AS PLAYED, and the incoming player clears the
+        // bar measured from what that man was actually worth.
+        if (out.id !== trueWeakest.id) {
+          ok = false;
+          bad ||= `dropped ${out.name} (${live(out)}) over ${trueWeakest.name} (${trueWeakest.elo})`;
+        }
+        if (inP.elo < live(out) + 8) {
+          ok = false;
+          bad ||= `took ${inP.name} at ${inP.elo} for ${out.name} at ${live(out)}`;
+        }
+        // The old reading named the very player the boosts had lifted, and measured the
+        // bar off a DATASET row - so it asked less of the incoming man than the swap
+        // actually costs. A sample counts only when it separates BOTH.
+        if (out.id !== bottom.id && live(out) > out.elo) dodged++;
+      }
+    });
+    if (!tested || !dodged) {
+      ok = false;
+      bad ||= `sample separates nothing (${tested} tested, ${dodged} discriminating)`;
+    }
+    check(
+      `effects: a roster card reads the XI as played, not as drafted ` +
+        `(${dodged} of ${tested} samples the two readings disagree on)`,
+      () => ok,
+      () => bad,
+    );
+  }
+
 }

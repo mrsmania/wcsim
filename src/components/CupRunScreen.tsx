@@ -23,6 +23,7 @@ import {
   type KoMatch,
 } from '../domain/run';
 import {
+  benchedOf,
   careerTopScorerId,
   levelProgress,
   type CareerState,
@@ -72,6 +73,7 @@ export default function CupRunScreen({
   career,
   buyPerk,
   unlockBoost,
+  setBoostInPool,
   startRun,
   rememberAscension,
   bankRun,
@@ -126,6 +128,8 @@ export default function CupRunScreen({
   career: CareerState;
   buyPerk: (perkId: string) => void;
   unlockBoost: (boonId: string) => void;
+  /** Move a boost the career holds in or out of the offer pool. */
+  setBoostInPool: (boonId: string, inPool: boolean) => void;
   startRun: (tier: number) => number;
   /** Remember the Ascension tier WITHOUT spending a start-boost grant: what the pre-run
    *  card's picker calls. `startRun` deals the grant and is the kickoff's alone. */
@@ -263,6 +267,7 @@ export default function CupRunScreen({
     const begun = beginRun(draftedXi, {
       perkLevels: career.perkLevels,
       unlockedBoons: career.unlockedBoons,
+      benchedBoons: benchedOf(career),
       ascension: chosen,
       kickoff: {
         shape: draftedShape ?? undefined,
@@ -453,6 +458,7 @@ export default function CupRunScreen({
       prog={prog}
       onPurchase={buyPerk}
       onUnlockBoost={unlockBoost}
+      onSetInPool={setBoostInPool}
     />
   );
 

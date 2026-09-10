@@ -3,6 +3,7 @@ import {
     applyRunResult,
     buyPerkTier,
     rememberAscension,
+    setBoonInPool,
     startRunCareer,
     unlockBoon,
     type CareerState,
@@ -27,6 +28,10 @@ export interface Career {
     buyPerk: (perkId: string) => void;
     /** Unlock a boost into the offer pool. */
     unlockBoost: (boonId: string) => void;
+    /** Put a boost the career already holds into the offer pool, or take it out. Refused
+     *  where the domain refuses it - the pool keeps six commons - which is why the button
+     *  is hidden there too rather than only here. */
+    setBoostInPool: (boonId: string, inPool: boolean) => void;
     /** Remember the Ascension tier a run is starting at, and SPEND any start-boost grant
      *  an earlier run banked. Returns how many boosts this run is owed.
      *
@@ -62,6 +67,14 @@ export function useCareer(seed: CareerState): Career {
         [career, write],
     );
 
+    const setBoostInPool = useCallback(
+        (boonId: string, inPool: boolean) => {
+            const next = setBoonInPool(career, boonId, inPool);
+            if (next !== career) write(next);
+        },
+        [career, write],
+    );
+
     const startRun = useCallback(
         (tier: number) => {
             const { career: next, owed } = startRunCareer(career, tier);
@@ -88,5 +101,13 @@ export function useCareer(seed: CareerState): Career {
         [career, write],
     );
 
-    return { career, buyPerk, unlockBoost, startRun, rememberAscension: remember, bankRun };
+    return {
+        career,
+        buyPerk,
+        unlockBoost,
+        setBoostInPool,
+        startRun,
+        rememberAscension: remember,
+        bankRun,
+    };
 }

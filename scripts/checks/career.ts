@@ -4,6 +4,7 @@
 // one 3,900-line file whose blocks shared nothing but the assertion helper, and whose
 // summary ran last only because it happened to sit at the bottom.
 
+import { readFileSync } from 'node:fs';
 import { check, groupRec, koRec, playToEnd, runFor } from './harness';
 import { BUDGET_BY_TIER, INITIAL_REROLLS } from '../../src/config';
 import { SQUADS } from '../../src/data/squads';
@@ -362,6 +363,33 @@ export function careerChecks(): void {
       `career: the shop state agrees with buyPerkTier / unlockBoon ` +
         `(${levelBlocked.length} tracks level-gated for a flush level-1 career)`,
       () => ok,
+    );
+  }
+
+  // --- The managed pool actually reaches the run -------------------------------------
+  //
+  // NOTHING BEHAVIOURAL CAN SEE THIS. A career that has benched half its library and a
+  // kickoff that forgets to carry the benched list produce the same screens, the same
+  // types and the same passing suite; the only symptom is a run being offered cards the
+  // player switched off, which looks like the library not working rather than like a
+  // missing argument. So the wiring is read: the run screen hands `beginRun` the benched
+  // list, and it reads it through `benchedOf` rather than off `stats` by hand, which is
+  // the one place the field's shape is validated.
+  //
+  // The vacuity guard is the pair: the same scan has to find the unlocked list going the
+  // same way, or it is not reading the call at all.
+  {
+    const screen = readFileSync('src/components/CupRunScreen.tsx', 'utf8');
+    const begun = screen.slice(screen.indexOf('beginRun(draftedXi'));
+    const call = begun.slice(0, begun.indexOf('});') + 3);
+    check(
+      'career: a run is started with the pool the library actually holds',
+      () =>
+        call.includes('benchedBoons: benchedOf(career)') &&
+        // Vacuity: the scan really is looking at the kickoff call.
+        call.includes('unlockedBoons: career.unlockedBoons') &&
+        call.length > 100,
+      () => `beginRun call read as: ${call.slice(0, 400)}`,
     );
   }
 
