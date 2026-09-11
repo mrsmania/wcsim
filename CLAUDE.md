@@ -666,7 +666,7 @@ src/
                               reward multiplier, level gate - see below)
                difficulty.ts (the casual/normal/hard setting: +3/0/-3 to the user's
                               own attack + defense, nothing else)
-               challenges.ts (the 130-entry catalogue + completedIn; gated - see below)
+               challenges.ts (the 128-entry catalogue + completedIn; gated - see below)
                badges.ts     (the trophy cabinet's lifetime badges: pure predicates over
                               the career + album, derived not stored, unpaid - see below)
                cabinet.ts    (cabinetView: the whole trophy-cabinet readout, derived
@@ -2668,9 +2668,9 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   was split out to roadmap item 19 (daily challenges); it would read this same catalogue,
   which is why nothing here has to change for it. That decision is also why there is no
   build-page strip and no in-run chips: a chip row works over a handful of targeted
-  challenges, not over 130.
+  challenges, not over 128.
 - **`domain/challenges.ts`** (pure): the model (`family`, `tier`, `check`), the
-  130-entry `CHALLENGES` catalogue in 12 families, `viewOf` (derives the run once: the
+  128-entry `CHALLENGES` catalogue in 12 families, `viewOf` (derives the run once: the
   final XI at dataset ratings, the XI minus roster boosts, every match, goals for and
   against, clean sheets, boost rarities) and `completedIn(ctx)`, which returns the ids a
   finished run newly satisfies. `AWARD` is bronze 2, silver 5, gold 12, **sized by
@@ -2706,7 +2706,7 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   onboarding worry returns, gate only the **reveal**: keep judging from run 1 and pay the
   backlog as one visible catch-up at the unlock (~240 Prestige over ~34 challenges at
   level 3), which loses nothing and makes the unlock a moment.
-- **All 130 are judged.** The plumbing wave (2026-08-19, section 8 of the spec) cleared the
+- **All of them are judged.** The plumbing wave (2026-08-19, section 8 of the spec) cleared the
   27 that used to carry a `blocked` reason. No SQL migration was needed: `CareerStats` is a
   merged jsonb column and `RunState` a jsonb blob. `Challenge.blocked` stays in the DOMAIN
   model on purpose - it costs nothing and the next batch of entries will want it - but its
@@ -2769,14 +2769,58 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
      `wonCup` now, which says the same thing without reading a counter, because a
      completion is one-shot and permanent anyway. Thresholds (`>= 10`) are fine - they
      catch up on their own; exact equality on a monotonic counter is not. `npm run checks`
-     asserts a veteran career still takes First Blood. The one place the pattern survives
-     is **Straight Up** (`cupsAt(v, run.ascension) === 1`), where it is load-bearing rather
-     than incidental - it is the only way to detect "this cup unlocked a tier" - and the
-     cost is accepted: a tier already won before the catalogue existed cannot complete it.
-- **Straight Up has no "did this run unlock a tier?" flag**, and the unlocked ceiling cannot
-  answer it on its own: winning one tier below an already-unlocked ceiling leaves the same
-  number behind. It reads `cupsByAscension` instead - a cup is the **first at its own tier**
-  exactly when it unlocks the next, because reaching tier T at all means T-1 was already won.
+     asserts a veteran career still takes First Blood. **Straight Up used to be the one
+     place the pattern survived, and on 2026-09-11 it was DELETED rather than defended -
+     see the next entry.**
+
+## A CHALLENGE MUST STAY REACHABLE FOR EVER, AND TWO DID NOT
+
+Audited 2026-09-11, asked for from the game (*"Straight Up can no longer be reached if all
+ascensions have been unlocked but none of them without losing a final"*). That reading is
+right, and it generalises: a completion is one-shot and permanent, so an entry only ever
+has to fire ONCE - but **the career it is judged against only grows, and this game resets
+nothing.** There is no career reset, a perk tier cannot be sold, `stats.everLostFinal` is
+`||`-ed in and never cleared, and an account's album cannot be wiped (the reset button is
+guest-only). So two shapes kill an entry silently: the **negation** of a state that is only
+ever set, and **exact equality** on a counter that only climbs. Thresholds (`>= 10`) are
+always fine.
+
+The whole catalogue was swept for it. **Four entries were affected, two are gone and two
+are knowingly kept:**
+
+- **`straight-up` DELETED** ("Unlock a new Ascension tier without ever losing a final").
+  It broke the rule twice over: `!everLostFinal` meant one lost final anywhere in a career
+  killed it for good, and `cupsAt(tier) === 1` meant that once every tier held a cup there
+  was no first cup left to be. The defence this file used to carry - that the exact count
+  is the only way to detect "this cup unlocked a tier" - argues for a flag on the run, not
+  for an entry nobody can complete. The id is not reused, so anyone holding it keeps it.
+- **`glass-cannon-gambit` DELETED** ("Win having taken Glass Cannon"). Not conditional at
+  all: the card was removed from `domain/boons.ts` on **2026-08-23** and the predicate was
+  never updated, so `activeBoons` could not contain it and the entry had been unreachable
+  for **everybody** since - a dangling reference that renders a perfectly good ledger row
+  which is simply never earned.
+- **`perkless` KEPT** ("Win a run owning no perks at all"). Dead from the first perk tier
+  a career ever buys, and it is a gold entry, so a new player who spends before their first
+  cup loses it permanently. Kept because it is visible in the ledger from run 1 and can
+  therefore be planned for, which is exactly what Straight Up could not be. **If the rule
+  is ever "nothing may lock", this is the next one out.**
+- **`new-blood` KEPT** ("Add three stickers you did not own from one run"). Dead once fewer
+  than three collectibles are left uncollected - which is the run that completes Full Album
+  anyway, and by then it has been earned many times over.
+
+**The catalogue is 128 entries**, down from 130.
+
+**Two checks hold it, and both were mutation-tested red.** The first is behavioural and it
+found all three lock-outs independently of the reading above: judge the SAME finished run
+through `applyRunResult` twice, once as a fresh career with an empty album and once as one
+that has done everything, and the ids only the fresh career completes ARE the lock-outs -
+which must be nothing but the two named above. It has to go through `applyRunResult` rather
+than `completedIn`, because the catalogue is judged after the run's own counters land. Its
+discrimination guard is a probe with Straight Up's shape, so the comparison is proved able
+to see one. The second reads each predicate's **source** (`c.check.toString()`) for the
+boost and perk ids it names and fails on one the catalogue no longer holds - nothing
+behavioural can reach a string literal inside a closure - with a vacuity guard on the scan
+finding anything at all, which is the same failure it exists to catch one level up.
 - **Surfaces: TWO, and the career hub is no longer one of them.** The **`/records`** route
   (`ChallengesScreen`, lazy-loaded: the album's completion counter, filters for
   available / completed, and every entry grouped by family, folding), and the

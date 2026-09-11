@@ -359,6 +359,61 @@
 
 <details class="item">
   <summary>
+    <span class="num">66</span>
+    <span class="title">Two honours can still be locked out for good: Perkless and New Blood
+      <span class="sub">One decision, no build behind it. The 2026-09-11 reachability sweep
+      deleted <b>Straight Up</b> and <b>Glass Cannon Gambit</b>; these two break the same
+      rule and were knowingly kept. They are named in an allow-list the checks enforce, so
+      nothing new can join them by accident - but the two themselves are a call to
+      make.</span>
+    </span>
+    <span class="tag">Challenges</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>The rule.</strong> A completion is one-shot and permanent, so an entry only
+    ever has to fire ONCE - but the career it is judged against only grows, and this game
+    resets nothing: there is no career reset, a perk tier cannot be sold,
+    <code>everLostFinal</code> is never cleared, and an account's album cannot be wiped. So
+    an entry keyed to the <b>negation</b> of a state that is only ever set, or to
+    <b>exact equality</b> on a counter that only climbs, dies silently. Reported from the
+    game on 2026-09-11 about Straight Up, and it generalises.</p>
+
+    <p><strong>What was done.</strong> The whole catalogue was swept. Four entries were
+    affected; two were deleted (Straight Up, which broke the rule twice over, and Glass
+    Cannon Gambit, which named a boost deleted on 2026-08-23 and so was unreachable for
+    <i>everybody</i>), taking the catalogue to <b>128</b>. Two checks now hold it, both
+    mutation-tested red: a behavioural one that judges the same run as a fresh career and
+    as a veteran one and fails on any id only the fresh career can complete, and a source
+    scan for boost and perk ids the catalogue no longer holds.</p>
+
+    <p><strong>What is left to decide, and it is one question each.</strong></p>
+    <ul>
+      <li><b>Perkless</b> ("Win a run owning no perks at all", gold, 12 Prestige). Dead from
+      the first perk tier a career ever buys. A first cup takes about four runs, which pay
+      roughly 9 Prestige each, so a new player who spends before winning loses a gold honour
+      permanently and is never told. It was kept because - unlike Straight Up, where losing
+      a final is not something you choose - it is visible in the ledger from run 1 and can
+      be planned for, which makes it a legitimate ironman goal. <b>If the rule becomes
+      "nothing may lock", this is the next one out.</b> The alternative to deleting it is
+      to soften the wording to something a career can always satisfy, which changes what the
+      entry means.</li>
+      <li><b>New Blood</b> ("Add three stickers you did not own to the album from one run",
+      silver). Dead once fewer than three collectibles are left uncollected - which is
+      essentially the run that completes Full Album, by which point it has been earned many
+      times over. Recommended: <b>leave it.</b> If it is ever worth closing, the fix is to
+      count stickers added across the career rather than remaining.</li>
+    </ul>
+
+    <p><strong>Where the record lives:</strong> CLAUDE.md, "A challenge must stay reachable
+    for ever"; the deleted entries are marked in place in
+    <code>src/domain/challenges.ts</code> and struck through in
+    <a class="dl" href="challenges-spec.html" target="_blank" rel="noopener"><code>challenges-spec.html</code></a>.</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
     <span class="num">65</span>
     <span class="title">The boost cards do not look pressable
       <span class="sub"><b>SHIPPED 2026-09-10 as part of item 05</b>, which is where the

@@ -336,7 +336,7 @@ bronze 10 Prestige, silver 30, gold 75. "Win" means lift the cup unless stated.<
   <tr><td class="n">17</td><td class="name">Ladder Climb</td><td class="cond">Win at least once at every Ascension tier.</td><td><span class="tag t-g">gold</span></td></tr>
   <tr><td class="n">18</td><td class="name">Hard Habit</td><td class="cond">Finish 10 runs at Ascension II or higher.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">19</td><td class="name">No Safety Net</td><td class="cond">Win at Ascension III+ without taking a legendary boost.</td><td><span class="tag t-g">gold</span></td></tr>
-  <tr><td class="n">20</td><td class="name">Straight Up</td><td class="cond">Unlock a new Ascension tier without ever losing a final.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr style="opacity:.55"><td class="n">20</td><td class="name"><s>Straight Up</s></td><td class="cond"><s>Unlock a new Ascension tier without ever losing a final.</s> <b>REMOVED 2026-09-11</b>: unreachable for good once a final had been lost, or once every tier held a cup. See note Four below.</td><td><span class="tag t-s">silver</span></td></tr>
 </table>
 
 <h3>C. Squad identity</h3>
@@ -438,7 +438,7 @@ players a roster boost handed you, so a Wildcard cannot break a themed run by ac
   <tr><td class="n">87</td><td class="name">Full Kit</td><td class="cond">Win with every perk owned at its maximum tier.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">88</td><td class="name">Poacher</td><td class="cond">Poach the next opponent, then beat them.</td><td><span class="tag t-b">bronze</span></td></tr>
   <tr><td class="n">89</td><td class="name">Wildcard Winner</td><td class="cond">Win with a Wildcard Legend in the XI.</td><td><span class="tag t-b">bronze</span></td></tr>
-  <tr><td class="n">90</td><td class="name">Glass Cannon Gambit</td><td class="cond">Win having taken Glass Cannon.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr style="opacity:.55"><td class="n">90</td><td class="name"><s>Glass Cannon Gambit</s></td><td class="cond"><s>Win having taken Glass Cannon.</s> <b>REMOVED 2026-09-11</b>: the card was deleted from the pool on 2026-08-23, so nobody could ever complete it. See note Four below.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">91</td><td class="name">Catenaccio Cup</td><td class="cond">Win having taken Catenaccio, conceding 3 or fewer.</td><td><span class="tag t-g">gold</span></td></tr>
   <tr><td class="n">92</td><td class="name">Boost Collector</td><td class="cond">Take 5+ boosts in a single run.</td><td><span class="tag t-b">bronze</span></td></tr>
 </table>
@@ -587,15 +587,25 @@ states (available, completed, not tracked yet).</p>
 <h2>8. The plumbing wave: all 130 judged at launch</h2>
 
 <div class="callout"><span class="ct">Shipped 2026-08-19</span>
-All four slices are in, and the blocked count is zero: 130 of 130 are judged. What follows is
-the plan as written, kept because it is the record of why each field exists. Three notes on
+All four slices are in, and the blocked count is zero: every entry is judged. What follows is
+the plan as written, kept because it is the record of why each field exists. Four notes on
 where the build differs from it. <b>One.</b> <i>Nearly Man</i> needs the run <i>before</i>
 this one, and the counters are updated before the catalogue is judged, so
 <code>lastOutcome</code> is already this run's by then; the career carries
 <code>prevOutcome</code> alongside it. <b>Two.</b> <i>Straight Up</i> needs "this run
 unlocked a tier", which the ceiling cannot answer on its own, so it reads
 <code>cupsByAscension</code>: a cup is the first at its own tier exactly when it unlocks the
-next, since reaching tier T at all means T-1 was already won. <b>Three.</b> The slice-C count
+next, since reaching tier T at all means T-1 was already won. <b>Four.</b> <b>The catalogue is 128, not 130.</b>
+<i>Straight Up</i> and <i>Glass Cannon Gambit</i> were deleted on 2026-09-11 and are struck
+through in the tables above. A completion is one-shot and permanent, so an entry only ever
+has to fire once - but the career it is judged against only grows and nothing in this game
+resets one, so an entry keyed to the <b>negation</b> of a state that is only ever set, or to
+<b>exact equality</b> on a counter that only climbs, dies silently. Straight Up did both
+(<code>!everLostFinal</code>, and <code>cupsByAscension[tier] === 1</code>); Glass Cannon
+Gambit named a boost that no longer exists, so it was unreachable for everybody rather than
+conditionally. <i>Perkless</i> and <i>New Blood</i> break the same rule and are knowingly
+kept - see CLAUDE.md, "A challenge must stay reachable for ever". Two checks in
+<code>scripts/checks/challenges.ts</code> hold it now. <b>Three.</b> The slice-C count
 is nine, not eight: <i>Bargain Bin</i> ("buy five already-owned players") sits in the album
 family but waits on the same build record, so <code>RunBuild</code> carries a
 <code>discounted</code> count.</div>
@@ -625,7 +635,7 @@ completes the challenge it just satisfied.</p>
   <tr><td class="name">finalStreak</td><td class="cond">Consecutive runs reaching the final or better.</td><td class="cond">On a Roll (see the catalogue fix below)</td></tr>
   <tr><td class="name">semiStreak</td><td class="cond">Consecutive runs reaching the semi-final or better.</td><td class="cond">Consistency (5+)</td></tr>
   <tr><td class="name">lastOutcome</td><td class="cond">The previous run's outcome, read before it is overwritten.</td><td class="cond">Nearly Man (previous was a lost final, this one is a cup)</td></tr>
-  <tr><td class="name">everLostFinal</td><td class="cond">A final has been lost at least once.</td><td class="cond">Straight Up (a tier unlocked with this still false)</td></tr>
+  <tr><td class="name">everLostFinal</td><td class="cond">A final has been lost at least once.</td><td class="cond">Straight Up (deleted 2026-09-11; sticky, so it locked the entry shut). Now read only by <code>finalsLostOf</code> for the cabinet.</td></tr>
   <tr><td class="name">cupsByAscension</td><td class="cond">Cups won per Ascension tier (an array indexed by tier).</td><td class="cond">Ladder Climb (every tier at least once)</td></tr>
   <tr><td class="name">runsAtHighAscension</td><td class="cond">Finished runs at Ascension II or higher.</td><td class="cond">Hard Habit (10+)</td></tr>
   <tr><td class="name">prestigeSpent</td><td class="cond">Lifetime Prestige spent, incremented in <code>buyPerkTier</code> and <code>unlockBoon</code>.</td><td class="cond">Spendthrift (500+)</td></tr>

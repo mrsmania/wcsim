@@ -4,14 +4,15 @@
 // one 3,900-line file whose blocks shared nothing but the assertion helper, and whose
 // summary ran last only because it happened to sit at the bottom.
 
-import { check, koRec, playToEnd, runFor } from './harness';
+import { check, koRec, playToEnd, runFor, withSeed } from './harness';
 import { INITIAL_SWAPS } from '../../src/config';
 import { ALL_PLAYERS, SQUADS, basePlayer } from '../../src/data/squads';
 import { type Player, type Position, primaryPosition } from '../../src/data/types';
-import { emptyAlbum } from '../../src/domain/album';
-import { ASCENSIONS } from '../../src/domain/ascension';
-import { BOON_UNLOCK_COST, lockableBoons } from '../../src/domain/boons';
+import { type AlbumState, collectiblePlayers, emptyAlbum } from '../../src/domain/album';
+import { ASCENSIONS, MAX_ASCENSION } from '../../src/domain/ascension';
+import { BOON_UNLOCK_COST, BOONS, lockableBoons } from '../../src/domain/boons';
 import {
+  type CareerState,
   HIGH_ASCENSION,
   INITIAL_CAREER,
   PERKS,
@@ -29,6 +30,7 @@ import {
   challengeProgress,
   completedIn,
   prestigeFor,
+  type RunView,
   viewOf,
 } from '../../src/domain/challenges';
 import { MAX_BONUS } from '../../src/domain/chemistry';
@@ -209,6 +211,144 @@ export function challengesChecks(): void {
     );
   }
 
+  // --- Challenges: nothing goes permanently out of reach -----------------------
+  // The general form of the First Blood trap above, and the reason `straight-up` and
+  // `glass-cannon-gambit` were deleted on 2026-09-11. A completion is one-shot and
+  // permanent, so an entry only ever has to fire ONCE - but the career it is judged
+  // against only grows, and this game resets nothing: there is no career reset, a perk
+  // tier cannot be sold, `stats.everLostFinal` is `||`-ed in, and an account's album
+  // cannot be cleared. So an entry keyed to the NEGATION of a state that is only ever
+  // set, or to EXACT EQUALITY on a counter that only climbs, dies silently the first
+  // time a career moves past it.
+  //
+  // The test judges the SAME finished run twice - once as a fresh career with an empty
+  // album, once as one that has done everything - and takes the ids only the fresh
+  // career can complete. That difference IS the set of lock-outs, and it must hold
+  // nothing but the two this catalogue knowingly keeps.
+  {
+    // Knowingly kept, and the reason is in the module header: Perkless is visible in the
+    // ledger from run 1 so it can be planned for, and New Blood only dies at a 100%
+    // album, which is the run that completes Full Album anyway. Anything else appearing
+    // here is a new entry nobody can finish, and the fix is the entry, not this list.
+    const LOCKED_BY_DESIGN = new Set(['perkless', 'new-blood']);
+
+    const maxedPerks = Object.fromEntries(PERKS.map((pk) => [pk.id, pk.tiers.length]));
+    const everything: CareerState = {
+      ...INITIAL_CAREER,
+      xp: 200_000,
+      level: 60,
+      prestige: 9_000,
+      ascension: MAX_ASCENSION,
+      perkLevels: maxedPerks,
+      unlockedBoons: BOONS.map((b) => b.id),
+      completedChallenges: [],
+      stats: {
+        ...INITIAL_CAREER.stats,
+        runs: 500,
+        cups: 200,
+        cupStreak: 9,
+        finalStreak: 9,
+        semiStreak: 9,
+        everLostFinal: true,
+        finalsLost: 30,
+        prestigeSpent: 50_000,
+        runsAtHighAscension: 200,
+        // A cup at every tier, so `cupsAt(tier) === 1` can never be true again.
+        cupsByAscension: ASCENSIONS.map(() => 20),
+        cupFormations: ['4-3-3', '4-4-2', '3-5-2', '5-3-2'],
+      },
+    };
+    const fullAlbum = {
+      ...emptyAlbum(),
+      collected: collectiblePlayers(SQUADS.flatMap((sq) => sq.players)).map((pl) => pl.id),
+    };
+
+    // Cup-winning runs, because most of the catalogue is gated on lifting it.
+    const lockRuns = withSeed(0x5eed, () =>
+      Array.from({ length: 8 }, (_, i) => ({
+        ...playToEnd(playGroupStage(runFor(i * 5))),
+        outcome: 'champion' as const,
+      })),
+    );
+
+    // Through `applyRunResult`, not `completedIn` directly: the catalogue is judged AFTER
+    // this run's counters land, so a fresh career's `cupsByAscension` has to have been
+    // bumped by the cup it just won or half the ascension family reads zero.
+    const lockedOut = new Set<string>();
+    let freshTotal = 0;
+    for (const r of lockRuns) {
+      const fresh = applyRunResult(INITIAL_CAREER, r, {
+        base: basePlayer,
+        album: emptyAlbum(),
+        trades: 0,
+      }).challengesCompleted;
+      const later = new Set(
+        applyRunResult(
+          everything,
+          // The run carries the perk tiers it was played with, so a veteran's run has to
+          // carry them too or "owning no perks" would read as fresh on both sides.
+          { ...r, perkLevels: maxedPerks },
+          { base: basePlayer, album: fullAlbum, trades: 500 },
+        ).challengesCompleted,
+      );
+      freshTotal += fresh.length;
+      for (const id of fresh) if (!later.has(id)) lockedOut.add(id);
+    }
+
+    // Discrimination guard: the comparison has to be able to SEE a locked entry. The
+    // catalogue no longer holds one, so the probe is `straight-up`'s own shape - the
+    // negation of a state that is only ever set - read through the same two views.
+    const lockView = (r: RunState, career: CareerState, album: AlbumState) =>
+      viewOf({ run: r, base: basePlayer, career, album, trades: 0 });
+    const probe = (v: RunView) => v.wonCup && !v.career.stats.everLostFinal;
+    const sees =
+      probe(lockView(lockRuns[0]!, INITIAL_CAREER, emptyAlbum())) &&
+      !probe(lockView(lockRuns[0]!, everything, fullAlbum));
+
+    check(
+      'challenges: no entry a fresh career can complete is out of reach for a veteran one',
+      () => freshTotal > 0 && sees && [...lockedOut].every((id) => LOCKED_BY_DESIGN.has(id)),
+      () => `locked out: ${[...lockedOut].join(', ') || 'none'} (sample ${freshTotal}, sees ${sees})`,
+    );
+  }
+
+  // --- Challenges: no entry names a boost or a perk that no longer exists -------
+  // `glass-cannon-gambit` asked for a card deleted from `domain/boons.ts` on 2026-08-23,
+  // so it was unreachable for EVERYBODY and nothing said so: a predicate that can only
+  // ever answer false renders a perfectly good ledger row that is simply never earned.
+  // Reading the predicate's own source is what catches it - the ids are string literals
+  // inside a closure, so no fixture can reach them.
+  {
+    const boonIds = new Set(BOONS.map((b) => b.id));
+    const perkIds = new Set(PERKS.map((pk) => pk.id));
+    const namedBoons: string[] = [];
+    const namedPerks: string[] = [];
+    for (const c of CHALLENGES) {
+      const src = c.check.toString();
+      for (const m of src.matchAll(/activeBoons\.includes\(\s*["']([a-z0-9-]+)["']/g)) {
+        namedBoons.push(m[1]!);
+      }
+      for (const m of src.matchAll(/tieAfterBoost\(\s*\w+\s*,\s*["']([a-z0-9-]+)["']/g)) {
+        namedBoons.push(m[1]!);
+      }
+      for (const m of src.matchAll(/perkLevels\[\s*["']([a-z0-9-]+)["']\s*\]/g)) {
+        namedPerks.push(m[1]!);
+      }
+    }
+    const missing = [
+      ...namedBoons.filter((id) => !boonIds.has(id)),
+      ...namedPerks.filter((id) => !perkIds.has(id)),
+    ];
+    check(
+      'challenges: every boost and perk an entry names is still in its catalogue',
+      // Vacuity guard: a scan that matched nothing would pass for ever, which is the
+      // exact failure mode this check exists to catch one level up.
+      () => namedBoons.length >= 3 && namedPerks.length >= 1 && missing.length === 0,
+      () =>
+        `named ${namedBoons.length} boosts / ${namedPerks.length} perks, missing: ${missing.join(', ') || 'none'}`,
+    );
+  }
+
   // --- Challenges: the career counters, over hand-built run sequences ----------
   // The nine streak/lifetime entries cannot be reached by simulating one run, so the
   // sequences are built by hand: what matters is that a counter moves with the run that
@@ -251,11 +391,6 @@ export function challengesChecks(): void {
     const nearly = sequence(['final', 'champion']);
     const nearlyOk =
       got(nearly.rewards[1], 'nearly-man') && !got(sequence(['sf', 'champion']).rewards[1], 'nearly-man');
-
-    // Straight Up: the first cup at a tier is the one that unlocks the next, and a lost
-    // final anywhere in the career rules it out for good.
-    const straightOk =
-      got(sequence(['champion']).rewards[0], 'straight-up') && !got(nearly.rewards[1], 'straight-up');
 
     // On a Roll counts finals reached, not cups won (the redefinition that stopped it
     // being Three-Peat under another name); Consistency counts semi-finals.
@@ -326,7 +461,6 @@ export function challengesChecks(): void {
     check('challenges: cup streaks complete on the run that reaches them', () => streakOk);
     check('challenges: a losing run breaks the cup streak', () => brokenOk);
     check('challenges: Nearly Man reads the run before this one', () => nearlyOk);
-    check('challenges: Straight Up needs a first cup at the tier and no lost final', () => straightOk);
     check('challenges: the final / semi-final streaks count runs reached, not cups', () => streakShapeOk);
     check('challenges: Ascension II+ runs and per-tier cups are counted', () => hardOk && ladderOk);
     check('challenges: Prestige spent is counted by the perk shop and boon unlocks', () => spendOk);

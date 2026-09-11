@@ -28,6 +28,22 @@ import { KO_DECIDED } from './knockout';
 //   3. Shootout goals are not goals. `pens` is separate from the scoreline, so
 //      clean-sheet predicates read the scoreline only - otherwise The Wall is
 //      unwinnable the moment a tie goes to penalties.
+//   4. A PREDICATE MUST STAY REACHABLE FOR EVER. A completion is permanent and
+//      one-shot, so an entry only has to be satisfiable ONCE - but the career it
+//      is judged against only ever grows, and nothing in this game resets one
+//      (there is no career reset, perk tiers cannot be sold, and an account's
+//      album cannot be cleared). So two shapes lock a player out silently and
+//      neither is allowed here: EXACT EQUALITY on a counter that only climbs
+//      (`stats.cups === 1` - the First Blood trap, see that entry), and the
+//      NEGATION of a state that is only ever set (`!stats.everLostFinal`, or
+//      "owning no perks"). Thresholds (`>= 10`) are fine: they catch up on their
+//      own. Three entries broke this rule and two are gone - `straight-up` and
+//      `glass-cannon-gambit`, both deleted 2026-09-11 and both marked in place
+//      below. Two more are knowingly LEFT and are flagged in `docs/ROADMAP.html`
+//      rather than silently accepted: `perkless` (dead from the first perk tier
+//      bought, but visible in the ledger from run 1, so it can be planned for)
+//      and `new-blood` (dead at a 100% album, by which point Full Album is
+//      earned anyway). Anything NEW that reads the career must be a threshold.
 // ---------------------------------------------------------------------------
 
 export type ChallengeFamily =
@@ -347,16 +363,17 @@ export const CHALLENGES: readonly Challenge[] = [
   { id: 'no-safety-net', name: 'No Safety Net', description: 'Win at Ascension III or higher without taking a legendary boost.',
     family: 'ascension', tier: 'gold',
     check: (v) => v.wonCup && v.run.ascension >= 3 && !v.rarities.includes('legendary') },
-  { id: 'straight-up', name: 'Straight Up', description: 'Unlock a new Ascension tier without ever losing a final.',
-    family: 'ascension', tier: 'silver',
-    // A cup unlocks the tier above it exactly when it is the FIRST cup at its own tier:
-    // the ceiling only ever rises by one, so reaching tier T at all means T-1 was
-    // already won. At the top of the ladder there is nothing left to unlock.
-    check: (v) =>
-      v.wonCup &&
-      !v.career.stats.everLostFinal &&
-      v.run.ascension < MAX_ASCENSION &&
-      cupsAt(v, v.run.ascension) === 1 },
+  // DELETED 2026-09-11: 'straight-up' ("Unlock a new Ascension tier without ever losing a
+  // final"). It was the one entry a career could be locked out of for good, and by two
+  // independent routes: `everLostFinal` is sticky (`||`-ed in `applyRunResult`, never
+  // reset), so one lost final in a whole career killed it; and `cupsAt(tier) === 1` is
+  // exact equality on a counter that only ever climbs, so once every tier held a cup
+  // there was no first cup left to be. That is the First Blood trap (see the entry
+  // above) surviving in the one place this file said it was load-bearing - and the
+  // reason given, that it is the only way to detect "this cup unlocked a tier", argues
+  // for a flag on the run rather than for an entry nobody can complete. The id is NOT
+  // reused: a completion is stored by id, so anyone holding it keeps it and nothing new
+  // can be awarded it.
 
   // --- C. Squad identity --------------------------------------------------
   // Judged on `own` - the XI MINUS anyone a roster boost handed over - and on no count
@@ -575,9 +592,12 @@ export const CHALLENGES: readonly Challenge[] = [
   { id: 'wildcard-winner', name: 'Wildcard Winner', description: 'Win with a Wildcard Legend in the XI.',
     family: 'boosts', tier: 'bronze',
     check: (v) => v.wonCup && v.run.activeBoons.includes('wildcard') },
-  { id: 'glass-cannon-gambit', name: 'Glass Cannon Gambit', description: 'Win having taken Glass Cannon.',
-    family: 'boosts', tier: 'silver',
-    check: (v) => v.wonCup && v.run.activeBoons.includes('glass-cannon') },
+  // DELETED 2026-09-11: 'glass-cannon-gambit' ("Win having taken Glass Cannon"). The card
+  // it named was removed from `domain/boons.ts` on 2026-08-23, so `activeBoons` could
+  // never contain it again and the entry was unreachable for EVERYBODY rather than
+  // conditionally - a dangling reference, not a balance decision. `checks/challenges.ts`
+  // now fails on any boost or perk id the catalogue names and the catalogue does not
+  // hold, so the next deleted card takes its challenge with it.
   { id: 'catenaccio-cup', name: 'Catenaccio Cup', description: 'Win having taken Catenaccio, conceding 3 goals or fewer.',
     family: 'boosts', tier: 'gold',
     check: (v) => v.wonCup && v.run.activeBoons.includes('catenaccio') && v.goalsAgainst <= 3 },
