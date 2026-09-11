@@ -196,7 +196,11 @@ export default function AccountPanel({
           <p className="text-[12.5px]">
             Code sent to <b>{address}</b>. Check your spam folder if it isn&apos;t there.
           </p>
-          <form className="mt-2 flex gap-2" onSubmit={onVerifySubmit} noValidate>
+          <form
+            className="mt-2 flex flex-col gap-2 sm:flex-row"
+            onSubmit={onVerifySubmit}
+            noValidate
+          >
             <input
               className={`${FIELD} font-mono tracking-[0.3em]`}
               value={code}
@@ -227,7 +231,11 @@ export default function AccountPanel({
           </button>
         </div>
       ) : (
-        <form className="mt-2.5 flex gap-2" onSubmit={onSendSubmit} noValidate>
+        <form
+          className="mt-2.5 flex flex-col gap-2 sm:flex-row"
+          onSubmit={onSendSubmit}
+          noValidate
+        >
           <input
             className={FIELD}
             value={address}
