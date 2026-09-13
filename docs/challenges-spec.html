@@ -434,7 +434,7 @@ players a roster boost handed you, so a Wildcard cannot break a themed run by ac
   <tr><td class="n">83</td><td class="name">Legendary Lean</td><td class="cond">Win having taken three or more legendary boosts.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">84</td><td class="name">Full Spectrum</td><td class="cond">Take a common, a rare and a legendary boost in one run.</td><td><span class="tag t-b">bronze</span></td></tr>
   <tr><td class="n">85</td><td class="name">No Second Chances</td><td class="cond">Win without using a boost re-roll (Physio Table owned).</td><td><span class="tag t-s">silver</span></td></tr>
-  <tr><td class="n">86</td><td class="name">Perkless</td><td class="cond">Win a run owning no perks at all.</td><td><span class="tag t-g">gold</span></td></tr>
+  <tr style="opacity:.55"><td class="n">86</td><td class="name"><s>Perkless</s></td><td class="cond"><s>Win a run owning no perks at all.</s> <b>REMOVED 2026-09-13</b>: dead from the first perk tier a career ever bought, and a perk tier cannot be sold. See note Four below.</td><td><span class="tag t-g">gold</span></td></tr>
   <tr><td class="n">87</td><td class="name">Full Kit</td><td class="cond">Win with every perk owned at its maximum tier.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">88</td><td class="name">Poacher</td><td class="cond">Poach the next opponent, then beat them.</td><td><span class="tag t-b">bronze</span></td></tr>
   <tr><td class="n">89</td><td class="name">Wildcard Winner</td><td class="cond">Win with a Wildcard Legend in the XI.</td><td><span class="tag t-b">bronze</span></td></tr>
@@ -449,7 +449,7 @@ players a roster boost handed you, so a Wildcard cannot break a themed run by ac
   <tr><td class="n">93</td><td class="name">Collector</td><td class="cond">Win with 3+ collectibles in the XI.</td><td><span class="tag t-b">bronze</span></td></tr>
   <tr><td class="n">94</td><td class="name">Hall of Fame</td><td class="cond">Win with 5+ collectibles in the XI.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">95</td><td class="name">Monumental</td><td class="cond">Win with a Monumental player in the XI.</td><td><span class="tag t-s">silver</span></td></tr>
-  <tr><td class="n">96</td><td class="name">New Blood</td><td class="cond">Bank three new stickers from one run.</td><td><span class="tag t-s">silver</span></td></tr>
+  <tr style="opacity:.55"><td class="n">96</td><td class="name"><s>New Blood</s></td><td class="cond"><s>Bank three new stickers from one run.</s> <b>REMOVED 2026-09-13</b>: dead once fewer than three collectibles are left uncollected, and an account's album cannot be wiped. See note Four below.</td><td><span class="tag t-s">silver</span></td></tr>
   <tr><td class="n">97</td><td class="name">Legendary Set</td><td class="cond">Collect every Legendary sticker.</td><td><span class="tag t-g">gold</span></td></tr>
   <tr><td class="n">98</td><td class="name">Iconic Set</td><td class="cond">Collect every Iconic sticker.</td><td><span class="tag t-g">gold</span></td></tr>
   <tr><td class="n">99</td><td class="name">Full Album</td><td class="cond">Collect every sticker.</td><td><span class="tag t-g">gold</span></td></tr>
@@ -595,17 +595,20 @@ this one, and the counters are updated before the catalogue is judged, so
 <code>prevOutcome</code> alongside it. <b>Two.</b> <i>Straight Up</i> needs "this run
 unlocked a tier", which the ceiling cannot answer on its own, so it reads
 <code>cupsByAscension</code>: a cup is the first at its own tier exactly when it unlocks the
-next, since reaching tier T at all means T-1 was already won. <b>Four.</b> <b>The catalogue is 128, not 130.</b>
-<i>Straight Up</i> and <i>Glass Cannon Gambit</i> were deleted on 2026-09-11 and are struck
-through in the tables above. A completion is one-shot and permanent, so an entry only ever
-has to fire once - but the career it is judged against only grows and nothing in this game
-resets one, so an entry keyed to the <b>negation</b> of a state that is only ever set, or to
-<b>exact equality</b> on a counter that only climbs, dies silently. Straight Up did both
-(<code>!everLostFinal</code>, and <code>cupsByAscension[tier] === 1</code>); Glass Cannon
-Gambit named a boost that no longer exists, so it was unreachable for everybody rather than
-conditionally. <i>Perkless</i> and <i>New Blood</i> break the same rule and are knowingly
-kept - see CLAUDE.md, "A challenge must stay reachable for ever". Two checks in
-<code>scripts/checks/challenges.ts</code> hold it now. <b>Three.</b> The slice-C count
+next, since reaching tier T at all means T-1 was already won. <b>Four.</b> <b>The catalogue is 126, not 130.</b>
+Four entries were deleted and are struck through in the tables above. A completion is
+one-shot and permanent, so an entry only ever has to fire once - but the career it is judged
+against only grows and nothing in this game resets one, so an entry keyed to the
+<b>negation</b> of a state that is only ever set, or to <b>exact equality</b> on a counter
+that only climbs, dies silently. On 2026-09-11: <i>Straight Up</i>, which did both
+(<code>!everLostFinal</code>, and <code>cupsByAscension[tier] === 1</code>), and <i>Glass
+Cannon Gambit</i>, which named a boost that no longer exists and so was unreachable for
+everybody rather than conditionally. On 2026-09-13: <i>Perkless</i> (dead from the first
+perk tier bought) and <i>New Blood</i> (dead at a full album), both of which had been kept
+for two days as "lockable, but only fairly" and were then taken out so the rule needs no
+exceptions - see CLAUDE.md, "A challenge must stay reachable for ever". Two checks in
+<code>scripts/checks/challenges.ts</code> hold it, and the reachability one now requires the
+set of lock-outs to be <b>empty</b>. <b>Three.</b> The slice-C count
 is nine, not eight: <i>Bargain Bin</i> ("buy five already-owned players") sits in the album
 family but waits on the same build record, so <code>RunBuild</code> carries a
 <code>discounted</code> count.</div>

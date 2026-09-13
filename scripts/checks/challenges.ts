@@ -212,26 +212,23 @@ export function challengesChecks(): void {
   }
 
   // --- Challenges: nothing goes permanently out of reach -----------------------
-  // The general form of the First Blood trap above, and the reason `straight-up` and
-  // `glass-cannon-gambit` were deleted on 2026-09-11. A completion is one-shot and
-  // permanent, so an entry only ever has to fire ONCE - but the career it is judged
-  // against only grows, and this game resets nothing: there is no career reset, a perk
-  // tier cannot be sold, `stats.everLostFinal` is `||`-ed in, and an account's album
-  // cannot be cleared. So an entry keyed to the NEGATION of a state that is only ever
-  // set, or to EXACT EQUALITY on a counter that only climbs, dies silently the first
-  // time a career moves past it.
+  // The general form of the First Blood trap above, and the reason all four of
+  // `straight-up`, `glass-cannon-gambit`, `perkless` and `new-blood` were deleted. A
+  // completion is one-shot and permanent, so an entry only ever has to fire ONCE - but
+  // the career it is judged against only grows, and this game resets nothing: there is
+  // no career reset, a perk tier cannot be sold, `stats.everLostFinal` is `||`-ed in,
+  // and an account's album cannot be cleared. So an entry keyed to the NEGATION of a
+  // state that is only ever set, or to EXACT EQUALITY on a counter that only climbs,
+  // dies silently the first time a career moves past it.
   //
   // The test judges the SAME finished run twice - once as a fresh career with an empty
   // album, once as one that has done everything - and takes the ids only the fresh
-  // career can complete. That difference IS the set of lock-outs, and it must hold
-  // nothing but the two this catalogue knowingly keeps.
+  // career can complete. That difference IS the set of lock-outs, and IT MUST BE EMPTY.
+  // The set was an allow-list of two for two days (2026-09-11 to 2026-09-13) and the
+  // owner took both entries out instead, so the rule needs no exceptions and this check
+  // needs no list: anything appearing here is an entry somebody will one day be unable
+  // to finish, and the fix is always the entry.
   {
-    // Knowingly kept, and the reason is in the module header: Perkless is visible in the
-    // ledger from run 1 so it can be planned for, and New Blood only dies at a 100%
-    // album, which is the run that completes Full Album anyway. Anything else appearing
-    // here is a new entry nobody can finish, and the fix is the entry, not this list.
-    const LOCKED_BY_DESIGN = new Set(['perkless', 'new-blood']);
-
     const maxedPerks = Object.fromEntries(PERKS.map((pk) => [pk.id, pk.tiers.length]));
     const everything: CareerState = {
       ...INITIAL_CAREER,
@@ -307,7 +304,7 @@ export function challengesChecks(): void {
 
     check(
       'challenges: no entry a fresh career can complete is out of reach for a veteran one',
-      () => freshTotal > 0 && sees && [...lockedOut].every((id) => LOCKED_BY_DESIGN.has(id)),
+      () => freshTotal > 0 && sees && lockedOut.size === 0,
       () => `locked out: ${[...lockedOut].join(', ') || 'none'} (sample ${freshTotal}, sees ${sees})`,
     );
   }

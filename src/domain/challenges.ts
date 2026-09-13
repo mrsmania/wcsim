@@ -37,13 +37,14 @@ import { KO_DECIDED } from './knockout';
 //      (`stats.cups === 1` - the First Blood trap, see that entry), and the
 //      NEGATION of a state that is only ever set (`!stats.everLostFinal`, or
 //      "owning no perks"). Thresholds (`>= 10`) are fine: they catch up on their
-//      own. Three entries broke this rule and two are gone - `straight-up` and
-//      `glass-cannon-gambit`, both deleted 2026-09-11 and both marked in place
-//      below. Two more are knowingly LEFT and are flagged in `docs/ROADMAP.html`
-//      rather than silently accepted: `perkless` (dead from the first perk tier
-//      bought, but visible in the ledger from run 1, so it can be planned for)
-//      and `new-blood` (dead at a 100% album, by which point Full Album is
-//      earned anyway). Anything NEW that reads the career must be a threshold.
+//      own. FOUR entries broke this rule and all four are gone, each marked in
+//      place below: `straight-up` and `glass-cannon-gambit` (2026-09-11), then
+//      `perkless` and `new-blood` (2026-09-13), which were briefly kept as
+//      "lockable but fairly" and are not an exception anybody has to remember
+//      now. The rule is absolute: NOTHING in this catalogue may become
+//      unreachable, and `npm run checks` fails on any entry a fresh career can
+//      complete and a veteran one cannot. Anything NEW that reads the career, the
+//      album or the run's perks must be a threshold.
 // ---------------------------------------------------------------------------
 
 export type ChallengeFamily =
@@ -582,9 +583,12 @@ export const CHALLENGES: readonly Challenge[] = [
   { id: 'no-second-chances', name: 'No Second Chances', description: 'Win without using a boost re-roll, with the Physio Table owned.',
     family: 'boosts', tier: 'silver',
     check: (v) => { const t = v.run.perkLevels['physio'] ?? 0; return v.wonCup && t > 0 && (v.run.rerollsLeft ?? 0) >= t; } },
-  { id: 'perkless', name: 'Perkless', description: 'Win a run owning no perks at all.',
-    family: 'boosts', tier: 'gold',
-    check: (v) => v.wonCup && Object.values(v.run.perkLevels).every((t) => !t) },
+  // DELETED 2026-09-13: 'perkless' ("Win a run owning no perks at all"). Dead from the
+  // first perk tier a career ever bought, and a perk tier cannot be sold - so a gold
+  // honour was lost permanently, with no warning, by spending Prestige on the thing the
+  // shop exists for. It was held back for two days on the ground that it is visible in
+  // the ledger from run 1 and can therefore be planned for; the rule is now that nothing
+  // may lock at all, which is a cleaner promise than "lockable, but only fairly".
   { id: 'full-kit', name: 'Full Kit', description: 'Win with every perk owned at its maximum tier.',
     family: 'boosts', tier: 'silver', check: (v) => v.wonCup && allPerksMaxed(v.run) },
   { id: 'poacher', name: 'Poacher', description: 'Poach the next opponent, then beat them.',
@@ -614,9 +618,11 @@ export const CHALLENGES: readonly Challenge[] = [
   { id: 'monumental', name: 'Monumental', description: 'Win with a Monumental player in the XI.',
     family: 'album', tier: 'silver',
     check: (v) => v.wonCup && v.xi.some((p) => tierOf(p) === 'monumental') },
-  { id: 'new-blood', name: 'New Blood', description: 'Add three stickers you did not own to the album from one run.',
-    family: 'album', tier: 'silver',
-    check: (v) => v.own.filter((p) => tierOf(p) && !v.album.collected.includes(p.id)).length >= 3 },
+  // DELETED 2026-09-13: 'new-blood' ("Add three stickers you did not own to the album from
+  // one run"). Dead once fewer than three collectibles are left uncollected, and an
+  // account's album cannot be wiped. The window before that is enormous and it would
+  // almost always have been earned inside it, which is why it was kept for two days -
+  // but "almost always" is not a rule, and the count it reads only ever shrinks.
   { id: 'legendary-set', name: 'Legendary Set', description: 'Collect every Legendary sticker.',
     family: 'album', tier: 'gold', check: (v) => hasWholeTier(v, 'legendary') },
   { id: 'iconic-set', name: 'Iconic Set', description: 'Collect every Iconic sticker.',

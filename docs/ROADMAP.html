@@ -360,12 +360,13 @@
 <details class="item">
   <summary>
     <span class="num">66</span>
-    <span class="title">Two honours can still be locked out for good: Perkless and New Blood
-      <span class="sub">One decision, no build behind it. The 2026-09-11 reachability sweep
-      deleted <b>Straight Up</b> and <b>Glass Cannon Gambit</b>; these two break the same
-      rule and were knowingly kept. They are named in an allow-list the checks enforce, so
-      nothing new can join them by accident - but the two themselves are a call to
-      make.</span>
+    <span class="title">No honour may ever be locked out for good
+      <span class="sub"><b>CLOSED 2026-09-13.</b> The reachability sweep found four entries
+      a career could put permanently out of reach. Two went on 2026-09-11 (<b>Straight
+      Up</b>, <b>Glass Cannon Gambit</b>) and the owner took the other two out on
+      2026-09-13 (<b>Perkless</b>, <b>New Blood</b>) rather than keep them as fair
+      exceptions. The catalogue is <b>126</b> and the rule now has no exception list at
+      all.</span>
     </span>
     <span class="tag">Challenges</span>
     <span class="chev">&#9656;</span>
@@ -379,31 +380,37 @@
     <b>exact equality</b> on a counter that only climbs, dies silently. Reported from the
     game on 2026-09-11 about Straight Up, and it generalises.</p>
 
-    <p><strong>What was done.</strong> The whole catalogue was swept. Four entries were
-    affected; two were deleted (Straight Up, which broke the rule twice over, and Glass
-    Cannon Gambit, which named a boost deleted on 2026-08-23 and so was unreachable for
-    <i>everybody</i>), taking the catalogue to <b>128</b>. Two checks now hold it, both
-    mutation-tested red: a behavioural one that judges the same run as a fresh career and
-    as a veteran one and fails on any id only the fresh career can complete, and a source
-    scan for boost and perk ids the catalogue no longer holds.</p>
-
-    <p><strong>What is left to decide, and it is one question each.</strong></p>
+    <p><strong>What was done.</strong> The whole catalogue was swept and <b>all four</b>
+    affected entries are deleted, taking it from 130 to <b>126</b>. No id is reused, so
+    anyone already holding one keeps it.</p>
     <ul>
-      <li><b>Perkless</b> ("Win a run owning no perks at all", gold, 12 Prestige). Dead from
-      the first perk tier a career ever buys. A first cup takes about four runs, which pay
-      roughly 9 Prestige each, so a new player who spends before winning loses a gold honour
-      permanently and is never told. It was kept because - unlike Straight Up, where losing
-      a final is not something you choose - it is visible in the ledger from run 1 and can
-      be planned for, which makes it a legitimate ironman goal. <b>If the rule becomes
-      "nothing may lock", this is the next one out.</b> The alternative to deleting it is
-      to soften the wording to something a career can always satisfy, which changes what the
-      entry means.</li>
-      <li><b>New Blood</b> ("Add three stickers you did not own to the album from one run",
-      silver). Dead once fewer than three collectibles are left uncollected - which is
-      essentially the run that completes Full Album, by which point it has been earned many
-      times over. Recommended: <b>leave it.</b> If it is ever worth closing, the fix is to
-      count stickers added across the career rather than remaining.</li>
+      <li><b>Straight Up</b> (2026-09-11). Broke the rule twice over:
+      <code>!everLostFinal</code> is sticky, and <code>cupsByAscension[tier] === 1</code> is
+      exact equality on a counter that only climbs.</li>
+      <li><b>Glass Cannon Gambit</b> (2026-09-11). Named a boost deleted on 2026-08-23, so
+      it had been unreachable for <i>everybody</i> rather than conditionally.</li>
+      <li><b>Perkless</b> (2026-09-13, owner's call). Dead from the first perk tier a career
+      ever buys, and a perk tier cannot be sold, so a gold honour was lost permanently and
+      silently by spending Prestige on the thing the shop exists for. It was held for two
+      days on the ground that, unlike Straight Up, it is visible in the ledger from run 1
+      and can be planned for.</li>
+      <li><b>New Blood</b> (2026-09-13, owner's call). Dead once fewer than three
+      collectibles are left uncollected. The window before that is enormous and it would
+      almost always have been earned inside it, which is why it survived the first pass -
+      but "almost always" is not a rule.</li>
     </ul>
+
+    <p><strong>Why both of the "kept" two went.</strong> An absolute rule is a cleaner
+    promise than "lockable, but only fairly", and it is what lets the check carry no
+    exception list: the allow-list of two that shipped on 2026-09-11 is gone, and the
+    reachability check now requires the set of lock-outs to be <b>empty</b>. Anything
+    appearing in it is an entry somebody will one day be unable to finish, and the fix is
+    always the entry.</p>
+
+    <p><strong>Two checks hold it</strong>, both mutation-tested red: a behavioural one that
+    judges the same finished run as a fresh career and as a veteran one and fails on any id
+    only the fresh career can complete, and a source scan for boost and perk ids the
+    catalogue no longer holds.</p>
 
     <p><strong>Where the record lives:</strong> CLAUDE.md, "A challenge must stay reachable
     for ever"; the deleted entries are marked in place in
