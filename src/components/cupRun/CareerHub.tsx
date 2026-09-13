@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { BOONS, MIN_POOL_COMMONS, type Boon } from '../../domain/boons';
 import {
     PERKS,
@@ -7,6 +7,7 @@ import {
     type CareerState,
 } from '../../domain/career';
 import { btn, CARD, CARD_FLAT, Meter, MONO_CAP, PAGE_EYEBROW } from '../matchUi';
+import Overlay from '../Overlay';
 import { RARITY_COLOR, RARITY_INK } from './types';
 
 /** Owned-tier numeral shown next to a perk name (tiers are small). */
@@ -17,22 +18,23 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
  *  It used to be a bare amber numeral in the corner of every unbought tile - "25" - which
  *  is perfectly legible to somebody who already knows this game has one currency and
  *  where it is spent. To anybody else it is a number with no unit, sitting beside a name
- *  and a description that are full of other numbers. So the word is on it. */
-function PricePill({ cost }: { cost: number }) {
+ *  and a description that are full of other numbers. So the word is on it.
+ *
+ *  A NULL COST KEEPS THE SLOT AND EMPTIES IT, rather than rendering nothing. A tile that
+ *  has been bought has no price to show, and taking the pill out took about four pixels
+ *  of line box with it - so pressing Unlock made the name, the description and the button
+ *  under it all jump up, and if that tile happened to be the tallest of its row the whole
+ *  row of tiles resized around it. An empty pill reserves the space with its own metrics,
+ *  which is the version of this that cannot drift when the type changes. `invisible` is
+ *  visibility:hidden, so it is out of the accessibility tree as well as off the screen. */
+function PricePill({ cost }: { cost: number | null }) {
     return (
-        <span className="shrink-0 rounded-full bg-amber/[0.14] px-2 py-0.5 font-mono text-[10.5px] font-semibold text-amber-ink">
-            {cost} Prestige
-        </span>
-    );
-}
-
-/** The wallet, on each shop's own heading: not a repeat of the standing card above but the
- *  price context of the tiles directly under it, which is the same reason a shelf edge
- *  carries prices when the till also has a display. */
-function WalletChip({ prestige }: { prestige: number }) {
-    return (
-        <span className="rounded-full bg-amber/[0.14] px-2.5 py-1 font-mono text-[11.5px] font-semibold text-amber-ink">
-            {prestige} Prestige
+        <span
+            className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[10.5px] font-semibold ${
+                cost === null ? 'invisible' : 'bg-amber/[0.14] text-amber-ink'
+            }`}
+        >
+            {cost === null ? ' ' : `${cost} Prestige`}
         </span>
     );
 }
@@ -49,16 +51,16 @@ function WalletChip({ prestige }: { prestige: number }) {
  *  No explaining sentence. Each of the three carried one ("to spend on perks and boosts",
  *  "Every tier you buy applies to all your future runs", "Unlocked boosts join the three a
  *  run offers between rounds") and each was a caption teaching the reader something the
- *  tiles under it demonstrate. */
-function SectionHead({
-    title,
-    count,
-    prestige,
-}: {
-    title: string;
-    count?: string;
-    prestige: number;
-}) {
+ *  tiles under it demonstrate.
+ *
+ *  AND NO WALLET EITHER. Both headings used to carry the Prestige figure as a pill on the
+ *  right, on the reasoning that it was the price context of the tiles under it rather
+ *  than a repeat of the standing card. That reasoning holds only where the card is out of
+ *  sight, and this is one screen: the 38px figure at the top is the wallet, and printing
+ *  it again twice made the same number the third loudest thing on the page after itself.
+ *  Every unbought tile already says what it costs, which is the comparison a player is
+ *  actually making. */
+function SectionHead({ title, count }: { title: string; count?: string }) {
     return (
         <div className="mb-4 flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b-2 border-ink pb-2.5">
             <h3 className="font-display text-[19px] font-bold tracking-[-0.01em]">{title}</h3>
@@ -67,8 +69,6 @@ function SectionHead({
                     {count}
                 </span>
             )}
-            <span className="flex-1" />
-            <WalletChip prestige={prestige} />
         </div>
     );
 }
@@ -78,12 +78,17 @@ function SectionHead({
  *  chip rather than a disabled button in every case, and the blocked ones are why:
  *  `btn()` dims a disabled button to half opacity, which put the most informative label on
  *  the tile - the reason you cannot press it - at the faintest contrast on the page.
- *  Nothing here is an action, so nothing here is a button. */
+ *  Nothing here is an action, so nothing here is a button.
+ *
+ *  It carries a border in BOTH states, transparent where the held one paints none, so a
+ *  tile is exactly as tall whichever of the two it is showing. Two pixels, and they are
+ *  the difference between a grid of tiles that sits still and one that twitches as its
+ *  states change. */
 function StateChip({ label, held }: { label: string; held?: boolean }) {
     return (
         <div
-            className={`mt-2 w-full rounded-[5px] px-2 py-1.5 text-center font-mono text-[11px] font-bold ${
-                held ? 'bg-pitch/10 text-pitch-ink' : 'border border-line bg-chalk text-muted'
+            className={`mt-2 w-full rounded-[5px] border px-2 py-1.5 text-center font-mono text-[11px] font-bold ${
+                held ? 'border-transparent bg-pitch/10 text-pitch-ink' : 'border-line bg-chalk text-muted'
             }`}
         >
             {label}
@@ -118,7 +123,7 @@ function BoostTile({
 }) {
     return (
         <div
-            className={`${CARD_FLAT} p-3`}
+            className={`${CARD_FLAT} flex h-full flex-col p-3`}
             style={{ borderTop: `3px solid ${RARITY_COLOR[boon.rarity]}` }}
         >
             {/* The dim is on the CARD'S TEXT, never on what follows it. Fading a live
@@ -131,15 +136,76 @@ function BoostTile({
                     <span className={`font-mono text-[9px] font-bold ${RARITY_INK[boon.rarity]}`}>
                         {boon.rarity}
                     </span>
-                    {price !== null && <PricePill cost={price} />}
+                    <PricePill cost={price} />
                 </div>
                 <div className="mt-1 font-display text-[13.5px] font-bold leading-tight">
                     {boon.name}
                 </div>
                 <p className="mt-1 text-[11.5px] leading-snug text-muted">{boon.description}</p>
             </div>
-            {children}
+            {/* The action sits on the tile's floor rather than under the description,
+                which is what makes a row of tiles read as a row: the descriptions are one
+                line or three, the grid already levels the tiles to the tallest of the row,
+                and without this the buttons landed at four different heights inside it. */}
+            <div className="mt-auto">{children}</div>
         </div>
+    );
+}
+
+/** A purchase waiting on its confirm: everything the dialog prints, plus which of the two
+ *  shops is to be told once it is confirmed. */
+type Purchase = {
+    kind: 'perk' | 'boost';
+    id: string;
+    /** "Away Days", or "Scout Network II" - the thing by the name the shop gave it. */
+    name: string;
+    cost: number;
+    /** What the purchase does, taken from the tile it was pressed on. */
+    detail: string;
+};
+
+/** The one question this page asks before it spends anything.
+ *
+ *  BOTH SHOPS ASK IT. Perks and boosts are the same tile on the same page spending the
+ *  same currency, so a confirm on one and not the other would be exactly the sort of
+ *  inconsistency between two neighbouring tiles this pass exists to remove.
+ *
+ *  It is a dialog rather than the inline confirm `ConfirmAction` gives the destructive
+ *  controls, for two reasons. A tile is a third of a row wide and a prompt with two
+ *  buttons does not fit one without resizing it, which is the very thing being fixed
+ *  above; and a purchase is not destructive - it is irreversible, which is a different
+ *  thing and takes the primary tone rather than the red one. */
+function BuyConfirm({
+    buy,
+    prestige,
+    onCancel,
+    onConfirm,
+}: {
+    buy: Purchase;
+    prestige: number;
+    onCancel: () => void;
+    onConfirm: () => void;
+}) {
+    return (
+        <Overlay onClose={onCancel} ariaLabel="Confirm purchase">
+            <div className={PAGE_EYEBROW}>Spend Prestige</div>
+            <h2 className="mt-1.5 font-display text-[22px] font-bold leading-tight tracking-[-0.01em]">
+                Buy {buy.name} for {buy.cost} Prestige?
+            </h2>
+            <p className="mt-2 text-[13px] leading-snug text-muted">{buy.detail}</p>
+            <div className="mt-3 font-mono text-[12px] text-muted">
+                You have <b className="text-ink">{prestige}</b>, and this leaves you{' '}
+                <b className="text-ink">{prestige - buy.cost}</b>.
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+                <button onClick={onConfirm} className={btn('primary')}>
+                    Yes, buy it
+                </button>
+                <button onClick={onCancel} className={btn('secondary')}>
+                    Cancel
+                </button>
+            </div>
+        </Overlay>
     );
 }
 
@@ -173,8 +239,24 @@ export default function CareerHub({
     // its own price and state off the same answer.
     const boosts = BOONS.map((b) => ({ boon: b, ...boonUnlockState(career, b.id) }));
     const inPool = boosts.filter((b) => b.inPool).length;
+    // Nothing is spent until this is confirmed. It is the page's own state and not the
+    // tile's, so the dialog sits outside the grid and a tile cannot change size by being
+    // the one that asked.
+    const [buy, setBuy] = useState<Purchase | null>(null);
     return (
         <>
+            {buy && (
+                <BuyConfirm
+                    buy={buy}
+                    prestige={career.prestige}
+                    onCancel={() => setBuy(null)}
+                    onConfirm={() => {
+                        if (buy.kind === 'perk') onPurchase(buy.id);
+                        else onUnlockBoost(buy.id);
+                        setBuy(null);
+                    }}
+                />
+            )}
             {/* The standing: the two figures the rest of the page spends. It is the album's
                 counter card - a big numeral over a meter, and the currency in a chalk cell
                 beside it - because that is the shape this page was asked to borrow and
@@ -211,7 +293,7 @@ export default function CareerHub({
 
             {/* Perk shop: six tracks, each tiered and level-gated. */}
             <section className="mt-8">
-                <SectionHead title="Perks" prestige={career.prestige} />
+                <SectionHead title="Perks" />
                 <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                     {PERKS.map((perk) => {
                         // The rule and the label's precedence both come from the
@@ -223,7 +305,7 @@ export default function CareerHub({
                         // What the player currently owns (the active effect), if any.
                         const owned = lvl > 0 ? perk.tiers[lvl - 1] : null;
                         return (
-                            <div key={perk.id} className={`${CARD_FLAT} p-3`}>
+                            <div key={perk.id} className={`${CARD_FLAT} flex h-full flex-col p-3`}>
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="font-display text-[13.5px] font-bold">
                                         {perk.name}
@@ -233,7 +315,7 @@ export default function CareerHub({
                                             </span>
                                         )}
                                     </span>
-                                    {next && <PricePill cost={next.cost} />}
+                                    <PricePill cost={next ? next.cost : null} />
                                 </div>
                                 {/* What you have right now (or, if unowned, what the first tier unlocks). */}
                                 <p className="mt-1 text-[11.5px] leading-snug text-muted">
@@ -255,24 +337,45 @@ export default function CareerHub({
                                         {next.description}
                                     </p>
                                 )}
-                                {!next ? (
-                                    <StateChip label="Maxed" held />
-                                ) : canBuy ? (
-                                    <button
-                                        onClick={() => onPurchase(perk.id)}
-                                        className={`mt-2 w-full ${btn('primary', 'compact')}`}
-                                    >
-                                        {reason === 'upgrade' ? 'Upgrade' : 'Unlock'}
-                                    </button>
-                                ) : (
-                                    <StateChip
-                                        label={
-                                            reason === 'level'
-                                                ? `Reach level ${next.levelReq}`
-                                                : `Need ${next.cost} Prestige`
-                                        }
-                                    />
-                                )}
+                                {/* On the tile's floor, like the boost library's: the
+                                    descriptions run one line or three and the grid levels
+                                    the tiles, so without this the buttons sat at as many
+                                    heights as there are tiles in the row. */}
+                                <div className="mt-auto">
+                                    {!next ? (
+                                        <StateChip label="Maxed" held />
+                                    ) : canBuy ? (
+                                        <button
+                                            onClick={() =>
+                                                setBuy({
+                                                    kind: 'perk',
+                                                    id: perk.id,
+                                                    // A tier number only where there
+                                                    // is one to tell apart: "Scout
+                                                    // Network 2" on an upgrade, the bare
+                                                    // name on a first buy.
+                                                    name:
+                                                        reason === 'upgrade'
+                                                            ? `${perk.name} ${next.level}`
+                                                            : perk.name,
+                                                    cost: next.cost,
+                                                    detail: next.description,
+                                                })
+                                            }
+                                            className={`mt-2 w-full ${btn('primary', 'compact')}`}
+                                        >
+                                            {reason === 'upgrade' ? 'Upgrade' : 'Unlock'}
+                                        </button>
+                                    ) : (
+                                        <StateChip
+                                            label={
+                                                reason === 'level'
+                                                    ? `Reach level ${next.levelReq}`
+                                                    : `Need ${next.cost} Prestige`
+                                            }
+                                        />
+                                    )}
+                                </div>
                             </div>
                         );
                     })}
@@ -288,7 +391,6 @@ export default function CareerHub({
                 <SectionHead
                     title="Boost library"
                     count={`${inPool} / ${boosts.length} in the pool`}
-                    prestige={career.prestige}
                 />
                 <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                     {boosts.map(({ boon: b, cost, owned, inPool: held, affordable, canBench }) => (
@@ -296,7 +398,15 @@ export default function CareerHub({
                             {!owned ? (
                                 affordable ? (
                                     <button
-                                        onClick={() => onUnlockBoost(b.id)}
+                                        onClick={() =>
+                                            setBuy({
+                                                kind: 'boost',
+                                                id: b.id,
+                                                name: b.name,
+                                                cost,
+                                                detail: b.description,
+                                            })
+                                        }
                                         className={`mt-2 w-full ${btn('primary', 'compact')}`}
                                     >
                                         Unlock
