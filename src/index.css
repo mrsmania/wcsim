@@ -75,6 +75,16 @@
        needs 4.5. This is 5.97 on panel, 5.14 on chalk and 5.33 on ground. The tier RAMP
        keeps the surface value, which is right - a strip is a surface. */
     --color-gold-ink: #7d5f10;
+    /* RARE AS TEXT, the fourth of that family and the newest. The boost rarity ramp used
+       to be the sticker tier ramp, which is a single-hue ladder of preciousness - gold
+       over amber over green - and reads beautifully as a ladder and terribly as three
+       categories: the top two are both warm oranges, and as TEXT they were `gold-ink`
+       #7d5f10 beside `amber-ink` #8a5a0f, which is the same dark olive twice. Rare is its
+       own blue now (#3b82f6 as the strip, chosen at the common green's own lightness so
+       the three strips read at one weight), and this is that blue as a label: the strip is
+       3.68 against panel where a 9px bold word needs 4.5, so it needs an `-ink` sibling
+       exactly as the amber and the gold do. 6.70 panel, 5.99 ground, 5.76 chalk. */
+    --color-rare-ink: #1d4ed8;
     /* THE PRIMARY BUTTON'S HOVER, and the reason it is not just `pitch`: the fill rests on
        pitch-dark (which is what makes it pass AA at all), so the hover has to lift without
        going as far as the bright green, which carries white at only 4.00. This is the one
@@ -193,6 +203,12 @@
     /* On graphite the surface gold clears AA (6.49 on panel), so the text variant is the
        surface value, the same convergence amber-ink has. */
     --color-gold-ink: #c99a3a;
+    /* The one of the four that does NOT converge with its surface on graphite. The strip
+       blue clears AA against the dark panel (4.54) and misses it against the dark chalk
+       (4.01), and a token that passes on two surfaces out of three is the kind of miss
+       nobody sees, so this is a lighter tint of the same blue: 6.46 panel, 7.12 ground,
+       5.70 chalk. */
+    --color-rare-ink: #6ba3f0;
 }
 :root[data-theme='dark'] body {
     /* Faint green glow at the very top, tying the accent into the neutral base. */

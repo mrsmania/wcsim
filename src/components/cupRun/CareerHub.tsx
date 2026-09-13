@@ -10,9 +10,6 @@ import { btn, CARD, CARD_FLAT, Meter, MONO_CAP, PAGE_EYEBROW } from '../matchUi'
 import Overlay from '../Overlay';
 import { RARITY_COLOR, RARITY_INK } from './types';
 
-/** Owned-tier numeral shown next to a perk name (tiers are small). */
-const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
-
 /** A price, and what the price is IN.
  *
  *  It used to be a bare amber numeral in the corner of every unbought tile - "25" - which
@@ -309,9 +306,16 @@ export default function CareerHub({
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="font-display text-[13.5px] font-bold">
                                         {perk.name}
+                                        {/* The owned tier, as a plain numeral. It used to
+                                            come out of a ROMAN table of eight, and Transfer
+                                            Budget has NINE tiers - so that one track fell
+                                            off the end and printed "9" beside five perks
+                                            reading "II", which is the same fact in two
+                                            numbering systems on one grid. A tier is a
+                                            count, so it is a number. */}
                                         {lvl > 0 && (
-                                            <span className="ml-1.5 rounded bg-pitch/10 px-1.5 py-[1px] align-middle font-mono text-[10px] font-bold text-accent">
-                                                {ROMAN[lvl] ?? lvl}
+                                            <span className="ml-1.5 rounded bg-pitch/10 px-1.5 py-[1px] align-middle font-mono text-[10px] font-bold tabular-nums text-accent">
+                                                {lvl}
                                             </span>
                                         )}
                                     </span>
