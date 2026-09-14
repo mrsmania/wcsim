@@ -270,7 +270,7 @@ export default function AccountPanel({
               {stage === 'sending' ? 'Sending...' : 'Continue'}
             </button>
           </form>
-          <div className="mt-3 border-t border-line pt-2.5 text-[12px] leading-snug text-muted">
+          <div className="mt-4 text-[12px] leading-snug text-muted">
             <p className="font-semibold text-ink">What an account is for</p>
             {/* Bullets rather than a paragraph (2026-09-14, asked for): these are four
                 separate things you get, and a reader picking between signing in and playing

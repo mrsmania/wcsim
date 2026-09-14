@@ -3638,12 +3638,15 @@ under it on the mechanism, and the explanation BELOW the field, where it is read
 thing it explains rather than in front of it. Two things are deliberate. The label is a
 `<label htmlFor>` rather than a styled `<div>`, which is what makes tapping the words focus
 the field and is why neither input carries an `aria-label` any more. And the "what an
-account is for" block sits under a hairline as **bullets, not a paragraph** - four separate
+account is for" block is **bullets, not a paragraph** - four separate
 things you get, scanned rather than read to the end by somebody deciding between signing in
 and playing on as a guest - with the guest line left as prose underneath, because it is the
 opposite point and inside the list would read as a fifth benefit. Guest-first is the rule
 (NFR-1) and a sign-in sheet that does not say so reads as a wall. The versus bullet is gated
-on `FEATURES.pvp`, since a build with no referee has no such thing to promise.
+on `FEATURES.pvp`, since a build with no referee has no such thing to promise. **There is
+no rule between the two halves** (2026-09-14, asked for): the sheet is one card holding one
+short thing to do, and a hairline across it made a page out of what is a paragraph of
+spacing. A margin is what separates them.
 
 ## UI gotchas
 
