@@ -141,17 +141,18 @@ export default function AccountPanel({
       <div>
         <div className="text-[13.5px] font-semibold">Signed in</div>
         <p className="mt-0.5 font-mono text-[12px] text-muted">{email}</p>
-        <p className="mt-1.5 text-[12px] leading-snug text-muted">
-          Your album, career and settings follow this account on any device.
-        </p>
         <div className="mt-2.5 flex flex-wrap gap-2">
-          <button type="button" onClick={() => void out('local')} className={btn('secondary')}>
+          <button
+            type="button"
+            onClick={() => void out('local')}
+            className={btn('secondary', 'compact')}
+          >
             Sign out
           </button>
           <button
             type="button"
             onClick={() => void out('global')}
-            className={btn('secondary')}
+            className={btn('secondary', 'compact')}
           >
             Sign out everywhere
           </button>
