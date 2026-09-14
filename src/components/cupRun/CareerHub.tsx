@@ -8,7 +8,7 @@ import {
 } from '../../domain/career';
 import { btn, CARD, CARD_FLAT, Meter, MONO_CAP, PAGE_EYEBROW } from '../matchUi';
 import Overlay from '../Overlay';
-import { RARITY_COLOR, RARITY_INK } from './types';
+import { RarityMark, rarityStrip } from './rarityUi';
 
 /** A price, and what the price is IN.
  *
@@ -96,11 +96,11 @@ function StateChip({ label, held }: { label: string; held?: boolean }) {
 /** A boost's tile, wearing the same rarity as the cards a run actually offers.
  *
  *  It used to be a 2px dot in three of its own colours beside the name. The boost stop
- *  marks rarity with a 3px strip across the top of the card and the word itself in the
- *  `-ink` token of that tier, so a player learning what gold means at a stop was learning
- *  it twice - the shop and the shelf were not the same object. Same strip, same word, same
- *  two colour maps (`RARITY_COLOR` for the strip, which is a surface; `RARITY_INK` for the
- *  word, which at 9px bold needs a token that meets AA in both themes).
+ *  marks rarity with a strip across the top of the card and the word beside its pips, so a
+ *  player learning what gold means at a stop was learning it twice - the shop and the
+ *  shelf were not the same object. They share `rarityUi` now rather than sharing two maps
+ *  by agreement, which is what makes them the same object rather than two files that
+ *  currently match.
  *
  *  DIM IS "NOT IN YOUR POOL", and it is the whole state signal. Thirty-two tiles each
  *  carrying a chip saying whether it is in the pool is the field-of-colour the honours
@@ -121,7 +121,7 @@ function BoostTile({
     return (
         <div
             className={`${CARD_FLAT} flex h-full flex-col p-3`}
-            style={{ borderTop: `3px solid ${RARITY_COLOR[boon.rarity]}` }}
+            style={rarityStrip(boon.rarity)}
         >
             {/* The dim is on the CARD'S TEXT, never on what follows it. Fading a live
                 control is the same mistake `StateChip` exists to avoid from the other
@@ -130,9 +130,7 @@ function BoostTile({
                 found the app failing. */}
             <div className={dim ? 'opacity-60' : ''}>
                 <div className="flex items-baseline justify-between gap-2">
-                    <span className={`font-mono text-[9px] font-bold ${RARITY_INK[boon.rarity]}`}>
-                        {boon.rarity}
-                    </span>
+                    <RarityMark rarity={boon.rarity} />
                     <PricePill cost={price} />
                 </div>
                 <div className="mt-1 font-display text-[13.5px] font-bold leading-tight">

@@ -36,30 +36,6 @@ export function contrast(a: string, b: string): number {
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 }
 
-/** A colour's HUE in degrees, which is what "these read as two different colours" means
- *  and what `contrast` cannot answer. Contrast is a LIGHTNESS ratio, so two colours a
- *  hemisphere apart on the wheel at the same lightness score about 1.0 - which is exactly
- *  the reading `gold-ink` and `amber-ink` give each other (1.01) while being the same
- *  olive, and exactly the reading `rare-ink` gives `gold-ink` while being a blue. Using
- *  the wrong one of the two here was a real mistake, caught by the suite. */
-export function hue(hex: string): number {
-  const h = hex.replace('#', '');
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255) as [number, number, number];
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const d = max - min;
-  if (d === 0) return 0;
-  const deg =
-    max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
-  return ((deg * 60) % 360 + 360) % 360;
-}
-
-/** The shorter way round the wheel between two hues, so 350 and 10 are 20 apart. */
-export function hueGap(a: string, b: string): number {
-  const d = Math.abs(hue(a) - hue(b)) % 360;
-  return d > 180 ? 360 - d : d;
-}
-
 /** One colour laid over another at `alpha`, so a translucent fill can be measured rather
  *  than guessed. The hero's button sits on a white wash over a scrim over the turf, and
  *  three stacked alphas is not something to do in your head. */
@@ -263,51 +239,6 @@ export function uiChecks(): void {
         bad.join(', ') +
         ` (tier gold on panel ${contrast(TIER_GOLD, light['panel']!).toFixed(2)} light, ` +
         `${contrast(TIER_GOLD, dark['panel']!).toFixed(2)} dark)`,
-    );
-  }
-
-  // --- The rare word, which is the FOURTH of that family -------------------
-  // Rare stopped being the sticker ramp's amber and became a blue of its own, because the
-  // top two rungs of a single-hue ladder are not three categories: as text they were
-  // #7d5f10 beside #8a5a0f, the same dark olive twice. The strip's blue is a surface and
-  // does not clear AA as a 9px label on paper, so it has an `-ink` sibling like the other
-  // two - and unlike them it does not converge with the surface on graphite, where the
-  // strip misses AA against the dark chalk.
-  {
-    const surfaces = ['ground', 'panel', 'chalk'] as const;
-    const bad: string[] = [];
-    for (const s of surfaces) {
-      if (contrast(light['rare-ink']!, light[s]!) < AA) bad.push(`rare-ink on ${s} light`);
-      if (contrast(dark['rare-ink']!, dark[s]!) < AA) bad.push(`rare-ink on ${s} dark`);
-    }
-    // Vacuity, and the reason the token exists: the strip's own blue does NOT pass as a
-    // label on paper. If it ever did, this token would be dead weight.
-    const RARE_STRIP = '#3b82f6';
-    if (contrast(RARE_STRIP, light['panel']!) >= AA) bad.push('the strip blue already passes light');
-    // And the separation this whole change is for: the three inks must be THREE COLOURS,
-    // not two, which is a question about hue and not about contrast. A ramp reads as a set
-    // of categories when its members are well round the wheel from one another; `SEP` is
-    // generous at 60 degrees and the three clear it comfortably.
-    const SEP = 60;
-    for (const theme of [light, dark]) {
-      for (const other of ['gold-ink', 'pitch-ink'] as const) {
-        if (hueGap(theme['rare-ink']!, theme[other]!) < SEP) bad.push(`rare-ink sits on ${other}`);
-      }
-      if (hueGap(theme['gold-ink']!, theme['pitch-ink']!) < SEP) bad.push('gold-ink sits on pitch-ink');
-    }
-    // DISCRIMINATION, and it is the whole reason the ramp moved: the pair this replaced
-    // FAILS the same test. `gold-ink` and `amber-ink` are five degrees apart, so a measure
-    // that passed them would be saying nothing about the three that took their place.
-    const OLD_PAIR = hueGap(light['gold-ink']!, light['amber-ink']!);
-    if (OLD_PAIR >= SEP) bad.push('the gold/amber pair already separated, so this proves nothing');
-    check(
-      'ui: rare-ink clears AA everywhere and the three rarity inks are three hues, where gold and amber were one',
-      () => bad.length === 0,
-      () =>
-        bad.join(', ') +
-        ` (strip blue on panel ${contrast(RARE_STRIP, light['panel']!).toFixed(2)} light; ` +
-        `hues light rare ${hue(light['rare-ink']!).toFixed(0)} / gold ${hue(light['gold-ink']!).toFixed(0)} ` +
-        `/ pitch ${hue(light['pitch-ink']!).toFixed(0)}; the old gold-amber gap ${OLD_PAIR.toFixed(0)})`,
     );
   }
 

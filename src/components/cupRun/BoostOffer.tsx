@@ -7,7 +7,7 @@ import { boostOdds, runOddsNow } from '../../domain/run';
 import type { RunOdds } from '../../domain/odds';
 import Flag from '../Flag';
 import { CHIP_OFF, CHIP_ON, MONO_CAP, btn } from '../matchUi';
-import { RARITY_COLOR, RARITY_INK } from './types';
+import { RarityMark, rarityStrip } from './rarityUi';
 
 /**
  * The boost stop: three or four cards, the figures for whichever one is chosen, and one
@@ -143,7 +143,7 @@ export default function BoostOffer({
               className={`flex cursor-pointer flex-col gap-1.5 rounded-md border p-3 text-left transition has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-pitch ${
                 on ? CHIP_ON : CHIP_OFF
               }`}
-              style={{ borderTop: `3px solid ${RARITY_COLOR[b.rarity]}` }}
+              style={rarityStrip(b.rarity)}
             >
               <input
                 type="radio"
@@ -153,13 +153,7 @@ export default function BoostOffer({
                 onChange={() => setChosenId(b.id)}
                 className="absolute h-px w-px opacity-0"
               />
-              <span
-                className={`font-mono text-[9px] font-bold ${
-                  on ? 'text-white' : RARITY_INK[b.rarity]
-                }`}
-              >
-                {b.rarity}
-              </span>
+              <RarityMark rarity={b.rarity} on={on} />
               <span className="font-display text-[14px] font-bold leading-tight">
                 {b.name}
               </span>

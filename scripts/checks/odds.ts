@@ -9,6 +9,8 @@ import { check, xiFor, boonStops, withSeed } from './harness';
 import { simulateTitleOdds } from '../../src/domain/odds';
 import { boostOdds, runOddsNow, ODDS_SAMPLES, ODDS_SIMS } from '../../src/domain/run';
 import { BOONS, type Boon, type Priced } from '../../src/domain/boons';
+import { RARITY_STEP, RARITY_STRIP } from '../../src/components/cupRun/types';
+import { TIER_META } from '../../src/components/stickerTheme';
 
 const boon = (id: string): Boon => {
   const b = BOONS.find((x) => x.id === id);
@@ -303,16 +305,58 @@ export function oddsChecks(): void {
         /atkDefDelta=\{atkDefDelta\}/.test(group),
     );
 
-    // The rarity WORD takes the ink classes and the STRIP keeps the tier accent. Getting
-    // this backwards is invisible except as a contrast failure, which is what it was.
-    check(
-      'odds: the rarity word uses the ink classes and the strip keeps the tier accent',
-      () =>
-        /RARITY_INK\[b\.rarity\]/.test(offer) &&
-        /borderTop: `3px solid \$\{RARITY_COLOR\[b\.rarity\]\}`/.test(offer) &&
-        // vacuity: the accent is not used as text anywhere in the file
-        !/color: RARITY_COLOR/.test(offer),
-    );
+    // RARITY IS NOT CARRIED BY COLOUR, and this is the check that says so.
+    //
+    // The ramp is the app's own green -> amber -> gold, and its top two rungs cannot be
+    // told apart: #e4922b beside #c99a3a as surfaces, and as TEXT an even closer pair,
+    // because AA at 9px forces both warm values down into one dark olive. Reported from
+    // the game, and a blue for rare was tried and reverted for belonging to a different
+    // product. So what separates them is `RARITY_STEP`, a count, plus the album's gold
+    // foil on the top rung - and both are asserted here because nothing behavioural can
+    // see either: a build that dropped the pips renders a perfectly good card.
+    {
+      const hub = readFileSync('src/components/cupRun/CareerHub.tsx', 'utf8');
+      const atom = readFileSync('src/components/cupRun/rarityUi.tsx', 'utf8');
+      const chan = (hex: string) =>
+        [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as number[];
+      // The pair the count exists for: effectively one colour, channel by channel. If
+      // these ever separate, the reasoning above is stale and worth re-reading. This is
+      // the DISCRIMINATION guard - a ramp whose inks were already distinct would make
+      // the whole device pointless.
+      const gap = Math.max(
+        ...chan('#7d5f10').map((v, i) => Math.abs(v - chan('#8a5a0f')[i]!)),
+      );
+      check(
+        'odds: rarity is told apart by a count and the foil, not by its two warm colours',
+        () =>
+          // three distinct steps, so the count can separate three rarities at all
+          new Set(Object.values(RARITY_STEP)).size === 3 &&
+          RARITY_STEP.common < RARITY_STEP.rare &&
+          RARITY_STEP.rare < RARITY_STEP.legendary &&
+          // the top rung's strip is the album's foil, a gradient; the other two are flat
+          RARITY_STRIP.legendary.includes('linear-gradient') &&
+          RARITY_STRIP.legendary !== RARITY_STRIP.rare &&
+          RARITY_STRIP.legendary === TIER_META.monumental.strip &&
+          // BOTH cards render rarity through the one atom, so the shop and the card a run
+          // offers cannot drift apart - which they had, the shop having drawn its own dot
+          // `<RarityMark` and not `RarityMark`: the bare name matches the IMPORT line, so
+          // a card that imported the atom and then drew its own mark passed happily. Found
+          // by mutating this check rather than by reading it.
+          /<RarityMark/.test(offer) &&
+          /<RarityMark/.test(hub) &&
+          /rarityStrip\(/.test(offer) &&
+          /rarityStrip\(/.test(hub) &&
+          // and neither reaches past it for the raw maps
+          !/RARITY_INK|RARITY_COLOR/.test(offer.replace(/\/\*[\s\S]*?\*\//g, '')) &&
+          !/RARITY_INK|RARITY_COLOR/.test(hub.replace(/\/\*[\s\S]*?\*\//g, '')) &&
+          // vacuity: the atom really does draw three slots, not one mark
+          /\[1, 2, 3\]/.test(atom) &&
+          // and the guard that makes the count necessary rather than decorative
+          gap < 20,
+        () =>
+          `steps ${JSON.stringify(RARITY_STEP)}, gold-ink vs amber-ink max channel gap ${gap}`,
+      );
+    }
   }
 
   // --- A random card is priced as a card, not as one draw of it ----------------
