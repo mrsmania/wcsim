@@ -245,7 +245,7 @@ export default function AccountPanel({
             Enter your email to sign in
           </label>
           <p className="mt-0.5 text-[12px] leading-snug text-muted">
-            No password. We send a six-digit code to check it is you.
+            No password needed. You&apos;ll receive a six-digit code to sign in.
           </p>
           <form
             className="mt-2 flex flex-col gap-2 sm:flex-row"
@@ -270,14 +270,20 @@ export default function AccountPanel({
             </button>
           </form>
           <div className="mt-3 border-t border-line pt-2.5 text-[12px] leading-snug text-muted">
-            <p>
-              <b className="font-semibold text-ink">What an account is for.</b> Your sticker
-              album, your career and your settings live on the server instead of in this
-              browser, so they are the same on your phone and your laptop, and clearing your
-              browser cannot lose them.
-              {FEATURES.pvp && ' It is also what lets you play other people in Versus.'}
-            </p>
-            <p className="mt-1.5">
+            <p className="font-semibold text-ink">What an account is for</p>
+            {/* Bullets rather than a paragraph (2026-09-14, asked for): these are four
+                separate things you get, and a reader picking between signing in and playing
+                on as a guest is scanning for the one that matters to them rather than
+                reading a sentence to the end. The guest line stays prose underneath,
+                because it is the opposite point and would read as a fifth benefit in the
+                list. */}
+            <ul className="mt-1 list-disc space-y-1 pl-[1.1rem] marker:text-dim">
+              <li>Your sticker album, career and settings are kept on the server.</li>
+              <li>The same progress on your phone and your laptop.</li>
+              <li>Clearing your browser cannot lose any of it.</li>
+              {FEATURES.pvp && <li>It is what lets you play other people in Versus.</li>}
+            </ul>
+            <p className="mt-2">
               You do not need one. The whole game is playable as a guest, and guest progress
               moves across with you the first time you sign in.
             </p>
