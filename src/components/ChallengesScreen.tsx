@@ -28,10 +28,10 @@ type Filter = 'all' | 'open' | 'done';
  *
  *  There is no 'blocked' state here any more (hygiene D6). `Challenge.blocked` stays in the
  *  DOMAIN model on purpose - it costs nothing and the next batch of entries will want it -
- *  but no catalogue entry has set it since the plumbing wave judged all 130, so every
+ *  but no catalogue entry has set it since the plumbing wave judged them all, so every
  *  consumer branch was unreachable: a filter variant, a self-hiding chip, a self-hiding
  *  legend row and the lock rendering in ChallengeLedgerRow. Re-add the UI with the entries
- *  that need it, in a file whose whole premise is that 130 entries cannot each be painted. */
+ *  that need it, in a file whose whole premise is that 126 entries cannot each be painted. */
 const stateOf = (c: Challenge, done: Set<string>): Filter => (done.has(c.id) ? 'done' : 'open');
 
 /** The whole catalogue: a completion counter in the album's shape, filters, and every
@@ -198,7 +198,7 @@ export default function ChallengesScreen({
         const list = byFamily.get(family);
         if (!list?.length) return null;
         // `challengeProgress` already counted these in one pass, which is why `byFamily`
-        // exists (hygiene H44). Recomputing them here was two filters over the 130-entry
+        // exists (hygiene H44). Recomputing them here was two filters over the whole
         // catalogue per family, so 24 scans a render. Same numbers either way - both read
         // CHALLENGES, so the header counts the catalogue rather than the filtered view,
         // which is what makes "3 / 16" still say 16 under the Completed filter.
@@ -207,7 +207,7 @@ export default function ChallengesScreen({
         return (
           <section key={family} className="mt-[22px]">
             {/* The family accent is spent here and nowhere else: twelve rules on the
-                page instead of a 3px edge on all 130 entries.
+                page instead of a 3px edge on all 126 entries.
                 The whole heading is the fold control, and the "got / total" count stays
                 on it either way - that count is what makes a folded family worth
                 reading, since a shut section still says how much of it you hold. The

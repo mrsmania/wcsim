@@ -4,6 +4,7 @@
 // one 3,900-line file whose blocks shared nothing but the assertion helper, and whose
 // summary ran last only because it happened to sit at the bottom.
 
+import { readFileSync } from 'node:fs';
 import { check, koRec, playToEnd, runFor, withSeed } from './harness';
 import { INITIAL_SWAPS } from '../../src/config';
 import { ALL_PLAYERS, SQUADS, basePlayer } from '../../src/data/squads';
@@ -306,6 +307,42 @@ export function challengesChecks(): void {
       'challenges: no entry a fresh career can complete is out of reach for a veteran one',
       () => freshTotal > 0 && sees && lockedOut.size === 0,
       () => `locked out: ${[...lockedOut].join(', ') || 'none'} (sample ${freshTotal}, sees ${sees})`,
+    );
+  }
+
+  // --- Challenges: no comment states a stale catalogue size --------------------
+  // The catalogue went 130 -> 128 -> 126 in three days, and eleven comments and doc
+  // paragraphs went on saying 130 - a number that is wrong and that reads as current, in
+  // the files somebody opens to learn the rules. It is the same failure the shop-copy and
+  // budget-ladder checks exist for, one level down: a number and the sentence promising it
+  // have to agree.
+  //
+  // Only a THREE-DIGIT figure beside a catalogue noun counts as such a claim. The
+  // catalogue's own thresholds top out at "50 challenges" (Honours Master) and are real
+  // text these files must keep, so the rule is deliberately narrow rather than clever.
+  {
+    const FILES = [
+      'src/domain/challenges.ts',
+      'src/components/challengeUi.tsx',
+      'src/components/ChallengesScreen.tsx',
+      'src/components/CabinetScreen.tsx',
+    ];
+    const CLAIM = /(\d{3,})[\s-]+(?:entries|entry|challenges|honours|honour|rows|cards)\b/g;
+    const claims: string[] = [];
+    const wrong: string[] = [];
+    for (const f of FILES) {
+      const src = readFileSync(f, 'utf8');
+      for (const [whole, n] of src.matchAll(CLAIM)) {
+        claims.push(`${f}: ${whole}`);
+        if (Number(n) !== CHALLENGES.length) wrong.push(`${f}: "${whole}" against ${CHALLENGES.length}`);
+      }
+    }
+    check(
+      'challenges: no comment states a catalogue size the catalogue does not have',
+      // Vacuity guard: these files DO describe the catalogue's size, so a scan finding
+      // nothing is a broken regex rather than a clean tree.
+      () => claims.length >= 3 && wrong.length === 0,
+      () => `${claims.length} size claims, wrong: ${wrong.join('; ') || 'none'}`,
     );
   }
 

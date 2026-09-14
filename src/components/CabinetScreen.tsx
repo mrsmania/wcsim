@@ -18,7 +18,7 @@ import { CARD_SM } from './matchUi';
 
 /** A cup's plinth by the tier it was won at: ONE hue getting deeper, plus the numeral.
  *  Tier is deliberately not a colour of its own - the challenge ledger settled that
- *  when 130 painted entries stopped reading (TIER_COLOR is gone), and a six-hue shelf
+ *  when its painted entries stopped reading (TIER_COLOR is gone), and a six-hue shelf
  *  is exactly the rainbow that rule exists to prevent. The top step needs a token
  *  rather than `bg-ink`, because ink is near-white in the dark theme, which would make
  *  the highest tier the LIGHTEST plinth and read the ramp backwards. */
@@ -291,7 +291,7 @@ export default function CabinetScreen({
             {/* ---- who actually played ----
           Every board is the top ten of a record that goes far wider; the caption says
           how much wider, because a leaderboard that silently truncates reads as "this is
-          everyone". Ranked lists rather than cards: this is the same "130 entries cannot
+          everyone". Ranked lists rather than cards: this is the same "126 entries cannot
           each be painted" lesson at a smaller scale.
           Three of them, so the row takes a third column where there is width for it and
           the last one spans the pair below that: a half-width board beside white space

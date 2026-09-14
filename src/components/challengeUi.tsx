@@ -26,7 +26,7 @@ export const FAMILY_COLOR: Record<ChallengeFamily, string> = {
 };
 
 /** Award tiers, bronze -> silver -> gold. Deliberately NOT a colour any more: the
- *  catalogue is 130 entries and it could not afford three more hues on top of the
+ *  catalogue is 126 entries and it could not afford three more hues on top of the
  *  twelve family accents. While awards are off the tier reads as difficulty, which is
  *  a scale rather than a category, so `TierPips` draws it as three filled slots. */
 const TIER_NAME: Record<ChallengeTier, string> = {
@@ -87,7 +87,7 @@ export default function ChallengeRow({ challenge }: { challenge: Challenge }) {
   );
 }
 
-/** One catalogue line. No card, no border, no shadow: 130 honours want a list, not a
+/** One catalogue line. No card, no border, no shadow: 126 honours want a list, not a
  *  grid of tiles, so an entry is type on paper between two hairlines. Its whole state
  *  is ink versus dim on the name, plus the mark on the left - a green tick is the only
  *  colour an entry ever carries, and it only appears once you have earned it. An entry
@@ -132,7 +132,7 @@ export function ChallengeLedgerRow({
           {challenge.description}
         </span>
       </span>
-      {/* Green only once it is yours. The award is on all 130 rows, so painting it
+      {/* Green only once it is yours. The award is on every row, so painting it
           accent regardless would put the page straight back to a field of colour, which
           is the one thing this layout exists to avoid: earned is the only ink. */}
       {AWARDS_ON && (

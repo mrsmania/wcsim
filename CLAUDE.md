@@ -2695,7 +2695,7 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   THAT run, while `challengeProgress().prestige` reads every completion held, so cycling it
   would leave the display and the wallet disagreeing by exactly the arrears. A switch that
   cannot be thrown is not a flag. One thing to keep:
-  - **The `+N` on a row is green only when the entry is earned.** Painting all 130 accent
+  - **The `+N` on a row is green only when the entry is earned.** Painting every row accent
     puts the ledger straight back to a field of colour, which is the one thing that layout
     exists to avoid.
 - **A level gate was considered and rejected** (2026-08-19), on measurement rather than
@@ -2713,7 +2713,7 @@ Behind **`FEATURES.challenges`** (and Career Mode, like the rest of that layer).
   **UI is gone** (deleted 2026-08-24, hygiene D6): the "not tracked yet" filter variant, the
   self-hiding chip, the self-hiding legend row and the lock rendering in
   `ChallengeLedgerRow` were all unreachable while nothing sets the field, in a screen whose
-  whole premise is that 130 entries cannot each be painted. Re-add the UI with the entries
+  whole premise is that 126 entries cannot each be painted. Re-add the UI with the entries
   that need it. What the wave added:
   - **`RunState.shape`** - formation, style and the slot each player filled, recorded at
     kickoff because placing a player promotes the slot's role onto him (so the natural
@@ -2816,6 +2816,27 @@ no exception list at all.**
 
 **The catalogue is 126 entries**, down from 130.
 
+**AND THE NUMBER IS WRITTEN DOWN IN A DOZEN PLACES, WHICH IS ITS OWN LESSON** (swept
+2026-09-14, asked for). 130 became 128 became 126 in three days, and **eleven comments and
+doc paragraphs went on saying 130** - in `challengeUi`, `ChallengesScreen`, `CabinetScreen`,
+`domain/challenges.ts`, this file and the i18n estimate. None of them was load-bearing and
+every one of them read as current to whoever opened the file next, which is exactly how this
+repo's figures have gone wrong before. All are corrected, and **`npm run checks` now fails on
+any THREE-DIGIT figure beside a catalogue noun in those four source files that is not
+`CHALLENGES.length`** - three digits because the catalogue's own thresholds top out at "50
+challenges" (Honours Master) and that text has to survive. Mutation-tested both ways: a
+comment put back to 130 is named with its file, and a regex that matches nothing fails on the
+vacuity guard.
+
+**What is deliberately NOT swept, so nobody does it again:** anything carrying its own date.
+`docs/challenges-spec.html` is the plan as written, so its numbered rows 1 to 130 stay (the
+four deleted ones are struck through in place), and so do "Where it stands (2026-08-19)",
+section 8's "all 130 judged at launch" and the footer's "shipped on 2026-08-18" - those were
+true on those days and editing them would falsify the record. Same for
+`docs/hygiene-audit.html` (an audit dated 2026-08-24 that explicitly lists 130 as correct as
+published), the roadmap's shipped history, `docs/career-depth-spec.md`, and the frozen comps
+under `docs/redesign-2026/`, which render a mock catalogue rather than the real one.
+
 **Two checks hold it, and every mutation was tested red.** The first is behavioural and it
 found all the lock-outs independently of the reading above: judge the SAME finished run
 through `applyRunResult` twice, once as a fresh career with an empty album and once as one
@@ -2839,7 +2860,7 @@ which is the same failure it exists to catch one level up.
   of itself on the page next door. `ChallengeRow` is still live, in the run-end panel.
 - **The catalogue is a ledger, not a grid of cards** (2026-08-19, the "Ledger" option in
   `docs/redesign-2026/turf-flat/challenges-quieter-mock.html`). The rule it exists to keep:
-  **130 entries cannot each be painted.** The card version spent a family hue, a filled tier
+  **126 entries cannot each be painted.** The card version spent a family hue, a filled tier
   chip, a coloured status caption and the tifo hard shadow on every one of them, and nothing
   on the page read. So: hairline rows, two to a line inside a family (`ChallengeLedgerRow`),
   no card, no border, no shadow. **The family accent is spent once per family**, as the rule
@@ -2852,7 +2873,7 @@ which is the same failure it exists to catch one level up.
   columns are a **grid, not CSS columns**, because a grid row levels both cells' heights and
   so keeps the pair of hairlines in line when one description wraps and the other does not;
   one column below 700px. The row shows its `+N` where the card used to.
-- **A FAMILY FOLDS** (2026-09-02). Twelve headings over 130 rows is a page you scroll past
+- **A FAMILY FOLDS** (2026-09-02). Twelve headings over 126 rows is a page you scroll past
   rather than read, so each heading is the disclosure for its own section: the name, the
   `got / total` count and a chevron. **The count stays on a folded family**, which is what
   makes the folded overview worth having - a shut section still says how much of it you
@@ -2920,7 +2941,7 @@ A read-only **`/cabinet`** screen: what a career has to show for itself. Roadmap
   reason the titles board spans the pair above it below 1320px. The "nothing left to win"
   note keeps its place under it.
 - **Rank is one hue getting deeper, plus a numeral** - not six colours. Same rule the
-  challenge ledger arrived at when 130 painted entries stopped reading (`TIER_COLOR` is
+  challenge ledger arrived at when its painted entries stopped reading (`TIER_COLOR` is
   gone). The top step needs its own token: `bg-ink` would make the **highest** tier the
   **lightest** plinth in the dark theme and read the ramp backwards, hence
   `--color-cup-deep`.

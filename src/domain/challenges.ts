@@ -146,7 +146,7 @@ export interface BuySummary {
 export type { RunMatch };
 
 /** The context plus everything derived from it once, so the predicates stay one
- *  line each and nothing is recomputed 130 times. */
+ *  line each and nothing is recomputed 126 times. */
 export interface RunView extends ChallengeCtx {
   outcome: RunOutcome;
   wonCup: boolean;
@@ -275,7 +275,7 @@ export function viewOf(ctx: ChallengeCtx): RunView {
 
 // Nothing is blocked any more: the plumbing wave (section 8 of the plan) recorded the
 // kickoff shape, the build and the chemistry on the run, and the streak counters on the
-// career, so all 130 are judged. `Challenge.blocked` stays in the model on purpose - it
+// career, so every entry is judged. `Challenge.blocked` stays in the model on purpose - it
 // costs nothing and the next batch of entries will want it.
 
 

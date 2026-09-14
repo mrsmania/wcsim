@@ -57,7 +57,7 @@ Measured against `f461000`.
 | Where | How much |
 | --- | --- |
 | Screens (`src/components/**`, 70 files) | ~700 strings, mostly inline JSX |
-| Challenges (`domain/challenges.ts`) | 130 names + 130 descriptions |
+| Challenges (`domain/challenges.ts`) | 126 names + 126 descriptions |
 | Boosts (`domain/boons.ts`) | 33 names + descriptions |
 | **`domain/pvpView.ts`** | ~90. The whole versus copy layer, 923 lines |
 | Perks, Ascensions, badges | ~50 |
