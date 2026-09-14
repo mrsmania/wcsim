@@ -34,9 +34,11 @@ import { btn } from './matchUi';
  *  they were the deleted `quiet` tone written out by hand at a 12px non-uppercase label,
  *  which is to say two more button looks in the one strip that is on every screen. The
  *  `h-[30px]` stays because this row's height is set by the crest beside them, so matching
- *  it is alignment rather than a size of their own. The account label is capped and truncates, because it
- *  prints whatever is in front of the `@` and an unbounded button on a row this tight is
- *  what would break the single line. */
+ *  it is alignment rather than a size of their own. NEITHER SHOWS AN ICON AND A WORD AT
+ *  ONCE (2026-09-14): signed out the account button is "Sign in" with no person icon,
+ *  signed in it is the person icon with no address, so on this row it is the same width as
+ *  the settings button beside it whatever the length of somebody's name. See the note at
+ *  the button itself. */
 export default function Masthead({
     tabs,
     locked,
@@ -48,7 +50,8 @@ export default function Masthead({
     tabs: TabItem[];
     /** Inert while a match reveals (see `nav/liveMatch.ts`). */
     locked?: boolean;
-    /** Null for a guest. Signed in, the account button shows who you are. */
+    /** Null for a guest. Signed in it is the button's tooltip and label for assistive
+     *  technology, never its visible text - see the note at the button. */
     accountEmail: string | null;
     onOpenAccount: () => void;
     onOpenSettings: () => void;
@@ -81,22 +84,21 @@ export default function Masthead({
                     <button
                         type="button"
                         onClick={onOpenAccount}
+                        aria-label={accountEmail ? `Account: ${accountEmail}` : undefined}
                         title={accountEmail ?? 'Sign in to keep your album on every device'}
                         className={`${btn('secondary', 'compact')} h-[30px] shrink-0`}
                     >
-                        <User size={15} strokeWidth={2.2} />
-                        {/* `normal-case` only when the label is an ADDRESS. The button's
-                            voice is the app's - display face, - and "Sign in"
-                            takes it; what sits in front of somebody's `@` is a name rather
-                            than a label, and MARIO.SMANIA is not an improvement on
-                            mario.smania. Nothing else about the design moves. */}
-                        <span
-                            className={`min-w-0 max-w-[110px] truncate max-sm:hidden ${
-                                accountEmail ? 'normal-case' : ''
-                            }`}
-                        >
-                            {accountEmail ? accountEmail.split('@')[0] : 'Sign in'}
-                        </span>
+                        {/* EITHER a word OR a figure, never both (2026-09-14). Signed out
+                            the button is the invitation, so it is the words and nothing
+                            else: a person icon beside "Sign in" says the same thing twice,
+                            and it is the one control on this row that has something to
+                            say. Signed in it is the person icon alone, matching the
+                            settings button beside it - the address was a truncated label
+                            of somebody's own name, which is the least useful thing this
+                            row could spend its width on, and it is printed in full inside
+                            the sheet the button opens. The `title` still carries it for a
+                            hover, and `aria-label` for anyone who cannot see the icon. */}
+                        {accountEmail ? <User size={15} strokeWidth={2.2} /> : 'Sign in'}
                     </button>
                 )}
                 <button

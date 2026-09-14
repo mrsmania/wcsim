@@ -3612,9 +3612,36 @@ breaking the build or publishing somebody else's unfinished work. The conversion
 therefore backed out, the rest of the pass was committed without it, and it went in
 immediately afterwards once that session had pushed its own commit and the file was clean
 again. **Backing a change out of one file beats carrying three files of somebody else's
-topic**, and the wait was about ten minutes. The one detail in it: `normal-case` on the
-account label's span only when it holds an email address, since MARIO.SMANIA is not an
-improvement on mario.smania.
+topic**, and the wait was about ten minutes. It carried one detail that has since gone:
+a `normal-case` override on the account label's span whenever it held an address, because
+MARIO.SMANIA is not an improvement on mario.smania. There is no such label now.
+
+**AND THE ACCOUNT BUTTON SHOWS A WORD OR A FIGURE, NEVER BOTH** (2026-09-14, asked for).
+Signed out it was a person icon beside "Sign in" and is now the words alone: the icon was
+saying the same thing a second time on the one control in the chrome that has something to
+say. Signed in it was that icon beside whatever sits in front of your `@`, truncated at
+110px, and is now the icon alone - an address is not a destination, nobody needs reminding
+of their own name, and the full thing is printed at the top of the sheet the button opens,
+where it is also the `title` and the `aria-label`. The consequence worth knowing is on the
+header's width budget, which is what the one-line chrome is always short of: signed in the
+button is now exactly the settings button's width whatever the length of somebody's name,
+where before it could grow by 64px. It is also what let the label stop hiding itself below
+`sm` - it used to, so on a phone the signed-out button was a bare icon, and a button made
+only of its label cannot do that without becoming an empty box.
+
+**THE SIGN-IN SHEET SAYS WHAT IT IS ASKING FOR AND WHAT IT BUYS** (same day, same
+request). It opened with one muted paragraph doing three jobs at once - you are a guest,
+sign in with your email, there is no password - above a field with nothing attached to it
+but a placeholder. Both stages are one shape now: a real `<label>` above the field saying
+what to type ("Enter your email to sign in", "Enter the code we sent you"), one muted line
+under it on the mechanism, and the explanation BELOW the field, where it is read after the
+thing it explains rather than in front of it. Two things are deliberate. The label is a
+`<label htmlFor>` rather than a styled `<div>`, which is what makes tapping the words focus
+the field and is why neither input carries an `aria-label` any more. And the "what an
+account is for" block sits under a hairline in two paragraphs - what it gives you, then
+that you do not need one - because guest-first is the rule (NFR-1) and a sign-in sheet that
+does not say so reads as a wall. Its versus sentence is gated on `FEATURES.pvp`, since a
+build with no referee has no such thing to promise.
 
 ## UI gotchas
 

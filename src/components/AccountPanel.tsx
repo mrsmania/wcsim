@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useId, useRef, useState, type FormEvent } from 'react';
 import { FEATURES } from '../config';
 import { holdVersusRoom } from '../nav/versusRoom';
 import { PRIMARY_BTN, btn } from './matchUi';
@@ -31,6 +31,7 @@ export default function AccountPanel({
   onSignedIn: () => void;
   onSignedOut: () => void;
 }) {
+  const fieldId = useId();
   const [stage, setStage] = useState<Stage>('idle');
   const [address, setAddress] = useState('');
   const [code, setCode] = useState('');
@@ -184,17 +185,21 @@ export default function AccountPanel({
     );
   }
 
+  // The two stages are the same shape on purpose (2026-09-14): a line telling you what to
+  // type, the field, and a line underneath saying what it buys. It used to open with one
+  // paragraph doing all three jobs at once above an unlabelled box, so the field was the
+  // only thing on the sheet with nothing attached to it. The line above is a real
+  // `<label>`, which is what makes tapping it focus the field and replaces the `aria-label`
+  // each input used to carry.
   return (
     <div>
-      <p className="text-[12px] leading-snug text-muted">
-        Playing as a guest: progress stays in this browser. Sign in with your email and your
-        collection follows you between devices. No password, just a code.
-      </p>
-
       {stage === 'code' || stage === 'verifying' ? (
-        <div className="mt-2.5">
-          <p className="text-[12.5px]">
-            Code sent to <b>{address}</b>. Check your spam folder if it isn&apos;t there.
+        <div>
+          <label htmlFor={fieldId} className="block text-[13.5px] font-semibold">
+            Enter the code we sent you
+          </label>
+          <p className="mt-0.5 text-[12px] leading-snug text-muted">
+            Six digits, on their way to <b className="font-semibold">{address}</b>.
           </p>
           <form
             className="mt-2 flex flex-col gap-2 sm:flex-row"
@@ -202,6 +207,7 @@ export default function AccountPanel({
             noValidate
           >
             <input
+              id={fieldId}
               className={`${FIELD} font-mono tracking-[0.3em]`}
               value={code}
               onChange={(e) => onCodeChange(e.target.value)}
@@ -209,7 +215,6 @@ export default function AccountPanel({
               maxLength={CODE_LENGTH}
               autoComplete="one-time-code"
               placeholder="000000"
-              aria-label="Six-digit code"
             />
             <button
               type="submit"
@@ -219,6 +224,10 @@ export default function AccountPanel({
               {stage === 'verifying' ? 'Checking...' : 'Sign in'}
             </button>
           </form>
+          <p className="mt-2 text-[12px] leading-snug text-muted">
+            The code is good for one sign-in and expires shortly. If it has not arrived in a
+            minute, look in your spam folder.
+          </p>
           <button
             type="button"
             onClick={() => {
@@ -231,28 +240,49 @@ export default function AccountPanel({
           </button>
         </div>
       ) : (
-        <form
-          className="mt-2.5 flex flex-col gap-2 sm:flex-row"
-          onSubmit={onSendSubmit}
-          noValidate
-        >
-          <input
-            className={FIELD}
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            aria-label="Email address"
-          />
-          <button
-            type="submit"
-            disabled={!canSend}
-            className={`${PRIMARY_BTN} shrink-0 disabled:opacity-50`}
+        <div>
+          <label htmlFor={fieldId} className="block text-[13.5px] font-semibold">
+            Enter your email to sign in
+          </label>
+          <p className="mt-0.5 text-[12px] leading-snug text-muted">
+            No password. We send a six-digit code to check it is you.
+          </p>
+          <form
+            className="mt-2 flex flex-col gap-2 sm:flex-row"
+            onSubmit={onSendSubmit}
+            noValidate
           >
-            {stage === 'sending' ? 'Sending...' : 'Continue'}
-          </button>
-        </form>
+            <input
+              id={fieldId}
+              className={FIELD}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+            />
+            <button
+              type="submit"
+              disabled={!canSend}
+              className={`${PRIMARY_BTN} shrink-0 disabled:opacity-50`}
+            >
+              {stage === 'sending' ? 'Sending...' : 'Continue'}
+            </button>
+          </form>
+          <div className="mt-3 border-t border-line pt-2.5 text-[12px] leading-snug text-muted">
+            <p>
+              <b className="font-semibold text-ink">What an account is for.</b> Your sticker
+              album, your career and your settings live on the server instead of in this
+              browser, so they are the same on your phone and your laptop, and clearing your
+              browser cannot lose them.
+              {FEATURES.pvp && ' It is also what lets you play other people in Versus.'}
+            </p>
+            <p className="mt-1.5">
+              You do not need one. The whole game is playable as a guest, and guest progress
+              moves across with you the first time you sign in.
+            </p>
+          </div>
+        </div>
       )}
 
       {error && <p className="mt-2 text-[12px] text-loss">{error}</p>}
