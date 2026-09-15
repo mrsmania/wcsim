@@ -1,0 +1,1009 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Versus: act on the left, watch on the right</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Recursive:MONO,wght@1,400..800&family=Rubik:wght@500;600;700&display=swap">
+<script>
+(function(){try{var t=localStorage.getItem('turf-flat-theme');
+  if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+  /* OPTION 2, ELABORATED.
+     Chosen 2026-09-15 from versus-page-mock.html, with three corrections from the owner:
+
+       a. ON A PHONE, USE OPTION 1'S ORDER. The sketch hoisted "Waiting on you" to the top
+          below 760px; it does not. One column, in the order start, join, lobby, waiting,
+          results. The chrome's own duel strip already announces a waiting duel from every
+          screen in the game, so the page does not have to shout as well.
+       b. THE SEAT BUBBLES GO BETWEEN THE ROOM TITLE AND THE BUTTON, not at the head of the
+          row. Leading with them made every row start with a different shape, which is the
+          noise; ending with them puts three columns of identical width down the list.
+       c. NO ROOM CODE ON A PLAYED MATCH. A code is how you reach a room, and a finished
+          one is not going anywhere.
+
+     Everything else is the sketch: two columns that never swap, so the history cannot push
+     the form down whatever it grows to, and the seven chip rows become two big choices and
+     three named accordions that show their own answer when shut.
+
+     Tokens from src/index.css. Type is the shipped Rubik / Inter / Recursive Mono pairing,
+     sentence case except a room code. */
+
+  :root {
+    --ground: #f4f2ec; --panel: #ffffff; --chalk: #e8f0e8; --faint: #ecebe3;
+    --ink: #13211a; --muted: #5c6a60; --dim: #636c65;
+    --line: #d4ded5; --hair: #e3e8e2;
+    --pitch: #15924c; --pitch-dark: #0e5c34; --pitch-ink: #0e5c34; --pitch-hover: #12773f;
+    --amber: #e4922b; --amber-ink: #8a5a0f; --loss: #c8453c; --loss-deep: #b23a32;
+    --disp: "Rubik", system-ui, "Segoe UI", sans-serif;
+    --body: "Inter", system-ui, "Segoe UI", sans-serif;
+    --mono: "Recursive", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #131417; --panel: #1c1e22; --chalk: #26282e; --faint: #191b1f;
+      --ink: #eceef1; --muted: #a4a9b0; --dim: #848b92;
+      --line: #33363d; --hair: #2a2d33;
+      --pitch: #22a35d; --pitch-dark: #17492f; --pitch-ink: #22a35d;
+      --amber: #eea23a; --amber-ink: #eea23a; --loss: #e86b5b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #131417; --panel: #1c1e22; --chalk: #26282e; --faint: #191b1f;
+    --ink: #eceef1; --muted: #a4a9b0; --dim: #848b92;
+    --line: #33363d; --hair: #2a2d33;
+    --pitch: #22a35d; --pitch-dark: #17492f; --pitch-ink: #22a35d;
+    --amber: #eea23a; --amber-ink: #eea23a; --loss: #e86b5b;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink);
+         font-family: var(--body); font-size: 15px; line-height: 1.55;
+         -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 28px 16px 90px; }
+
+  h1 { font-family: var(--disp); font-size: 30px; font-weight: 700; letter-spacing: -0.01em;
+       margin: 0 0 6px; line-height: 1.1; }
+  h2 { font-family: var(--disp); font-size: 20px; font-weight: 700; letter-spacing: -0.01em;
+       margin: 48px 0 4px; line-height: 1.2; }
+  h2 .num { font-family: var(--mono); font-size: 13px; color: var(--pitch-ink); margin-right: 8px; }
+  h3.sub { font-family: var(--disp); font-size: 15px; font-weight: 700; margin: 24px 0 8px; }
+  .lede { color: var(--muted); font-size: 14px; max-width: 76ch; margin: 0 0 14px; }
+  .pitchline { font-size: 14.5px; margin: 0 0 16px; max-width: 76ch; }
+  code { font-family: var(--mono); font-size: 0.9em; }
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+            flex-wrap: wrap; margin-bottom: 20px; }
+  .themebtn { font-family: var(--disp); font-size: 12px; font-weight: 700; cursor: pointer;
+              border: 1px solid var(--ink); background: var(--panel); color: var(--ink);
+              border-radius: 5px; padding: 7px 12px; }
+
+  /* the app screen */
+  .frame { border: 1px solid var(--line); border-radius: 8px; background: var(--ground);
+           overflow: hidden; box-shadow: 6px 6px 0 var(--pitch-dark); }
+  .frame.plain { box-shadow: none; }
+  .mast { display: flex; align-items: center; gap: 14px; height: 45px; padding: 0 16px;
+          border-bottom: 1px solid var(--line); }
+  .crest { width: 24px; height: 24px; border-radius: 5px; background: var(--pitch-dark);
+           display: grid; place-items: center; color: var(--amber); font-size: 13px; }
+  .word { font-family: var(--disp); font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+  .word i { color: var(--pitch-ink); font-style: normal; }
+  .tabs { display: flex; gap: 14px; margin-left: 10px; }
+  .tab { font-family: var(--disp); font-size: 12.5px; font-weight: 600; color: var(--muted);
+         position: relative; padding-bottom: 2px; }
+  .tab.on { color: var(--ink); }
+  .tab.on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -12px;
+                   height: 2px; background: var(--pitch-ink); }
+  .mastend { margin-left: auto; }
+  .page { padding: 20px 18px 26px; }
+
+  /* atoms */
+  .h1 { font-family: var(--disp); font-size: 28px; font-weight: 700; letter-spacing: -0.01em;
+        line-height: 1; margin: 0; }
+  .titlerow { display: flex; align-items: flex-end; justify-content: space-between;
+              gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+  .who { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+  .who b { color: var(--ink); }
+  .card { border: 1px solid var(--line); border-radius: 6px; background: var(--panel);
+          box-shadow: 4px 4px 0 var(--pitch-dark); padding: 14px; }
+  .card.tight { padding: 4px 14px; }
+  .card.alert { border-color: var(--pitch-dark); }
+  .cap { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--muted); }
+  .note { font-size: 12.5px; color: var(--muted); line-height: 1.45; margin: 6px 0 0; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+         border-radius: 5px; border: 1px solid; font-family: var(--disp); font-weight: 700;
+         padding: 11px 18px; font-size: 13px; cursor: pointer; }
+  .btn.sm { padding: 5px 10px; font-size: 11px; }
+  .pri { border-color: var(--pitch-dark); background: var(--pitch-dark); color: #fff; }
+  .sec { border-color: var(--ink); background: var(--panel); color: var(--ink); }
+  .btn[disabled] { opacity: .5; }
+  .chip { border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+          border-radius: 5px; padding: 6px 12px; font-family: var(--mono); font-size: 12px;
+          font-weight: 700; cursor: pointer; }
+  .chip.on { border-color: var(--pitch-dark); background: var(--pitch-dark); color: #fff; }
+  .mono { font-family: var(--mono); }
+  .code { font-family: var(--mono); font-size: 11px; font-weight: 500;
+          letter-spacing: 0.1em; color: var(--dim); }
+  .grow { min-width: 0; flex: 1; }
+
+  /* THE TWO COLUMNS, and the one breakpoint. Below 760px it is one column in option 1's
+     order, which is correction (a): start, join, lobby, waiting, results. Pure `order` on
+     the grid children, so nothing is duplicated and nothing moves between sections. */
+  .twocol { display: grid; gap: 20px; align-items: start; margin-top: 18px; }
+  @media (min-width: 760px) {
+    .twocol { grid-template-columns: 1.15fr 1fr; }
+    /* Each section is one element now, so the gap between them belongs to the wrapper: the
+       heading's own top margin is zeroed by `.sect:first-child`. Stacked, the grid's gap
+       does this instead, which is why it is inside the breakpoint. */
+    .doing > div + div, .happening > div + div { margin-top: 22px; }
+  }
+  @media (max-width: 759px) {
+    .twocol > .doing { display: contents; }
+    .twocol > .happening { display: contents; }
+    .twocol .s-start { order: 1; } .twocol .s-join { order: 2; }
+    .twocol .s-lobby { order: 3; } .twocol .s-waiting { order: 4; }
+    .twocol .s-results { order: 5; }
+  }
+
+  /* a list row: title+sub, then the seats, then the action. Three columns that line up
+     down the list, which is correction (b). */
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
+         border-bottom: 1px solid var(--hair); padding: 10px 0; }
+  .row:last-of-type { border-bottom: 0; }
+  .rowtitle { font-size: 13.5px; font-weight: 700; }
+  .rowsub { font-size: 12px; color: var(--muted); }
+  .rowsub.alert { color: var(--pitch-ink); font-weight: 600; }
+  .rowact { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+
+  /* seat bubbles: a person, a practice opponent, a free chair. Right-aligned in a fixed
+     slot so every button in the list starts at the same x. */
+  .pips { display: inline-flex; gap: 3px; justify-content: flex-end; min-width: 93px; }
+  .pips i { width: 9px; height: 9px; border-radius: 50%; display: block;
+            background: var(--pitch-ink); }
+  .pips i.bot { background: var(--muted); }
+  .pips i.free { background: transparent; border: 1.5px solid var(--line); }
+  .pips.narrow { min-width: 0; }
+
+  /* section headings: the guidance the page is missing today */
+  .sect { display: flex; align-items: baseline; gap: 10px; margin: 22px 0 10px;
+          border-bottom: 2px solid var(--ink); padding-bottom: 6px; }
+  .sect:first-child { margin-top: 0; }
+  .sect h3 { font-family: var(--disp); font-size: 17px; font-weight: 700; margin: 0;
+             letter-spacing: -0.01em; }
+  .sect .count { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--muted); }
+  .sect .end { margin-left: auto; }
+
+  .live { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono);
+          font-size: 10.5px; font-weight: 700; color: var(--pitch-ink); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pitch);
+         animation: pulse 2.4s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(21,146,76,.5); }
+                     70% { box-shadow: 0 0 0 7px rgba(21,146,76,0); }
+                     100% { box-shadow: 0 0 0 0 rgba(21,146,76,0); } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+  .iconbtn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line);
+             background: var(--panel); color: var(--ink); border-radius: 5px; padding: 5px 9px;
+             font-family: var(--disp); font-size: 11px; font-weight: 700; cursor: pointer; }
+  .iconbtn svg { width: 12px; height: 12px; }
+  .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px;
+           height: 18px; padding: 0 5px; border-radius: 9px; background: var(--pitch-dark);
+           color: #fff; font-family: var(--mono); font-size: 10.5px; font-weight: 700; }
+
+  /* the two big choices */
+  .bigchoice { display: grid; gap: 10px; }
+  @media (min-width: 620px) { .bigchoice.two { grid-template-columns: 1fr 1fr; } }
+  .bigchoice button { text-align: left; border: 1px solid var(--line); background: var(--panel);
+                      border-radius: 6px; padding: 13px; cursor: pointer; color: var(--ink);
+                      font-family: var(--body); }
+  .bigchoice button.on { border-color: var(--pitch-dark);
+                         box-shadow: inset 0 0 0 1px var(--pitch-dark); }
+  .bigchoice b { font-family: var(--disp); font-size: 14.5px; font-weight: 700; display: block; }
+  .bigchoice span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+
+  /* the accordions */
+  .acc { border-top: 1px solid var(--hair); }
+  .acc:last-of-type { border-bottom: 1px solid var(--hair); }
+  .acchead { display: flex; align-items: center; gap: 8px; padding: 11px 0; cursor: pointer;
+             width: 100%; background: none; border: 0; color: var(--ink); text-align: left; }
+  .acchead b { font-family: var(--disp); font-size: 13.5px; font-weight: 700; }
+  .acchead .ans { margin-left: auto; font-family: var(--mono); font-size: 12px;
+                  color: var(--muted); }
+  .acchead svg { width: 13px; height: 13px; flex: none; }
+  .acchead.open svg { transform: rotate(180deg); }
+  /* A picture of a shut accordion, in the comparison pairs: it must not answer a
+     click by turning its chevron and doing nothing else. */
+  .acchead.static { cursor: default; }
+  .accbody { padding: 0 0 14px; }
+  .accbody .cap { display: block; margin-bottom: 6px; }
+  .accbody .cap + .chips { margin-bottom: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips + .note { margin-bottom: 12px; }
+
+  .codefield { font-family: var(--mono); font-size: 15px; font-weight: 700;
+               letter-spacing: 0.25em; text-align: center; border: 1px solid var(--line);
+               background: var(--ground); border-radius: 5px; padding: 10px; color: var(--ink);
+               min-width: 0; }
+
+  /* the phone */
+  .phonewrap { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 375px; max-width: 100%; border: 1px solid var(--line); border-radius: 10px;
+           background: var(--ground); overflow: hidden; box-shadow: 6px 6px 0 var(--pitch-dark); }
+  .phone .mast { height: 42px; padding: 0 12px; gap: 8px; }
+  .phone .tabs { display: none; }
+  .phone .page { padding: 14px 12px 20px; }
+  .phone .h1 { font-size: 24px; }
+  .phone .sect h3 { font-size: 15.5px; }
+  .phone .bigchoice { grid-template-columns: 1fr; }
+  .phonebar { display: flex; height: 52px; border-top: 1px solid var(--line);
+              background: var(--panel); }
+  .phonebar span { flex: 1; display: grid; place-items: center; font-family: var(--disp);
+                   font-size: 9.5px; font-weight: 600; color: var(--muted); gap: 2px; }
+  .phonebar span.on { color: var(--pitch-ink); }
+  .phonebar em { font-style: normal; font-size: 13px; }
+  .phonenote { flex: 1; min-width: 260px; font-size: 13.5px; }
+  .phonenote ol { padding-left: 20px; margin: 8px 0; }
+  .phonenote li { margin-bottom: 5px; }
+
+  /* anatomy */
+  .anat { border: 1px dashed var(--line); border-radius: 6px; padding: 14px; background: var(--faint); }
+  .anat .card { box-shadow: none; }
+  .callout { display: flex; gap: 10px; font-size: 12.5px; color: var(--muted); margin-top: 10px;
+             flex-wrap: wrap; }
+  .callout b { font-family: var(--mono); font-size: 10.5px; color: var(--pitch-ink);
+               display: block; }
+  .callout > div { flex: 1; min-width: 150px; }
+
+  /* state gallery */
+  .gallery { display: grid; gap: 18px; }
+  @media (min-width: 820px) { .gallery { grid-template-columns: 1fr 1fr; } }
+  .gallery > figure { margin: 0; }
+  .gallery figcaption { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .gallery figcaption b { color: var(--ink); font-family: var(--disp); font-size: 13.5px; }
+
+  /* copy table */
+  table.copy { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0 4px; }
+  table.copy th, table.copy td { border-bottom: 1px solid var(--hair); padding: 7px 8px;
+       text-align: left; vertical-align: top; }
+  table.copy th { font-family: var(--mono); font-size: 10.5px; font-weight: 700; color: var(--muted); }
+  table.copy td.k { color: var(--muted); width: 190px; }
+  table.copy td.v { font-family: var(--body); }
+  .tabwrap { overflow-x: auto; }
+
+  .verdict { margin: 12px 0 0; padding: 0; list-style: none; font-size: 13.5px; }
+  .verdict li { position: relative; padding-left: 20px; margin-bottom: 5px; }
+  .verdict li::before { position: absolute; left: 0; font-family: var(--mono);
+                        font-size: 11px; font-weight: 700; }
+  .verdict li.good::before { content: "+"; color: var(--pitch-ink); }
+  .verdict li.cost::before { content: "-"; color: var(--loss); }
+  .verdict li.note::before { content: "?"; color: var(--muted); }
+  .flag { border-left: 3px solid var(--amber); background: var(--faint); padding: 10px 14px;
+          border-radius: 0 6px 6px 0; font-size: 13.5px; margin: 12px 0; }
+  .flag b { font-family: var(--disp); }
+  .foot { margin-top: 56px; border-top: 1px solid var(--line); padding-top: 14px;
+          font-size: 12.5px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+
+  <div class="topbar">
+    <div>
+      <h1>Versus: act on the left, watch on the right</h1>
+      <p class="lede">Option 2 of the five, elaborated. Two columns that never swap:
+      everything you <i>do</i> is on the left, everything that is <i>happening</i> is on the
+      right, so your own history can never push the form below the fold however long it
+      gets. Seven chip rows become two big choices and three named accordions, each showing
+      its own answer while it is shut.</p>
+    </div>
+    <button class="themebtn" onclick="tog()">Light / dark</button>
+  </div>
+
+  <div class="flag"><b>Three corrections from the sketch.</b>
+    <b style="display:block;margin-top:6px">a.</b> On a phone it uses option 1's order, not
+    a hoisted alert: start, join, lobby, waiting, results. The chrome already carries a duel
+    strip on every screen in the game, so the page does not have to shout as well.
+    <b style="display:block;margin-top:6px">b.</b> The seat bubbles sit between the room title
+    and the button, which gives the list three columns of matching width instead of a
+    different shape at the start of every row.
+    <b style="display:block;margin-top:6px">c.</b> A played match carries no room code. A code
+    is how you reach a room, and a finished one is not going anywhere.
+  </div>
+
+  <!-- ===================================================== 1. THE PAGE -->
+  <h2><span class="num">1</span>The page</h2>
+  <p class="pitchline">Default state: a challenge in your own time, one match waiting to be
+  watched, two rooms open. Everything you can act on is above the fold on any laptop.</p>
+
+  <div class="frame">
+    <div class="mast">
+      <div class="crest">&#9733;</div><div class="word">Mondial<i>ino</i></div>
+      <div class="tabs"><span class="tab">Play</span><span class="tab">Career</span>
+        <span class="tab">Album</span><span class="tab">Records</span><span class="tab">Squads</span>
+        <span class="tab on">Versus</span></div>
+      <div class="mastend cap">Settings</div>
+    </div>
+    <div class="page">
+      <div class="titlerow">
+        <div class="h1">Play somebody</div>
+        <div class="who"><b>Mario</b> 4 won, 2 lost
+          <button class="btn sec sm">Change name</button></div>
+      </div>
+
+      <div class="twocol">
+
+        <!-- LEFT: what you do -->
+        <div class="doing">
+          <div class="s-start">
+          <div class="sect"><h3>Start a match</h3></div>
+          <div class="card">
+            <div class="bigchoice two">
+              <button class="on"><b>In your own time</b>
+                <span>Challenge one person by link. Neither of you has to be here.</span></button>
+              <button><b>Together, now</b>
+                <span>Two to eight people in the room at once, on a clock.</span></button>
+            </div>
+
+            <div style="margin-top:12px">
+              <div class="acc"><button class="acchead"><b>How you get your players</b>
+                <span class="ans">Roll, 3 re-rolls</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+                  <path d="M6 9l6 6 6-6"/></svg></button>
+                <div class="accbody">
+                  <div class="bigchoice two" style="margin-bottom:12px">
+                    <button class="on"><b>Roll for them</b>
+                      <span>Random squads, one man from each.</span></button>
+                    <button><b>Buy them</b>
+                      <span>Shop the whole dataset within a budget.</span></button>
+                  </div>
+                  <span class="cap">Re-rolls each</span>
+                  <div class="chips"><span class="chip">None</span>
+                    <span class="chip on">Three</span><span class="chip">Six</span></div>
+                  <p class="note">Enough to refuse a squad with nobody you need.</p>
+                </div>
+              </div>
+              <div class="acc"><button class="acchead"><b>House rules</b>
+                <span class="ans">Ratings on</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+                  <path d="M6 9l6 6 6-6"/></svg></button>
+                <div class="accbody">
+                  <span class="cap">The numbers</span>
+                  <div class="chips"><span class="chip on">Ratings on</span>
+                    <span class="chip">Ratings hidden</span></div>
+                  <p class="note">Hidden means you pick on the name and the year. They come
+                    back at the whistle.</p>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn pri" style="width:100%;margin-top:14px">Send a challenge</button>
+            <p class="note">You get a link to send. Whoever opens it takes it on.</p>
+          </div>
+          </div>
+
+          <div class="s-join">
+          <div class="sect"><h3>Join with a code</h3></div>
+          <div class="card" style="display:flex;gap:10px;align-items:center">
+            <input class="codefield" placeholder="ABC234" style="flex:1">
+            <button class="btn sec" disabled>Go</button>
+          </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: what is happening -->
+        <div class="happening">
+          <div class="s-waiting">
+          <div class="sect"><h3>Waiting on you</h3><span class="badge end">1</span></div>
+          <div class="card alert">
+            <div class="row">
+              <div class="grow">
+                <div class="rowtitle">Anna <span class="code">7PB9RD</span></div>
+                <div class="rowsub alert">The match has been played</div>
+              </div>
+              <div class="rowact"><button class="btn pri sm">Watch it</button></div>
+            </div>
+            <div class="row">
+              <div class="grow">
+                <div class="rowtitle">Tom <span class="code">M8XV2C</span></div>
+                <div class="rowsub alert">Your move, 6 of 11 picked</div>
+              </div>
+              <div class="rowact"><button class="btn pri sm">Carry on</button></div>
+            </div>
+          </div>
+          </div>
+
+          <div class="s-lobby">
+          <div class="sect"><h3>Rooms open now</h3>
+            <span class="live"><span class="dot"></span>2 free</span>
+            <span class="end"><button class="iconbtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                <path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+              Refresh</button></span></div>
+          <div class="card tight">
+            <div class="row">
+              <div class="grow"><div class="rowtitle">Anna's room <span class="code">R7QK2M</span></div>
+                <div class="rowsub">Roll, 3 re-rolls, 20s a pick</div></div>
+              <div class="rowact">
+                <span class="pips" title="2 of 4 seats taken"><i></i><i></i>
+                  <i class="free"></i><i class="free"></i></span>
+                <button class="btn pri sm">Sit</button></div>
+            </div>
+            <div class="row">
+              <div class="grow"><div class="rowtitle">Tom's room <span class="code">L9XB4P</span></div>
+                <div class="rowsub">Buy an XI with $150, 5 min to draft</div></div>
+              <div class="rowact">
+                <span class="pips" title="3 people, 2 practice opponents, 3 seats free">
+                  <i></i><i></i><i></i><i class="bot"></i><i class="bot"></i>
+                  <i class="free"></i><i class="free"></i><i class="free"></i></span>
+                <button class="btn pri sm">Sit</button></div>
+            </div>
+            <div class="row">
+              <div class="grow"><div class="rowtitle">Somebody <span class="code">V3KD8T</span></div>
+                <div class="rowsub">Roll, ratings hidden, 30s a pick</div></div>
+              <div class="rowact">
+                <span class="pips" title="Full"><i></i><i></i></span>
+                <button class="btn sec sm" disabled>Full</button></div>
+            </div>
+            <p class="note" style="margin:2px 0 10px">Looked 4 seconds ago, and again every 10.</p>
+          </div>
+          </div>
+
+          <div class="s-results">
+          <div class="sect"><h3>Your results</h3><span class="count">4</span></div>
+          <div class="card">
+            <div class="row"><div class="grow">
+                <div class="rowtitle">Tom</div>
+                <div class="rowsub">You won 2-1 &middot; 3 days ago</div></div>
+              <div class="rowact"><button class="btn sec sm">See it</button></div></div>
+            <div class="row"><div class="grow">
+                <div class="rowtitle">Anna</div>
+                <div class="rowsub">You lost 0-3 &middot; last week</div></div>
+              <div class="rowact"><button class="btn sec sm">See it</button></div></div>
+            <div class="row"><div class="grow">
+                <div class="rowtitle">Anna</div>
+                <div class="rowsub">They walked away, you win &middot; last week</div></div>
+              <div class="rowact"><button class="btn sec sm">See it</button></div></div>
+            <p class="note" style="margin-top:8px"><a href="#" style="color:var(--pitch-ink)">
+              All 4 results</a></p>
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ul class="verdict">
+    <li class="good">Four paragraphs on the whole page, against today's fourteen. The
+      hundred-word introduction goes to the empty state, where somebody who has never played
+      one is actually looking.</li>
+    <li class="good">Both columns start at the same height, so the lobby is visible from the
+      first paint whether or not you have any history.</li>
+    <li class="note">The left column is the taller one once an accordion opens, which is
+      fine: it grows downwards into its own column and the lobby does not move.</li>
+  </ul>
+
+  <!-- ===================================================== 2. THE ACCORDIONS -->
+  <h2><span class="num">2</span>The accordions, and what is inside each</h2>
+  <p class="pitchline">Three, never more, and which three depends on the pace, which is the
+  field dependency doing the work. A challenge gets two; a live room gets three. Each one
+  shows its own answer on the right while it is shut, so nothing is hidden, only folded.
+  They open independently: shutting one somebody deliberately opened reads as a fight.</p>
+
+  <div class="gallery">
+    <figure>
+      <figcaption><b>Who is playing</b> &middot; live rooms only, absent from a challenge</figcaption>
+      <div class="frame plain"><div class="page" style="padding:14px">
+        <div class="card">
+          <div class="acc"><button class="acchead open"><b>Who is playing</b>
+            <span class="ans">4 people, friends only</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+              <path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="accbody">
+              <span class="cap">How many of you</span>
+              <div class="chips"><span class="chip">Two</span><span class="chip on">Four</span>
+                <span class="chip">Eight</span></div>
+              <p class="note">Four is two rounds: a semi-final and a final.</p>
+              <span class="cap" style="margin-top:12px">Who can join</span>
+              <div class="chips"><span class="chip on">Just my friends</span>
+                <span class="chip">Anybody</span></div>
+              <p class="note">Code only. Nobody can find it, or even confirm it exists.</p>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure>
+      <figcaption><b>How you get your players</b> &middot; always</figcaption>
+      <div class="frame plain"><div class="page" style="padding:14px">
+        <div class="card">
+          <div class="acc"><button class="acchead open"><b>How you get your players</b>
+            <span class="ans">Roll, 3 re-rolls</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+              <path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="accbody">
+              <div class="bigchoice two" style="margin-bottom:12px">
+                <button class="on"><b>Roll for them</b>
+                  <span>Random squads, one man from each.</span></button>
+                <button><b>Buy them</b>
+                  <span>Shop the whole dataset within a budget.</span></button>
+              </div>
+              <span class="cap">Re-rolls each</span>
+              <div class="chips"><span class="chip">None</span><span class="chip on">Three</span>
+                <span class="chip">Six</span></div>
+              <p class="note">Enough to refuse a squad with nobody you need.</p>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure>
+      <figcaption><b>The same, buying</b> &middot; the re-roll row is replaced, not added to</figcaption>
+      <div class="frame plain"><div class="page" style="padding:14px">
+        <div class="card">
+          <div class="acc"><button class="acchead open"><b>How you get your players</b>
+            <span class="ans">Buy, $125 each</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+              <path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="accbody">
+              <div class="bigchoice two" style="margin-bottom:12px">
+                <button><b>Roll for them</b>
+                  <span>Random squads, one man from each.</span></button>
+                <button class="on"><b>Buy them</b>
+                  <span>Shop the whole dataset within a budget.</span></button>
+              </div>
+              <span class="cap">How much each</span>
+              <div class="chips"><span class="chip">$100</span><span class="chip on">$125</span>
+                <span class="chip">$150</span><span class="chip">$175</span>
+                <span class="chip">$200</span></div>
+              <p class="note">About 85 across the team. Room for a name or two, and the rest
+                is judgement.</p>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure>
+      <figcaption><b>House rules</b> &middot; holds whatever this room can actually have</figcaption>
+      <div class="frame plain"><div class="page" style="padding:14px">
+        <div class="card">
+          <div class="acc"><button class="acchead open"><b>House rules</b>
+            <span class="ans">Ratings on, 20s a pick</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+              <path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="accbody">
+              <span class="cap">The numbers</span>
+              <div class="chips"><span class="chip on">Ratings on</span>
+                <span class="chip">Ratings hidden</span></div>
+              <p class="note">Hidden means you pick on the name and the year. They come back
+                at the whistle. A house rule, not a lock: the Squads tab shows every rating.</p>
+              <span class="cap" style="margin-top:12px">How long a pick gets</span>
+              <div class="chips"><span class="chip on">20 seconds</span>
+                <span class="chip">30 seconds</span></div>
+              <p class="note">Fast. Decide on instinct and keep the room moving.</p>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </figure>
+  </div>
+
+  <div class="tabwrap">
+  <table class="copy">
+    <tr><th>Accordion</th><th>In a challenge</th><th>In a live room, rolling</th>
+      <th>In a live room, buying</th></tr>
+    <tr><td class="k">Who is playing</td><td>absent</td>
+      <td class="v">How many, who can join</td><td class="v">How many, who can join</td></tr>
+    <tr><td class="k">How you get your players</td>
+      <td class="v">Roll or buy, then re-rolls or budget</td>
+      <td class="v">same</td><td class="v">same</td></tr>
+    <tr><td class="k">House rules</td><td class="v">The numbers</td>
+      <td class="v">The numbers, how long a pick gets</td>
+      <td class="v">How long the whole draft gets</td></tr>
+  </table>
+  </div>
+  <p class="note">Buying hides the ratings switch entirely, because a price is computed
+  straight from the rating it would be hiding, so the switch would hide nothing. That is the
+  rule the room already enforces; the form simply stops offering it.</p>
+
+  <!-- ===================================================== 3. LIVE -->
+  <h2><span class="num">3</span>The live room, shut</h2>
+  <p class="pitchline">Choosing "Together, now" adds one accordion and changes what is inside
+  another. Nothing else on the page moves, and the button changes its word.</p>
+
+  <div class="gallery">
+    <figure>
+      <figcaption><b>A challenge.</b> Two accordions.</figcaption>
+      <div class="frame plain"><div class="page" style="padding:14px">
+        <div class="card">
+          <div class="bigchoice"><button class="on"><b>In your own time</b>
+            <span>Challenge one person by link.</span></button></div>
+          <div style="margin-top:12px">
+            <div class="acc"><button class="acchead static"><b>How you get your players</b>
+              <span class="ans">Roll, 3 re-rolls</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+                <path d="M6 9l6 6 6-6"/></svg></button></div>
+            <div class="acc"><button class="acchead static"><b>House rules</b>
+              <span class="ans">Ratings on</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+                <path d="M6 9l6 6 6-6"/></svg></button></div>
+          </div>
+          <button class="btn pri" style="width:100%;margin-top:14px">Send a challenge</button>
+        </div>
+      </div></div>
+    </figure>
+    <figure>
+      <figcaption><b>A live room.</b> Three, and the clock joins the house rules.</figcaption>
+      <div class="frame plain"><div class="page" style="padding:14px">
+        <div class="card">
+          <div class="bigchoice"><button class="on"><b>Together, now</b>
+            <span>Two to eight people at once, on a clock.</span></button></div>
+          <div style="margin-top:12px">
+            <div class="acc"><button class="acchead static"><b>Who is playing</b>
+              <span class="ans">4 people, friends only</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+                <path d="M6 9l6 6 6-6"/></svg></button></div>
+            <div class="acc"><button class="acchead static"><b>How you get your players</b>
+              <span class="ans">Roll, 3 re-rolls</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+                <path d="M6 9l6 6 6-6"/></svg></button></div>
+            <div class="acc"><button class="acchead static"><b>House rules</b>
+              <span class="ans">Ratings on, 20s a pick</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+                <path d="M6 9l6 6 6-6"/></svg></button></div>
+          </div>
+          <button class="btn pri" style="width:100%;margin-top:14px">Open a room</button>
+        </div>
+      </div></div>
+    </figure>
+  </div>
+
+  <!-- ===================================================== 4. THE ROW -->
+  <h2><span class="num">4</span>The lobby row</h2>
+  <p class="pitchline">Three columns, in this order: who and what, then the seats, then the
+  way in. The seats end at the same x on every row and the buttons start at the same x, so
+  the eye runs straight down the column rather than hunting along each line. That is
+  correction (b), and it is the whole of why the list stops feeling noisy.</p>
+
+  <div class="anat">
+    <div class="card">
+      <div class="row">
+        <div class="grow"><div class="rowtitle">Anna's room <span class="code">R7QK2M</span></div>
+          <div class="rowsub">Roll, 3 re-rolls, 20s a pick</div></div>
+        <div class="rowact">
+          <span class="pips"><i></i><i></i><i class="free"></i><i class="free"></i></span>
+          <button class="btn pri sm">Sit</button></div>
+      </div>
+      <div class="row">
+        <div class="grow"><div class="rowtitle">Tom's room <span class="code">L9XB4P</span></div>
+          <div class="rowsub">Buy an XI with $150, 5 min to draft</div></div>
+        <div class="rowact">
+          <span class="pips"><i></i><i></i><i></i><i class="bot"></i><i class="bot"></i>
+            <i class="free"></i><i class="free"></i><i class="free"></i></span>
+          <button class="btn pri sm">Sit</button></div>
+      </div>
+    </div>
+    <div class="callout">
+      <div><b>who and what</b>The host's name, the code because a public room's code is not a
+        secret and is what somebody reads out, and one line of what it plays.</div>
+      <div><b>the seats</b>A solid dot is a person, a grey dot a practice opponent, a hollow
+        one a free chair. Right-aligned in a fixed slot wide enough for eight.</div>
+      <div><b>the way in</b>Sit, or Full. One word, because the row has already said
+        everything the decision needs.</div>
+    </div>
+  </div>
+
+  <h3 class="sub">Every seat state, and what each says</h3>
+  <div class="card" style="max-width:560px">
+    <div class="row"><div class="grow"><div class="rowtitle">Two people, nobody yet</div>
+      <div class="rowsub">A duel-sized room, freshly opened</div></div>
+      <div class="rowact"><span class="pips"><i></i><i class="free"></i></span>
+        <button class="btn pri sm">Sit</button></div></div>
+    <div class="row"><div class="grow"><div class="rowtitle">Half a room of four</div>
+      <div class="rowsub">Two people in, two chairs free</div></div>
+      <div class="rowact"><span class="pips"><i></i><i></i><i class="free"></i>
+        <i class="free"></i></span><button class="btn pri sm">Sit</button></div></div>
+    <div class="row"><div class="grow"><div class="rowtitle">Padded out with practice opponents</div>
+      <div class="rowsub">Turning up takes a grey chair, never a person's</div></div>
+      <div class="rowact"><span class="pips"><i></i><i class="bot"></i><i class="bot"></i>
+        <i class="bot"></i></span><button class="btn pri sm">Sit</button></div></div>
+    <div class="row"><div class="grow"><div class="rowtitle">A full room of eight</div>
+      <div class="rowsub">Nothing to join, and it says so rather than offering</div></div>
+      <div class="rowact"><span class="pips"><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i></span><button class="btn sec sm" disabled>Full</button></div></div>
+  </div>
+  <p class="note" style="max-width:76ch">A practice opponent's chair is grey rather than
+  hollow because it is genuinely taken, and green rather than nothing because turning up
+  takes it: a newcomer displaces a bot rather than being refused. The count for anyone not
+  reading dots is the row's hover text and its accessible name, "3 people, 2 practice
+  opponents, 3 seats free".</p>
+
+  <!-- ===================================================== 5. THE PHONE -->
+  <h2><span class="num">5</span>The phone</h2>
+  <p class="pitchline">One column, in option 1's order. Nothing is duplicated and nothing
+  moves between sections: the two columns become five stacked sections in a fixed order,
+  which is four lines of CSS on the grid children.</p>
+
+  <div class="phonewrap">
+    <div class="phone">
+      <div class="mast">
+        <div class="crest">&#9733;</div><div class="word">Mondial<i>ino</i></div>
+        <div class="mastend cap">Settings</div>
+      </div>
+      <div class="page">
+        <div class="h1" style="margin-bottom:4px">Play somebody</div>
+        <div class="who" style="margin-bottom:6px"><b>Mario</b> 4 won, 2 lost
+          <button class="btn sec sm" style="margin-left:auto">Change name</button></div>
+
+        <div class="sect"><h3>Start a match</h3></div>
+        <div class="card">
+          <div class="bigchoice">
+            <button class="on"><b>In your own time</b>
+              <span>Challenge one person by link.</span></button>
+            <button><b>Together, now</b>
+              <span>Two to eight people at once, on a clock.</span></button>
+          </div>
+          <div style="margin-top:12px">
+            <div class="acc"><button class="acchead"><b>How you get your players</b>
+              <span class="ans">Roll, 3</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+                <path d="M6 9l6 6 6-6"/></svg></button></div>
+            <div class="acc"><button class="acchead static"><b>House rules</b>
+              <span class="ans">Ratings on</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="3">
+                <path d="M6 9l6 6 6-6"/></svg></button></div>
+          </div>
+          <button class="btn pri" style="width:100%;margin-top:14px">Send a challenge</button>
+        </div>
+
+        <div class="sect"><h3>Join with a code</h3></div>
+        <div class="card" style="display:flex;gap:8px">
+          <input class="codefield" placeholder="ABC234" style="flex:1">
+          <button class="btn sec" disabled>Go</button>
+        </div>
+
+        <div class="sect"><h3>Rooms open now</h3>
+          <span class="live"><span class="dot"></span>2</span>
+          <span class="end"><button class="iconbtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+              <path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+            Refresh</button></span></div>
+        <div class="card tight">
+          <div class="row"><div class="grow">
+              <div class="rowtitle">Anna's room <span class="code">R7QK2M</span></div>
+              <div class="rowsub">Roll, 20s a pick</div></div>
+            <div class="rowact"><span class="pips narrow"><i></i><i></i><i class="free"></i>
+              <i class="free"></i></span><button class="btn pri sm">Sit</button></div></div>
+          <div class="row"><div class="grow">
+              <div class="rowtitle">Tom's room <span class="code">L9XB4P</span></div>
+              <div class="rowsub">Buy, $150</div></div>
+            <div class="rowact"><span class="pips narrow"><i></i><i></i><i></i>
+              <i class="bot"></i><i class="bot"></i><i class="free"></i><i class="free"></i>
+              <i class="free"></i></span><button class="btn pri sm">Sit</button></div></div>
+        </div>
+
+        <div class="sect"><h3>Waiting on you</h3><span class="badge end">1</span></div>
+        <div class="card alert">
+          <div class="row"><div class="grow">
+              <div class="rowtitle">Anna <span class="code">7PB9RD</span></div>
+              <div class="rowsub alert">The match has been played</div></div>
+            <div class="rowact"><button class="btn pri sm">Watch it</button></div></div>
+        </div>
+
+        <div class="sect"><h3>Your results</h3><span class="count">4</span></div>
+        <div class="card">
+          <div class="row"><div class="grow"><div class="rowtitle">Tom</div>
+            <div class="rowsub">You won 2-1</div></div>
+            <div class="rowact"><button class="btn sec sm">See it</button></div></div>
+          <div class="row"><div class="grow"><div class="rowtitle">Anna</div>
+            <div class="rowsub">You lost 0-3</div></div>
+            <div class="rowact"><button class="btn sec sm">See it</button></div></div>
+          <p class="note" style="margin-top:8px"><a href="#" style="color:var(--pitch-ink)">
+            All 4 results</a></p>
+        </div>
+      </div>
+      <div class="phonebar">
+        <span><em>&#9917;</em>Play</span><span><em>&#9733;</em>Career</span>
+        <span><em>&#9635;</em>Album</span><span><em>&#9819;</em>Records</span>
+        <span><em>&#9873;</em>Squads</span><span class="on"><em>&#9876;</em>Versus</span>
+      </div>
+    </div>
+
+    <div class="phonenote">
+      <b style="font-family:var(--disp);font-size:14px">The order, and why</b>
+      <ol>
+        <li><b>Start a match.</b> The thing the page is for.</li>
+        <li><b>Join with a code.</b> Beside it, because it is the same intention arriving
+          from the other direction.</li>
+        <li><b>Rooms open now.</b> The half of the mode that depends on other people, and the
+          one that goes stale, so it wants to be seen.</li>
+        <li><b>Waiting on you.</b> Below the lobby rather than above it, which is the
+          correction: the chrome carries a duel strip on every screen in the game, so
+          somebody with a match waiting has already been told before they got here.</li>
+        <li><b>Your results.</b> Last. It is a record, and a record is something you go
+          looking for.</li>
+      </ol>
+      <p class="note">Two rows of the lobby and two of each list on a phone, with the rest
+      behind the "All 4 results" line. The seat bubbles keep their fixed slot but drop the
+      minimum width, so a room of eight wraps its button to a second line instead of
+      squeezing the name.</p>
+    </div>
+  </div>
+
+  <!-- ===================================================== 6. STATES -->
+  <h2><span class="num">6</span>The states, including the ones nobody draws</h2>
+
+  <div class="gallery">
+    <figure>
+      <figcaption><b>Nothing waiting.</b> The section is absent, not empty. An empty
+        "Waiting on you" is a promise of noise.</figcaption>
+      <div class="frame plain"><div class="page" style="padding:14px">
+        <div class="sect" style="margin-top:0"><h3>Rooms open now</h3>
+          <span class="live"><span class="dot"></span>1 free</span>
+          <span class="end"><button class="iconbtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+              <path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+            Refresh</button></span></div>
+        <div class="card tight">
+          <div class="row"><div class="grow">
+            <div class="rowtitle">Anna's room <span class="code">R7QK2M</span></div>
+            <div class="rowsub">Roll, 3 re-rolls, 20s a pick</div></div>
+            <div class="rowact"><span class="pips"><i></i><i></i><i class="free"></i>
+              <i class="free"></i></span><button class="btn pri sm">Sit</button></div></div>
+          <p class="note" style="margin:2px 0 10px">Looked 4 seconds ago, and again every 10.</p>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure>
+      <figcaption><b>An empty lobby</b>, which is most evenings. It says so in the room's own
+        voice and puts the answer beside it.</figcaption>
+      <div class="frame plain"><div class="page" style="padding:14px">
+        <div class="sect" style="margin-top:0"><h3>Rooms open now</h3>
+          <span class="count">none</span>
+          <span class="end"><button class="iconbtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+              <path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+            Refresh</button></span></div>
+        <div class="card">
+          <p class="note" style="margin-top:0">Nobody has a public room open just now. Open
+          one with "Anybody" and it appears here for everyone signed in, or send a challenge
+          and play it whenever you both get to it.</p>
+          <p class="note" style="color:var(--dim)">Looked 4 seconds ago, and again every 10.</p>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure>
+      <figcaption><b>First time here.</b> No results section at all, and the one paragraph
+        explaining what versus is lands where somebody will read it.</figcaption>
+      <div class="frame plain"><div class="page" style="padding:14px">
+        <div class="sect" style="margin-top:0"><h3>Start a match</h3></div>
+        <div class="card">
+          <p class="note" style="margin-top:0">An XI each out of all fifteen World Cups, then
+          one match. Your career, album and perks stay out of it: eleven players against
+          eleven.</p>
+          <div class="bigchoice two" style="margin-top:12px">
+            <button class="on"><b>In your own time</b>
+              <span>Challenge one person by link.</span></button>
+            <button><b>Together, now</b>
+              <span>Two to eight people at once, on a clock.</span></button>
+          </div>
+          <button class="btn pri" style="width:100%;margin-top:14px">Send a challenge</button>
+        </div>
+      </div></div>
+    </figure>
+
+    <figure>
+      <figcaption><b>Already in a room.</b> It takes the top of the right column, above
+        everything, because it is the one thing that is happening right now.</figcaption>
+      <div class="frame plain"><div class="page" style="padding:14px">
+        <div class="sect" style="margin-top:0"><h3>You are in a room</h3>
+          <span class="live end"><span class="dot"></span>live</span></div>
+        <div class="card alert" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
+          <div class="grow"><div class="rowtitle">Your room <span class="code">Q2WM7F</span></div>
+            <div class="rowsub">Waiting for two more, 2 of 4 in</div></div>
+          <button class="btn pri sm">Back to it</button>
+        </div>
+      </div></div>
+    </figure>
+  </div>
+
+  <!-- ===================================================== 7. COPY -->
+  <h2><span class="num">7</span>Every string on the page</h2>
+  <p class="pitchline">"Too much text" is a copy decision as much as a layout one, so here is
+  the whole of it. Fourteen paragraphs today, four here, and three of those four are only on
+  screen for somebody who has not played one yet.</p>
+
+  <div class="tabwrap">
+  <table class="copy">
+    <tr><th>Where</th><th>What it says</th><th>When</th></tr>
+    <tr><td class="k">Page title</td><td class="v">Play somebody</td><td class="v">always</td></tr>
+    <tr><td class="k">Beside it</td><td class="v">Mario &middot; 4 won, 2 lost &middot; Change name</td>
+      <td class="v">record half hidden until you have played one</td></tr>
+    <tr><td class="k">Section</td><td class="v">Start a match</td><td class="v">always</td></tr>
+    <tr><td class="k">Pace, left</td><td class="v"><b>In your own time.</b> Challenge one
+      person by link. Neither of you has to be here.</td><td class="v">always</td></tr>
+    <tr><td class="k">Pace, right</td><td class="v"><b>Together, now.</b> Two to eight people
+      in the room at once, on a clock.</td><td class="v">always</td></tr>
+    <tr><td class="k">First time only</td><td class="v">An XI each out of all fifteen World
+      Cups, then one match. Your career, album and perks stay out of it: eleven players
+      against eleven.</td><td class="v">no results yet</td></tr>
+    <tr><td class="k">Button</td><td class="v">Send a challenge / Open a room</td>
+      <td class="v">follows the pace</td></tr>
+    <tr><td class="k">Under the button</td><td class="v">You get a link to send. Whoever opens
+      it takes it on.</td><td class="v">challenge only</td></tr>
+    <tr><td class="k">Section</td><td class="v">Join with a code</td><td class="v">always</td></tr>
+    <tr><td class="k">Section</td><td class="v">Waiting on you</td>
+      <td class="v">only when something is</td></tr>
+    <tr><td class="k">Section</td><td class="v">Rooms open now &middot; N free &middot; Refresh</td>
+      <td class="v">always</td></tr>
+    <tr><td class="k">Under the lobby</td><td class="v">Looked 4 seconds ago, and again every 10.</td>
+      <td class="v">always</td></tr>
+    <tr><td class="k">Empty lobby</td><td class="v">Nobody has a public room open just now.
+      Open one with "Anybody" and it appears here for everyone signed in, or send a challenge
+      and play it whenever you both get to it.</td><td class="v">no rooms</td></tr>
+    <tr><td class="k">Section</td><td class="v">Your results &middot; N</td>
+      <td class="v">only when you have one</td></tr>
+  </table>
+  </div>
+
+  <p class="note" style="max-width:76ch">Everything else on the page is a label, a name, a
+  score or a setting's own one line inside its accordion, where it is read while the choice
+  is being made rather than as wallpaper above it.</p>
+
+  <!-- ===================================================== 8. BUILD -->
+  <h2><span class="num">8</span>What it costs, and one thing found on the way</h2>
+
+  <ul class="verdict">
+    <li class="good">No server work, no migration and no protocol change. Every setting still
+      reaches the same create call with the same values, and the lobby and duel reads are
+      untouched.</li>
+    <li class="good">The two lists and their copy helpers stay exactly as they are. What
+      changes is the page around them, the row's three columns, and dropping the code from a
+      finished one.</li>
+    <li class="note">The seat bubbles need the practice-opponent count, which the lobby row
+      already carries, and read as zero from an older server, which draws them as free
+      chairs. That is the correct fallback: a stranger's room with unknown chairs is a room
+      you can try to sit in.</li>
+    <li class="cost">Three accordions is three pieces of state and three sets of summary copy,
+      which is the real work: the summary has to stay true for every combination, since it is
+      the only thing standing between a folded setting and a hidden one.</li>
+  </ul>
+
+  <div class="flag"><b>A small bug the elaboration turned up, and it is not this one's to
+    fix.</b> The lobby row prints "20s a pick" for a room that buys, and a buying room has
+    run one clock over the whole draft since the whole-draft change: it does not hand out
+    per-pick windows at all. So a stranger reading the list is told the wrong clock, and the
+    right one cannot be printed because the public row does not carry it. The mock above
+    writes what it ought to say ("Buy an XI with $150, 5 min to draft"); making that true
+    needs the draft length added to the public row, which is one field on the wire and a
+    referee rebuild. Worth its own roadmap item rather than smuggling into this.</div>
+
+  <p class="foot">Mock only: no routes, no state, no live data. Drawn 2026-09-15 against
+  <code>src/components/versus/VersusHome.tsx</code>, elaborating option 2 of
+  <a href="versus-page-mock.html" style="color:var(--pitch-ink)">versus-page-mock.html</a>
+  with the owner's three corrections. Tokens and type are the shipped ones.</p>
+</div>
+
+<script>
+function tog(){
+  var r = document.documentElement;
+  var dark = r.getAttribute('data-theme') === 'dark'
+    || (!r.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+  var next = dark ? 'light' : 'dark';
+  r.setAttribute('data-theme', next);
+  try { localStorage.setItem('turf-flat-theme', next); } catch (e) {}
+}
+/* The accordions really open, so the folded-versus-hidden claim can be tested rather than
+   taken on trust. */
+document.querySelectorAll('.acchead:not(.static)').forEach(function (h) {
+  h.addEventListener('click', function () {
+    var body = h.parentElement.querySelector('.accbody');
+    h.classList.toggle('open');
+    if (body) body.hidden = !h.classList.contains('open');
+  });
+  var body = h.parentElement.querySelector('.accbody');
+  if (body && !h.classList.contains('open')) body.hidden = true;
+});
+</script>
