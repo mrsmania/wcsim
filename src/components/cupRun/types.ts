@@ -36,18 +36,23 @@ export const RARITY_COLOR: Record<Rarity, string> = {
 export const RARITY_STEP: Record<Rarity, number> = { common: 1, rare: 2, legendary: 3 };
 
 /**
- * How the boost library lists thirty-two cards: RAREST FIRST, then alphabetically.
+ * How the boost library lists thirty-two cards: COMMONEST FIRST, then alphabetically.
  *
  * It was in catalogue order, which is the order the cards were WRITTEN in - six on new
  * levers here, three payout cards there - and that is a fact about the file's history and
  * about nothing a player can see. So the shelf had no order at all: neither "what is this
  * worth" nor "where is the one I am looking for" could be answered by scanning it.
  *
- * Rarest first, because that is what the album already does (`STICKER_TIER_ORDER` runs
- * Monumental down) and a shelf of collectible things reading best-first is the one
- * convention this app has for the question. The name breaks every tie, so the position of
- * a card never depends on anything but the card - adding one to the catalogue cannot
- * shuffle the others, which is exactly what catalogue order did.
+ * It shipped RAREST first for a day, on the album's precedent (`STICKER_TIER_ORDER` runs
+ * Monumental down) and it is the owner's call that the album is the wrong precedent. The
+ * album is a shelf of what you HOLD, so the best of it belongs at the top; this is a SHOP,
+ * and the nine commons are what a fresh career already owns and what the cheap end of the
+ * Prestige curve reaches next. Reading up towards the legendaries is the shape of the
+ * progression, and the top of the page is no longer nine cards nobody can afford.
+ *
+ * The name breaks every tie, so the position of a card never depends on anything but the
+ * card - adding one to the catalogue cannot shuffle the others, which is exactly what
+ * catalogue order did.
  *
  * Plain `localeCompare` on the whole name, so "The Armband" files under T. Skipping a
  * leading "The" is a nicety that makes the rule harder to state than to follow.
@@ -56,7 +61,7 @@ export function byRarityThenName(
   a: { rarity: Rarity; name: string },
   b: { rarity: Rarity; name: string },
 ): number {
-  return RARITY_STEP[b.rarity] - RARITY_STEP[a.rarity] || a.name.localeCompare(b.name);
+  return RARITY_STEP[a.rarity] - RARITY_STEP[b.rarity] || a.name.localeCompare(b.name);
 }
 
 /**

@@ -233,7 +233,7 @@ export default function CareerHub({
 }) {
     // Derived once: the heading counts what a run would be offered, and each tile reads
     // its own price and state off the same answer.
-    // Rarest first, then by name. `BOONS` is readonly and `map` already hands back a
+    // Commonest first, then by name. `BOONS` is readonly and `map` already hands back a
     // fresh array, so the catalogue itself is never reordered.
     const boosts = BOONS.map((b) => ({ boon: b, ...boonUnlockState(career, b.id) })).sort(
         (x, y) => byRarityThenName(x.boon, y.boon),

@@ -359,15 +359,17 @@ export function oddsChecks(): void {
 
       // THE LIBRARY HAS AN ORDER, and it is not the catalogue's. Thirty-two cards were
       // listed in the order they were written, which is a fact about this file's history
-      // and about nothing a player can see. Rarest first, then by name - so a card's
-      // position depends on the card alone and adding one cannot shuffle the rest.
+      // and about nothing a player can see. Commonest first, then by name - so a card's
+      // position depends on the card alone and adding one cannot shuffle the rest. The
+      // direction is the owner's: this is a shop rather than the album's shelf of what you
+      // hold, so it reads up towards the legendaries from what a career already owns.
       {
         const sorted = [...BOONS].sort(byRarityThenName);
         const bad: string[] = [];
         for (let i = 1; i < sorted.length; i++) {
           const prev = sorted[i - 1]!;
           const here = sorted[i]!;
-          const step = RARITY_STEP[here.rarity] - RARITY_STEP[prev.rarity];
+          const step = RARITY_STEP[prev.rarity] - RARITY_STEP[here.rarity];
           if (step > 0) bad.push(`${here.name} (${here.rarity}) after ${prev.name} (${prev.rarity})`);
           else if (step === 0 && prev.name.localeCompare(here.name) > 0) {
             bad.push(`${here.name} after ${prev.name}`);
@@ -379,7 +381,7 @@ export function oddsChecks(): void {
         const rarities = new Set(BOONS.map((b) => b.rarity)).size;
         const ties = sorted.filter((b, i) => i > 0 && sorted[i - 1]!.rarity === b.rarity).length;
         check(
-          'odds: the boost library lists rarest first, then alphabetically, and the shop uses that order',
+          'odds: the boost library lists commonest first, then alphabetically, and the shop uses that order',
           () =>
             bad.length === 0 &&
             rarities === 3 &&
