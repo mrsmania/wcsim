@@ -83,6 +83,30 @@ export function StickerArt({
     );
 }
 
+/** The empty counterpart of `StickerArt`: the same box at the same aspect ratio, holding
+ *  a large "?" where the drawing goes.
+ *
+ *  IT EXISTS TO MAKE THE TWO CARDS THE SAME HEIGHT. An uncollected card used to render no
+ *  art block at all, so it stood about 190px shorter than its neighbours and the album's
+ *  grid came out ragged - rows of tall cards with stubby ones wedged among them, which
+ *  reads as a layout fault rather than as a collection with gaps in it. The aspect ratio
+ *  is computed from the same three constants `StickerArt` uses, so the two cannot drift:
+ *  change the crop and both boxes move together.
+ *
+ *  `bg-faint` is the app's "unearned surface" token, the one the honours ledger already
+ *  uses for an entry nobody has earned, so the slot reads as empty without being a hole. */
+function MissingArt({ className = '' }: { className?: string }) {
+    return (
+        <div
+            className={`grid w-full place-items-center overflow-hidden bg-faint ${className}`}
+            style={{ aspectRatio: `${ART_W} / ${ART_H * ART_VISIBLE_FRACTION}` }}
+            aria-hidden="true"
+        >
+            <span className="font-display text-[64px] font-bold leading-none text-dim/45">?</span>
+        </div>
+    );
+}
+
 interface Props {
     player: Player;
     tier: StickerTier;
@@ -132,9 +156,16 @@ export default function StickerCard({
                 ) : null}
             </div>
             <div className="flex flex-1 flex-col items-center gap-1.5 px-3 pb-3 pt-2 text-center">
-                {FEATURES.stickerImages && collected && (
-                    <StickerArt id={player.id} className="mb-1" />
-                )}
+                {FEATURES.stickerImages &&
+                    (collected ? (
+                        <StickerArt id={player.id} className="mb-1" />
+                    ) : (
+                        // Gated on the same flag as the real art rather than rendered
+                        // unconditionally: with the images off a collected card has no
+                        // picture, so an empty one with a box would be the TALLER of the
+                        // two and the raggedness would simply change sides.
+                        <MissingArt className="mb-1" />
+                    ))}
                 <Flag
                     code={code}
                     className={`h-5 w-[30px] ${collected ? '' : 'opacity-40 grayscale'}`}
@@ -151,32 +182,31 @@ export default function StickerCard({
                     {year ? ` · ${year}` : ''}
                 </div>
             </div>
+            {/* THE BAND IS THE TIER'S ON BOTH CARDS, and only the FIGURE is withheld.
+                It used to be unfilled with a bare "?" floating in it, which was a third
+                thing telling the reader something the big "?" above and the greyed flag
+                and name already say - and it left the one row that carries the tier's
+                colour missing from most of the album. "??" reads as a number that is
+                being kept from you, where "?" reads as a shrug. */}
             <div
                 className="flex items-baseline justify-center gap-1.5 px-2.5 py-1.5"
-                style={collected ? { background: meta.strip, color: meta.stripText } : undefined}
+                style={{ background: meta.strip, color: meta.stripText }}
             >
-                {collected ? (
-                    <>
-                        <span className="font-mono text-[22px] font-bold leading-none">
-                            {player.elo}
-                        </span>
-                        <span className="font-mono text-[8px] font-semibold opacity-80">
-                            Rating
-                        </span>
-                    </>
-                ) : (
-                    <span className="font-mono text-[22px] font-bold leading-none text-muted/50">
-                        ?
-                    </span>
-                )}
+                <span className="font-mono text-[22px] font-bold leading-none">
+                    {collected ? player.elo : '??'}
+                </span>
+                <span className="font-mono text-[8px] font-semibold opacity-80">Rating</span>
             </div>
         </>
     );
 
-    const base = 'flex flex-col overflow-hidden rounded-md border';
-    const cls = collected
-        ? `${base} border-line bg-panel shadow-hard`
-        : `${base} border-dashed border-line bg-ground/60`;
+    // ONE FRAME FOR BOTH STATES. The empty card used to wear a dashed border over
+    // `bg-ground/60` with no shadow, so a gap in the album read as a dotted outline of a
+    // card rather than as a card you have not filled - and against the tifo shadow on its
+    // neighbours it sat visually behind the grid. What says "not collected" is the
+    // content: the "?" where the picture goes, the "??" where the rating goes, the greyed
+    // flag and the quiet name.
+    const cls = 'flex flex-col overflow-hidden rounded-md border border-line bg-panel shadow-hard';
     const style: React.CSSProperties = {
         ...tierTopStrip(tier),
         ...(isNew ? { outline: '2px solid #e4922b', outlineOffset: '2px' } : {}),

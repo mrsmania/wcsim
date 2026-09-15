@@ -1788,7 +1788,8 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
 - **Album screen** (`AlbumScreen.tsx`, route **`/album`**, reached from the **Album
   tab**): completion counter + duplicate pool, tier sections (Monumental,
   Iconic, Legendary) of `StickerCard`s (collected = flag+name+rating+tier; uncollected =
-  silhouette with a `?`), a per-tier **Trade** action (`TradeModal`) when affordable,
+  the same card with the picture and the figure withheld, see below), a per-tier
+  **Trade** action (`TradeModal`) when affordable,
   a 100% completion state, and a **"Reset album"** footer button (inline confirm ->
   `onReset` -> `store.clearAlbum()`, which for a guest removes the album + stats keys;
   the in-memory album is cleared **only once that write resolves**). Reset touches only
@@ -1852,6 +1853,29 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   boost library's `RARITY_INK` was added to fix at 9px. A check asserts the album and the
   boost library name a rung in the same three ink tokens, so the two shelves stay one
   object rather than two files that currently agree.
+
+  **AN EMPTY SLOT IS THE SAME CARD WITH TWO THINGS WITHHELD** (2026-09-15, asked for).
+  It used to be a visibly lesser object: no art block at all, so it stood about 190px
+  SHORTER than its neighbours and a section came out ragged, with stubby cards wedged
+  among tall ones - which reads as a layout fault rather than as a collection with gaps
+  in it; plus a dashed border over `bg-ground/60` and no shadow, so against the tifo
+  shadow on the cards beside it the gap sat visually behind the grid. One frame now
+  (`border-line bg-panel shadow-hard`), and `MissingArt` fills the art block with a large
+  `?` on `bg-faint`, the app's unearned-SURFACE token. The rating band is the tier's on
+  both cards and only the FIGURE is held back, as **`??`** - "??" reads as a number being
+  kept from you where a lone "?" read as a shrug, and leaving the band unfilled had the
+  one row that carries the tier's colour missing from most of the album.
+  **Two couplings to keep.** `MissingArt` computes its box from the same `ART_W` /
+  `ART_H` / `ART_VISIBLE_FRACTION` that `StickerArt` does, so changing the crop moves
+  both and the heights cannot drift; and it is gated on **`FEATURES.stickerImages` like
+  the real art**, because with the images off a collected card has no picture, so an
+  empty one with a box would be the TALLER of the two and the raggedness would just
+  change sides.
+  **What still says "not collected"** is content rather than chrome: the `?`, the `??`,
+  the greyed flag, the quiet name and the `&#9671;` marker. **This is the album grid
+  ONLY** - the cup reward picker, the trade options, the run-end summary and the front
+  page's showcase all pass `collected`, since those are cards you are choosing between
+  and a `?` would hide the very thing you are choosing on.
 
   **Art pipeline:** originals (full-size PNG) live in **`art/stickers-src/`**, which is
   NOT under `public/` and so is never deployed; `python scripts/build-sticker-art.py`
