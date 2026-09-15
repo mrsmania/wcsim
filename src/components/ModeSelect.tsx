@@ -2,10 +2,13 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import type { Player } from '../data/types';
-import { FEATURES, STICKER_TIERS } from '../config';
+import { SQUADS, WORLD_CUP_YEARS } from '../data/squads';
+import { FEATURES } from '../config';
 import { collectibleCards } from '../domain/album';
+import { CHALLENGES } from '../domain/challenges';
+import { BOONS } from '../domain/boons';
 import StickerCard from './StickerCard';
-import { btn, PAGE_TOP } from './matchUi';
+import { btn, CARD_FLAT, PAGE_TOP } from './matchUi';
 
 /** The front page (route `/`): a marketing hero that sells the fantasy, then the
  *  "chase the legends" showcase. Two things and nothing else.
@@ -44,13 +47,82 @@ import { btn, PAGE_TOP } from './matchUi';
  *  two sections earlier; its figures were derived off `WORLD_CUP_YEARS` rather than
  *  typed, which was the right way to write a line that should not have been there.
  *  **Do not re-add either as "the page looks short".** What sells the game is the board
- *  and the shelf. */
+ *  and the shelf.
+ *
+ *  AND A THIRD SECTION CAME BACK ON 2026-09-15, WHICH IS NOT THAT NOTE BEING IGNORED
+ *  (owner's call, chosen from `docs/redesign-2026/turf-flat/home-options.html`, which
+ *  drew five whole pages for it). The page sold the run and the album and said nothing
+ *  at all about the career - no levels, no Prestige, no perks, no boosts, no honours -
+ *  so three of the game's six tabs were invisible from the screen that is meant to sell
+ *  it. That is a page which is INCOMPLETE, and the note above is about a page which is
+ *  SHORT: the three beats were deleted for restating the hero paragraph one size
+ *  smaller, and "One run feeds the next" says the one thing the hero cannot, which is
+ *  why you would play a second run. Read the two together before adding a fourth
+ *  section, because the bar the beats failed is the one that matters: does it say
+ *  something no other block on this page already says?
+ *
+ *  TWO THINGS ABOUT IT ARE RULES RATHER THAN TASTE. Every figure in the hero strip is
+ *  DERIVED (`WORLD_CUP_YEARS`, the dataset's own row count, `CHALLENGES`, `BOONS`) and
+ *  none is typed, because a front-page figure is exactly the kind that goes stale
+ *  quietly - the honours catalogue alone moved from 130 to 126 in three days, and
+ *  eleven comments went on saying 130. None of those four imports costs the bundle
+ *  anything: App reaches `domain/career.ts` eagerly through `useCareer`, and that pulls
+ *  both catalogues in already. And the loop's five boxes are `CARD_FLAT` with no
+ *  shadow, deliberately: the hero and the sticker cards both carry `shadow-hard` and
+ *  they are the two things this page is selling, so the band that EXPLAINS sits under
+ *  them rather than beside them. */
 interface Props {
     /** Where "Build your XI now" goes. */
     buildTo: string;
     /** The active squad pool, for the rarest-stickers showcase. */
     allPlayers: Player[];
 }
+
+/** The one line of figures the page states about the game's size, under the hero's
+ *  button. EVERY ONE IS DERIVED, and that is the whole point of the array: a typed 15 or
+ *  130 on the front page reads as current for ever and goes wrong the first time the
+ *  dataset or a catalogue moves, which both do regularly.
+ *
+ *  The player count walks the whole dataset rather than the pool the props carry: a
+ *  player who has narrowed their World Cups in settings has not made the game smaller,
+ *  and this line is the pitch for the game rather than a readout of their save.
+ *
+ *  The locale is NAMED rather than left to the browser, or the same figure renders
+ *  9,625 here and 9'625 on a Swiss machine, which is the app's one four-digit number and
+ *  so the one place that would ever show it. */
+const PLAYER_ROWS = SQUADS.reduce((n, s) => n + s.players.length, 0);
+
+const FACTS: { figure: string; label: string }[] = [
+    { figure: String(WORLD_CUP_YEARS.length), label: 'World Cups' },
+    { figure: PLAYER_ROWS.toLocaleString('en-GB'), label: 'players' },
+    { figure: String(CHALLENGES.length), label: 'honours' },
+    { figure: String(BOONS.length), label: 'boosts' },
+];
+
+/** "One run feeds the next": the loop, as five boxes. A label and one sentence each, no
+ *  sub-heading and no icon - the deleted three-beat block had an icon tile and a heading
+ *  above its line of grey text, and what killed it was saying the hero's own words
+ *  again rather than the furniture it said them in.
+ *
+ *  COLLECT is its own step rather than a clause inside EARN, which is why EARN's
+ *  sentence does not mention stickers: the album is the one thing here with a whole
+ *  section of its own directly below, so the box is what hands the reader on to it. */
+const STEPS: { name: string; text: string }[] = [
+    {
+        name: 'Build',
+        text: 'Roll national squads and take one man from each, or shop a transfer market on a budget.',
+    },
+    {
+        name: 'Play',
+        text: 'Simulate the tournament and watch your team struggle or shine, minute by minute.',
+    },
+    {
+        name: 'Earn',
+        text: 'Paid whether you lift the cup or go out in the group. Honours and a trophy on the shelf if you go all the way.',
+    },
+    { name: 'Collect', text: 'Gather stickers of your favourite stars and legends.' },
+    { name: 'Spend', text: 'Feed your team with perks and boosts and go again.' },
+];
 
 /** The all-time XI shown on the hero tactics board (a fixed marketing line-up, not a
  *  real squad): a 4-3-3 offensive, GK at the bottom, attacking up. `x`/`y` are percent
@@ -173,6 +245,38 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                             <ArrowRight size={17} strokeWidth={2.5} />
                         </Link>
                     </div>
+
+                    {/* The size of the game, in figures, under the button. It is `font-mono`
+                        because that token IS the marker for "this is a figure or a data
+                        label" (see the seam note in index.css) and this line is nothing
+                        else; every value comes off the dataset and the two catalogues, never
+                        typed - see FACTS above.
+
+                        The text tones are the hero paragraph's own `white/[0.82]` with the
+                        figures at full white, rather than a new value: the scrim under these
+                        words is measured (10.24 for white) and inventing a third opacity here
+                        would be a contrast question nobody had asked. It costs the hero no
+                        HEIGHT on desktop, where the 272px tactics board is much taller than
+                        this column and sets the row on its own.
+
+                        THERE IS NO MIDDLE DOT BETWEEN THE ITEMS, AND THAT IS A WRAP FIX
+                        rather than a preference. A separator drawn between items is fine
+                        while the row is one line and wrong the moment it is two: on a phone
+                        this wraps after "players", and the dot that belonged BETWEEN two
+                        figures came out at the head of the second line as a stray bullet.
+                        Every version of that has the same fault somewhere - a trailing
+                        separator strands the dot at the end of a line instead, and CSS
+                        cannot tell which item starts a row. Spacing separates them at every
+                        width, and the figures being full white against the labels' 0.82 is
+                        what groups each pair. */}
+                    <ul className="mt-[18px] flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-[11.5px] font-semibold text-white/[0.82]">
+                        {FACTS.map((f) => (
+                            <li key={f.label}>
+                                <span className="mr-[5px] text-white">{f.figure}</span>
+                                {f.label}
+                            </li>
+                        ))}
+                    </ul>
                 </div>
 
                 {/* All-time 4-3-3 on the tactics board (desktop only) */}
@@ -220,6 +324,38 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                 </div>
             </section>
 
+            {/* ONE RUN FEEDS THE NEXT - the loop, which is the half of the game the hero
+                cannot state. See the note at the top of this file for why a third section
+                is here at all and what bar a fourth would have to clear.
+
+                Five across from 1000px, two from 560px, one below that. Five is not a
+                number that divides anything else on this page, so the breakpoints are the
+                content's own rather than the layout grid's, and they are measured: at the
+                1000px breakpoint a box is 179px wide, the longest of the five sentences
+                runs to four lines, and the grid levels all five to 148px. Four lines is
+                the floor rather than a near miss - Build's sentence does not fit in three
+                at any width this page offers - so moving the breakpoint up buys nothing,
+                and moving it down starts cutting words. */}
+            <section className="mt-10">
+                <h2 className="font-display text-[22px] font-bold tracking-[-0.01em]">
+                    One run feeds the next
+                </h2>
+                <p className="mt-1 max-w-[62ch] text-[13.5px] text-muted">
+                    The cup is not the end of it. Everything a run pays is spent on the run
+                    after, which is what makes the second one a different game from the first.
+                </p>
+                <ol className="mt-4 grid gap-3 min-[560px]:grid-cols-2 min-[1000px]:grid-cols-5">
+                    {STEPS.map((s) => (
+                        <li key={s.name} className={`${CARD_FLAT} px-4 py-[13px]`}>
+                            <h3 className="font-display text-[15px] font-bold tracking-[-0.01em]">
+                                {s.name}
+                            </h3>
+                            <p className="mt-1 text-[12.5px] text-muted">{s.text}</p>
+                        </li>
+                    ))}
+                </ol>
+            </section>
+
             {/* CHASE THE LEGENDS */}
             {FEATURES.stickerAlbum && legends.length > 0 && (
                 <section className="mt-10">
@@ -233,28 +369,41 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                         {/* WHAT THE ALBUM IS, AND HOW A CARD GETS INTO IT (2026-09-10,
                             owner's call: the old line said only "the sticker is yours to
                             keep", which promises a reward without ever saying what the
-                            collection is or what earns one).
+                            collection is or what earns one). Rewritten 2026-09-15, same
+                            call, and the rewrite changed what the first sentence is ABOUT
+                            rather than how it is worded - see below.
 
-                            THE FLOOR IS DERIVED, NEVER TYPED. `STICKER_TIERS.legendary.min`
-                            is the one place that decides who is collectible, and a literal
-                            90 here would go on promising 90 the day somebody moves the
-                            band - which is exactly the class of stale front-page figure
-                            the closing strip's own note was written about before it was
-                            deleted.
+                            THE RATING IS GONE, AND THAT IS WHY `STICKER_TIERS` IS NO LONGER
+                            IMPORTED HERE. It used to read "rated 90 or higher", with the 90
+                            derived off `STICKER_TIERS.legendary.min` precisely so it could
+                            not go stale; the line now says "extraordinary World Cup
+                            performances", which is the same fact told as football rather
+                            than as a threshold, and needs no figure at all. That is
+                            strictly safer than the derived version and worth knowing before
+                            somebody "restores" the number: the band is a tuning knob, not a
+                            promise, and it has moved.
+
+                            THE ONE TYPED FIGURE LEFT IS "three tiers", which the old copy
+                            also typed. `STICKER_TIERS` has exactly three keys and the album
+                            screen is built out of them, so it is the album's own structure
+                            rather than a number that drifts - and spelling a derived 3 back
+                            out as an English word costs more than it protects.
 
                             THE BRANCH IS NOT OPTIONAL. `stickersOnCupWinOnly` is the flag
                             that decides whether a run banks its XI or only a cup does, and
                             it has been flipped both ways (see the album section of
                             CLAUDE.md). The copy has to move with it, or the front page
-                            starts lying the moment it is thrown. */}
+                            starts lying the moment it is thrown. The owner supplied the
+                            false (shipped) branch; the true branch is the same two facts in
+                            the same voice, since only the banking rule differs. */}
                         <p className="mt-1 max-w-[62ch] text-[13.5px] text-muted">
-                            Every player in the game rated {STICKER_TIERS.legendary.min} or
-                            higher has a sticker, across three tiers.{' '}
+                            Players with extraordinary World Cup performances have a sticker,
+                            sorted into three tiers.{' '}
                             {FEATURES.stickersOnCupWinOnly
-                                ? 'Win the cup and the ones in your XI go into the album, plus one more of your choosing.'
-                                : 'Finish a run and the ones in your final XI go into the album, win or lose; win the cup and you pick one more.'}{' '}
-                            Spare copies trade for a card you are missing. These five are
-                            the rarest of all.
+                                ? 'Win the cup and collect the ones in your final XI into the album, plus one extra of your choosing.'
+                                : 'Finish a run and collect the ones in your final XI into the album, win or lose. Win the cup and pick one extra.'}{' '}
+                            Trade stickers that you collected multiple times. Collected
+                            stickers are offered for less money on the transfer market.
                         </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3 min-[460px]:grid-cols-3 min-[760px]:grid-cols-5">
