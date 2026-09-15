@@ -2895,9 +2895,12 @@ which is the same failure it exists to catch one level up.
   **126 entries cannot each be painted.** The card version spent a family hue, a filled tier
   chip, a coloured status caption and the tifo hard shadow on every one of them, and nothing
   on the page read. So: hairline rows, two to a line inside a family (`ChallengeLedgerRow`),
-  no card, no border, no shadow. **The family accent is spent once per family**, as the rule
-  under its heading, never on an entry. **Tier is not a colour** - `TierPips` draws three
-  monochrome slots, on the rows and in the counter's legend alike (`TIER_COLOR` is gone).
+  no card, no border, no shadow. **Tier IS a colour again, and it is the album's**
+  (2026-09-15, owner's call - see the next entry, which is where the rule now lives). What
+  is unchanged is that a tier is also a COUNT: `TierPips` still draws three slots filled
+  1 / 2 / 3, which is what survives being 5px on a phone. **The family accent is no longer
+  spent on this page at all** - the rule under a family heading is `border-ink` like every
+  other section rule in the game. `FAMILY_COLOR` is still the dot on the run-end list.
   **Earned is the only ink**: completed is full-strength with a green tick, everything else
   is `text-dim`, never red. Two tokens came with it (`src/index.css`): `--color-dim`, which carries the name
   and description of most of the catalogue and is therefore held at AA on ground / panel /
@@ -2905,6 +2908,36 @@ which is the same failure it exists to catch one level up.
   columns are a **grid, not CSS columns**, because a grid row levels both cells' heights and
   so keeps the pair of hairlines in line when one description wraps and the other does not;
   one column below 700px. The row shows its `+N` where the card used to.
+- **THE HONOURS LEDGER IS THE THIRD SHELF ON THE STICKER RAMP** (2026-09-15, owner's
+  call, and it reverses the 2026-08-19 reading above). A tier's mark is the album's own
+  green -> amber -> gold: **Landmark is the Monumental gold, Major the Iconic amber, Minor
+  the Legendary green**, read from `TIER_META` rather than from three new values. The boost
+  library was already the second shelf on that ramp, so a monochrome third one meant a
+  player met the same three-rung ladder in three places and learnt it twice. `npm run
+  checks` now holds all three together in one assertion; it used to hold two.
+  - **The tier is drawn as a colour AND as a count**, which is the half of the old reading
+    that was right and stays. `TierPips` is `RarityPips`'s twin now down to the 5px square
+    and the 0.16 unfilled opacity - a count cannot be close to another count, which is what
+    carries gold against amber at that size, in either theme, for a reader who cannot tell
+    the two hues apart at all (on paper they are eight degrees of hue, and as text five).
+  - **Two maps per rung, exactly as the boost library has**: `TIER_COLOR` is the pip (a
+    SURFACE) and `TIER_INK` is the word (TEXT). Never the accent as a label - the gold
+    measures 2.57 and the amber 2.49 against the 4.5 a bold word that size needs, which is
+    what the `-ink` tokens exist for, and they are spent as CLASSES because an `-ink` token
+    flips between the themes and a hex in a map cannot.
+  - **THE LEGEND IS THE ONLY PLACE THAT GETS BOTH MARKS**, the pips in the rung's colour
+    and the word in the rung's ink. That is where the ramp is taught; a row gets the pips
+    alone, because 126 entries cannot each be painted and that rule has not moved.
+- **THE TIERS ARE NAMED Minor / Major / Landmark, AND THE KEYS ARE STILL bronze / silver /
+  gold** (2026-09-15, same request: *"bronze being displayed in green doesn't make too much
+  sense"*, which it did not). **Do not rename the keys to match**: a tier is written into
+  all 126 catalogue entries and `AWARD` is keyed on it, so the metal names are an id-shaped
+  fact and the label is the only thing a player ever sees. `TIER_NAME` in `challengeUi` is
+  the one place the words live - the legend, the row tooltips and the Prestige sentence all
+  read it, that sentence being **built from the map** rather than typed out, since it used
+  to carry three hand-written colour names beside three hand-written figures and could
+  drift from either. `npm run checks` fails on a rung named after a metal, because nothing
+  behavioural can see a label.
 - **A FAMILY FOLDS** (2026-09-02). Twelve headings over 126 rows is a page you scroll past
   rather than read, so each heading is the disclosure for its own section: the name, the
   `got / total` count and a chevron. **The count stays on a folded family**, which is what

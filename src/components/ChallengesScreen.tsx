@@ -10,7 +10,7 @@ import {
   type Challenge,
   type ChallengeFamily,
 } from '../domain/challenges';
-import { ChallengeLedgerRow, FAMILY_COLOR, TierPips } from './challengeUi';
+import { ChallengeLedgerRow, TIER_INK, TIER_NAME, TIER_ORDER, TierPips } from './challengeUi';
 import {
   btn,
   CARD,
@@ -23,6 +23,13 @@ import {
 } from './matchUi';
 
 type Filter = 'all' | 'open' | 'done';
+
+/** What each tier pays, in one sentence, built from the same two maps the legend walks so
+ *  a renamed tier or a re-sized award cannot leave this line describing the old one. It
+ *  was three hand-typed colour names beside three hand-typed figures. */
+const AWARD_LINE = `${TIER_ORDER.map((t, i) =>
+  `${i ? TIER_NAME[t].toLowerCase() : TIER_NAME[t]} ${AWARD[t]}`,
+).join(', ')}. Paid into the same wallet the perk shop spends from.`;
 
 /** State of one entry, which is also what the filters pick between.
  *
@@ -108,14 +115,15 @@ export default function ChallengesScreen({
             <span className="text-[18px] font-extrabold text-muted"> / {progress.total} honours</span>
           </div>
           <Meter pct={pct} height={9} fill={METER_GRADIENT} />
-          {/* Tier reads as difficulty here too, so the legend carries the same pips the
-              rows do rather than the three swatches it used to - the page is down to
-              one hue per family and a tick, and this was the last of the old colour. */}
+          {/* The legend is where the ramp is TAUGHT, so it is the one place the tier gets
+              both marks: the pips in the rung's colour and the word in the rung's ink.
+              Same green -> amber -> gold the album shelves a card by and the boost
+              library prices one by. The word rather than the key: see TIER_NAME. */}
           <div className="mt-3.5 flex flex-wrap gap-x-4 gap-y-2">
-            {(['bronze', 'silver', 'gold'] as const).map((t) => (
+            {TIER_ORDER.map((t) => (
               <span key={t} className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted">
                 <TierPips tier={t} />
-                <span className="capitalize">{t}</span>
+                <span className={`font-semibold ${TIER_INK[t]}`}>{TIER_NAME[t]}</span>
                 <b className="font-bold text-ink">
                   {progress.byTier[t].completed}/{progress.byTier[t].total}
                 </b>
@@ -131,10 +139,7 @@ export default function ChallengesScreen({
             <div className="mt-1 font-mono text-[38px] font-bold leading-none">
               {progress.prestige}
             </div>
-            <div className="mt-1.5 text-[11.5px] leading-snug text-muted">
-              Bronze {AWARD.bronze}, silver {AWARD.silver}, gold {AWARD.gold}. Paid into the same
-              wallet the perk shop spends from.
-            </div>
+            <div className="mt-1.5 text-[11.5px] leading-snug text-muted">{AWARD_LINE}</div>
           </div>
         )}
       </section>
@@ -206,15 +211,21 @@ export default function ChallengesScreen({
         const folded = collapsed.has(family);
         return (
           <section key={family} className="mt-[22px]">
-            {/* The family accent is spent here and nowhere else: twelve rules on the
-                page instead of a 3px edge on all 126 entries.
+            {/* A BLACK RULE, the same one the album and the career page put under a
+                section heading. It carried the family's own accent - twelve different
+                colours down the page - which was defensible while the tier was
+                monochrome and is not now that the tier wears the sticker ramp: two
+                colour systems on one screen, and the louder of the two was the one
+                saying the least, since the family is already named in words directly
+                above it. The accent still marks a family where it has work to do, as
+                the dot on the run-end list (`FAMILY_COLOR`).
                 The whole heading is the fold control, and the "got / total" count stays
                 on it either way - that count is what makes a folded family worth
                 reading, since a shut section still says how much of it you hold. The
                 chevron is the app's own disclosure glyph (`CardDisclosure`), which this
                 cannot reuse: that atom is a card FOOTER, centred on chalk with a rule
                 above, where this is a section heading carrying the family accent. */}
-            <h3 className="border-b-2" style={{ borderBottomColor: FAMILY_COLOR[family] }}>
+            <h3 className="border-b-2 border-ink">
               <button
                 type="button"
                 onClick={() => toggleFamily(family)}

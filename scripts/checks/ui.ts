@@ -22,6 +22,7 @@ import { BTN_SIZES, BTN_SURFACES, BTN_TONES, DANGER_BTN, PRIMARY_BTN, SECONDARY_
 import { STICKER_TIER_ORDER } from '../../src/config';
 import { TIER_META, tierTopStrip } from '../../src/components/stickerTheme';
 import { RARITY_INK } from '../../src/components/cupRun/types';
+import { TIER_INK, TIER_NAME, TIER_ORDER as HONOUR_TIERS } from '../../src/components/challengeUi';
 
 // --- WCAG -----------------------------------------------------------------
 
@@ -607,25 +608,58 @@ export function uiChecks(): void {
     );
   }
 
-  // The album and the boost library name their rungs in the SAME three ink tokens. They
-  // are two maps (one keyed on tier, one on rarity) and CLAUDE.md's standing rule is that
-  // the two shelves have to be the same object, so the agreement is asserted rather than
-  // assumed. `-ink` and never the accent: the accent is a surface value and misses AA as a
-  // small label, which is the whole reason the tokens exist.
+  // THE THREE SHELVES NAME A RUNG IN THE SAME THREE INK TOKENS: the album's sticker
+  // tiers, the boost library's rarities, and the honours ledger's award tiers. They are
+  // three maps keyed on three different types, and CLAUDE.md's standing rule is that they
+  // have to be one object or a player learns what gold means three times - so the
+  // agreement is asserted rather than assumed. `-ink` and never the accent: the accent is
+  // a surface value and misses AA as a small label, which is why the tokens exist.
+  //
+  // All three are read TOP RUNG FIRST, which is the one thing to get right when adding a
+  // fourth: `STICKER_TIER_ORDER` runs Monumental down and `TIER_ORDER` in `challengeUi`
+  // runs Minor up, so the honours list is reversed here rather than in the component.
   {
     const album = STICKER_TIER_ORDER.map((t) => TIER_META[t].ink);
     const career = [RARITY_INK.legendary, RARITY_INK.rare, RARITY_INK.common];
+    const honours = [...HONOUR_TIERS].reverse().map((t) => TIER_INK[t]);
     const notInk = album.filter((c) => !c.endsWith('-ink'));
     check(
-      'ui: the album names a tier in the same ink token the boost library does',
+      'ui: the album, the boost library and the honours ledger name a rung in one ink token',
       () =>
         // Vacuity: three distinct classes, all of them `-ink`. Without the distinctness a
         // map that had collapsed to one colour would satisfy the comparison.
         album.length === 3 &&
         new Set(album).size === 3 &&
         notInk.length === 0 &&
-        album.join(',') === career.join(','),
-      () => `album ${album.join('/')} vs career ${career.join('/')}${notInk.length ? ` (not ink: ${notInk.join(', ')})` : ''}`,
+        album.join(',') === career.join(',') &&
+        album.join(',') === honours.join(','),
+      () =>
+        `album ${album.join('/')} vs career ${career.join('/')} vs honours ${honours.join('/')}` +
+        (notInk.length ? ` (not ink: ${notInk.join(', ')})` : ''),
+    );
+  }
+
+  // THE HONOURS TIERS ARE NOT NAMED AFTER THE COLOURS THEY ARE DRAWN IN. The keys are
+  // `bronze` / `silver` / `gold` and cannot move (a tier is written into all 126 catalogue
+  // entries), but the label a player reads is the only thing on screen - and `Bronze`
+  // rendered in the ramp's green was true of neither the metal nor the difficulty. Nothing
+  // behavioural can see a label, so this reads the map: no rung may be named after a
+  // metal, and the three names must be distinct.
+  {
+    const METALS = ['bronze', 'silver', 'gold', 'platinum', 'copper'];
+    const names = HONOUR_TIERS.map((t) => TIER_NAME[t]);
+    const metallic = names.filter((n) => METALS.includes(n.toLowerCase()));
+    check(
+      'ui: an honours tier is named for what it is, not for the colour it is drawn in',
+      () =>
+        // Vacuity twice: the ramp really has three rungs with three distinct names, and
+        // the scan really rejects a metal - a test that let `Bronze` through would pass
+        // this block happily and is the exact thing it exists to catch.
+        names.length === 3 &&
+        new Set(names).size === 3 &&
+        METALS.includes('bronze') &&
+        metallic.length === 0,
+      () => `names ${names.join('/')}${metallic.length ? ` (metallic: ${metallic.join(', ')})` : ''}`,
     );
   }
 }

@@ -7,6 +7,7 @@ import {
   type ChallengeFamily,
   type ChallengeTier,
 } from '../domain/challenges';
+import { TIER_META } from './stickerTheme';
 
 /** Family accents. Fixed rather than theme-swapped, like the sticker tier ramp: they
  *  are identity, not chrome, and they are only ever a small dot or a 3px card edge. */
@@ -25,29 +26,75 @@ export const FAMILY_COLOR: Record<ChallengeFamily, string> = {
   career: '#8a5a2b',
 };
 
-/** Award tiers, bronze -> silver -> gold. Deliberately NOT a colour any more: the
- *  catalogue is 126 entries and it could not afford three more hues on top of the
- *  twelve family accents. While awards are off the tier reads as difficulty, which is
- *  a scale rather than a category, so `TierPips` draws it as three filled slots. */
-const TIER_NAME: Record<ChallengeTier, string> = {
-  bronze: 'Bronze',
-  silver: 'Silver',
-  gold: 'Gold',
+/** Award tiers, easiest to hardest. THE KEYS ARE METAL AND THE LABELS ARE NOT, which is
+ *  deliberate rather than an oversight: an id is permanent here (a completion is stored by
+ *  challenge id and the tier keys are written into all 126 catalogue entries), so renaming
+ *  `bronze` would be a dataset edit for a word on a screen. The label is the only thing a
+ *  player ever sees, and "Bronze" printed in green said nothing true about either the
+ *  difficulty or the colour.
+ *
+ *  Minor / Major / Landmark is the scale the catalogue actually holds: Finish first in
+ *  your group, Win ten cups, Win at every Ascension tier. Change the words here and the
+ *  legend, the row tooltips and the Prestige line all follow - they read this map. */
+export const TIER_NAME: Record<ChallengeTier, string> = {
+  bronze: 'Minor',
+  silver: 'Major',
+  gold: 'Landmark',
 };
+
+/** Easiest first, which is the order the legend and the Prestige line both walk. */
+export const TIER_ORDER = ['bronze', 'silver', 'gold'] as const;
+
 const TIER_STEP: Record<ChallengeTier, number> = { bronze: 1, silver: 2, gold: 3 };
 
-/** Difficulty as three monochrome slots, filled 1 / 2 / 3. Both opacities are of the
- *  ink, so the pips sit in whatever theme is on without a token of their own. */
+/** THE HONOURS LEDGER IS THE THIRD SHELF ON THE STICKER RAMP, and these are the album's
+ *  own values rather than three new ones. The album marks a card green -> amber -> gold
+ *  foil and the boost library marks a card the same way (`cupRun/types.ts`); a third
+ *  three-rung ladder in a fourth palette would have a player learning what gold means
+ *  three times. So a Landmark honour is the Monumental gold, a Major is the Iconic amber
+ *  and a Minor is the Legendary green.
+ *
+ *  It was monochrome for a while, on the reading that a tier is a scale rather than a
+ *  category and that 126 entries cannot each be painted. The scale half of that is right
+ *  and stays - `TierPips` still COUNTS the tier, which is what survives being 5px, being
+ *  on a phone and being read by somebody who cannot tell the amber from the gold. What
+ *  changed is that the count is now drawn in the ramp's own colour, so the mark agrees
+ *  with the two shelves next door instead of being a fourth answer.
+ *
+ *  Two maps for the same rung, exactly as the boost library has: `TIER_COLOR` is a
+ *  SURFACE (the pip) and `TIER_INK` is the same rung as TEXT. The accent misses AA
+ *  outright as a small label - on paper the gold measures 2.57 and the amber 2.49 against
+ *  the 4.5 a bold word that size needs - which is the whole reason the `-ink` tokens
+ *  exist, and why they are spent as classes: an `-ink` token flips between the themes and
+ *  a hex in a map cannot. */
+export const TIER_COLOR: Record<ChallengeTier, string> = {
+  bronze: TIER_META.legendary.accent,
+  silver: TIER_META.iconic.accent,
+  gold: TIER_META.monumental.accent,
+};
+
+export const TIER_INK: Record<ChallengeTier, string> = {
+  bronze: TIER_META.legendary.ink,
+  silver: TIER_META.iconic.ink,
+  gold: TIER_META.monumental.ink,
+};
+
+/** The tier as a COUNT in the ramp's colour: one filled slot, two, or three. The unfilled
+ *  slots are drawn rather than omitted, so every row agrees on where the mark ends and a
+ *  reader can see that three is the top without having met a Landmark yet. Same device
+ *  and same 5px as the boost library's `RarityPips`, which took it from here. */
 export function TierPips({ tier }: { tier: ChallengeTier }) {
   const n = TIER_STEP[tier];
   return (
-    <span className="inline-flex shrink-0 gap-[2px] text-ink" title={`${TIER_NAME[tier]} (${n} of 3)`}>
+    <span
+      className="inline-flex shrink-0 items-center gap-[2px]"
+      title={`${TIER_NAME[tier]} (${n} of 3)`}
+    >
       {[1, 2, 3].map((i) => (
         <span
           key={i}
-          className={`h-[5px] w-[5px] rounded-[1px] bg-current ${
-            i <= n ? 'opacity-50' : 'opacity-[0.13]'
-          }`}
+          className="h-[5px] w-[5px] rounded-[1px]"
+          style={{ background: TIER_COLOR[tier], opacity: i <= n ? 1 : 0.16 }}
         />
       ))}
     </span>
