@@ -97,16 +97,19 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
                         </span>
                     </div>
                     <Meter pct={pct} height={9} />
+                    {/* NO DOTS. Each of these three read a filled circle in the tier's
+                        accent, and so did the heading of every section below - so the
+                        page spent six swatches teaching a ramp that the cards themselves
+                        already wear, right underneath, at the top of all 115 of them.
+                        Worse, two of the three swatches are the same colour to the eye
+                        (#c99a3a beside #e4922b is eight degrees of hue), so what a reader
+                        actually got from Monumental and Iconic was two identical dots
+                        beside two different words - a legend that has to be read to be
+                        understood is not a legend. The word is what names the tier here
+                        and the strip is what marks it on a card. */}
                     <div className="mt-3.5 flex flex-wrap gap-x-4 gap-y-2">
                         {TIER_ORDER.map((t) => (
-                            <span
-                                key={t}
-                                className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted"
-                            >
-                                <span
-                                    className="inline-block h-2.5 w-2.5 rounded-full"
-                                    style={{ background: TIER_META[t].accent }}
-                                />
+                            <span key={t} className="font-mono text-[12px] text-muted">
                                 {TIER_META[t].name}{' '}
                                 <b className="text-ink">
                                     {stats.byTier[t].collected}/{stats.byTier[t].total}
@@ -144,9 +147,8 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
                     {/* A third line read "Every Legendary, Iconic and Monumental sticker. A
                         full house." and went with authenticity pass A11: the caption above
                         already says the album is complete, the heading says how many that
-                        is, and the per-tier counts with their dots are in the counter card
-                        directly above - so it was the same fact a third time plus a
-                        flourish. Nothing here teaches anybody anything they have not just
+                        is, and the per-tier counts are in the counter card directly above -
+                        so it was the same fact a third time plus a flourish. Nothing here teaches anybody anything they have not just
                         finished proving. */}
                 </div>
             )}
@@ -160,11 +162,11 @@ export default function AlbumScreen({ album, allPlayers, onTrade, onReset }: Pro
                 const anyUncollected = players.some((p) => !collectedSet.has(p.id));
                 return (
                     <section key={tier} className="mt-8">
+                        {/* The heading led with the same dot as the legend above; see
+                            the note there. The section is titled with the tier's name and
+                            every card under it carries the strip, so the swatch was the
+                            third statement of one fact on one screen. */}
                         <div className="mb-4 flex items-center gap-2.5 border-b-2 border-ink pb-2.5">
-                            <span
-                                className="inline-block h-2.5 w-2.5 rounded-full"
-                                style={{ background: meta.accent }}
-                            />
                             <h3 className="font-display text-[19px] font-bold tracking-[-0.01em]">
                                 {meta.name}
                             </h3>
@@ -322,9 +324,12 @@ function StickerLightbox({
             ariaLabel={`${player.name} sticker`}
             backdropClassName="bg-black/80"
         >
+            {/* The card's own strip, enlarged - `meta.strip`, not `meta.accent`, so a
+                Monumental opens to the foil it wears shut. A flat bar here was the one
+                place the top tier lost its metallic sweep on the way in. */}
             <div
                 className="-mx-6 -mt-6 mb-4 h-1.5 rounded-t-lg"
-                style={{ background: meta.accent }}
+                style={{ background: meta.strip }}
             />
             <div
                 className="flex flex-col items-center text-center"
@@ -339,10 +344,9 @@ function StickerLightbox({
                 }}
             >
                 <div className="mb-1 flex w-full items-center justify-between pr-8">
-                    <span
-                        className="font-mono text-[11px] font-bold"
-                        style={{ color: meta.accent }}
-                    >
+                    {/* Ink, for the reason the grid card's own tier word takes it: the
+                        raw accent is a surface colour and misses AA as a small label. */}
+                    <span className={`font-mono text-[11px] font-bold ${meta.ink}`}>
                         {meta.name}
                     </span>
                     {duplicateCount > 0 && (

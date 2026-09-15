@@ -2,7 +2,7 @@ import type { Player } from '../data/types';
 import { SQUAD_BY_ID } from '../data/squads';
 import { FEATURES, type StickerTier } from '../config';
 import Flag from './Flag';
-import { onStickerArtError, stickerArtSrc, TIER_META } from './stickerTheme';
+import { onStickerArtError, stickerArtSrc, tierTopStrip, TIER_META } from './stickerTheme';
 
 
 /** How much of the card art is shown, measured from the TOP of the image. 1 = the whole
@@ -111,9 +111,15 @@ export default function StickerCard({
     const inner = (
         <>
             <div className="flex items-center justify-between px-2.5 pt-2">
+                {/* The tier's INK, not its accent. An 8.5px bold word painted the raw
+                    surface colour measures 2.57 on panel for the gold and 2.49 for the
+                    amber, and the `-ink` tokens are the fix the boost library already
+                    made for the identical label at 9px. A class rather than an inline
+                    colour, because an `-ink` token flips between the themes. */}
                 <span
-                    className="font-mono text-[8.5px] font-bold text-muted"
-                    style={collected ? { color: meta.accent } : undefined}
+                    className={`font-mono text-[8.5px] font-bold ${
+                        collected ? meta.ink : 'text-muted'
+                    }`}
                 >
                     {meta.name}
                 </span>
@@ -172,7 +178,7 @@ export default function StickerCard({
         ? `${base} border-line bg-panel shadow-hard`
         : `${base} border-dashed border-line bg-ground/60`;
     const style: React.CSSProperties = {
-        borderTop: `3px solid ${meta.accent}`,
+        ...tierTopStrip(tier),
         ...(isNew ? { outline: '2px solid #e4922b', outlineOffset: '2px' } : {}),
     };
 

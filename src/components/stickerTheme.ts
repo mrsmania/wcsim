@@ -13,24 +13,93 @@
 // config.ts STICKER_TIERS + domain/album.ts tierOf; this file only says what a tier
 // LOOKS like.
 
+import type { CSSProperties } from 'react';
 import type { StickerTier } from '../config';
 
 /** Tier identity for the sticker cards. These accents are the sticker rarity ramp
  *  (green -> amber -> gold foil), deliberately fixed rather than theme-swapped.
- *  `order` sorts the album Monumental-first (spec 5.4). */
+ *  `order` sorts the album Monumental-first (spec 5.4).
+ *
+ *  `ink` IS THE SAME TIER AS TEXT, and it is a different value from `accent` on purpose -
+ *  the exact split `--color-amber-ink` and its two siblings exist for. `accent` is right
+ *  for a surface (the strip, a pip) and fails AA outright as a small label: on paper the
+ *  gold measures 2.57 and the amber 2.49 against the 4.5 a 9px bold word needs, the
+ *  relaxed 3:1 being for 18.66px and larger. It is spent as a CLASS rather than a hex
+ *  because an `-ink` token flips between the themes and a hex in this map cannot.
+ *
+ *  The boost library reached this first (`cupRun/types.ts` RARITY_INK, whose docstring
+ *  carries the measurements); the album card was still printing its tier name in the raw
+ *  accent at 8.5px, which is the same failure one point smaller.
+ *
+ *  `strip` IS ALWAYS A GRADIENT, INCLUDING THE FLAT TWO, and that is load-bearing rather
+ *  than a flourish. The field's job is "the tier's band as a paintable fill", and the two
+ *  lower rungs used to hold a bare hex - which is a fine `background` shorthand and is NOT
+ *  a valid `background-image`, so it computes to `none`. `tierTopStrip` below paints the
+ *  band as an image (it has to: the top rung is a foil), and with a bare hex two cards in
+ *  three came out with no band at all and nothing said so. A gradient of one colour twice
+ *  paints identically to the flat colour and is valid in both positions, so every rung
+ *  goes through one mechanism. `cupRun/types.ts` RARITY_STRIP reached the same conclusion
+ *  from the other side and wraps its own flat two; now that the values arrive already
+ *  wrapped, that map can simply read `TIER_META[...].strip` for all three. */
 export const TIER_META: Record<
   StickerTier,
-  { name: string; accent: string; strip: string; stripText: string }
+  { name: string; accent: string; ink: string; strip: string; stripText: string }
 > = {
   monumental: {
     name: 'Monumental',
     accent: '#c99a3a',
+    ink: 'text-gold-ink',
     strip: 'linear-gradient(135deg,#f0cf8a,#c99a3a)',
     stripText: '#3a2a06',
   },
-  iconic: { name: 'Iconic', accent: '#e4922b', strip: '#e4922b', stripText: '#ffffff' },
-  legendary: { name: 'Legendary', accent: '#15924c', strip: '#15924c', stripText: '#ffffff' },
+  iconic: {
+    name: 'Iconic',
+    accent: '#e4922b',
+    ink: 'text-amber-ink',
+    strip: 'linear-gradient(#e4922b,#e4922b)',
+    stripText: '#ffffff',
+  },
+  legendary: {
+    name: 'Legendary',
+    accent: '#15924c',
+    ink: 'text-pitch-ink',
+    strip: 'linear-gradient(#15924c,#15924c)',
+    stripText: '#ffffff',
+  },
 };
+
+/** The 3px band across the top of a sticker card, which is the album's rendering of the
+ *  same mark a boost tile wears on `/career` (`cupRun/rarityUi.rarityStrip`).
+ *
+ *  A BACKGROUND IMAGE AND NOT A BORDER COLOUR, which is the whole point of the change: a
+ *  border takes one flat colour, so the top tier could only ever be a flat #c99a3a line,
+ *  and the FOIL - the metallic sweep a Monumental sticker already wears on its rating
+ *  block - is what tells the two warm rungs apart at a glance. Monumental and Iconic as
+ *  flat accents are eight degrees of hue apart and read as one colour, which is the
+ *  reading the boost library was rebuilt on and which the album card had not had.
+ *
+ *  THE 3px TOP BORDER IS KEPT AND MADE TRANSPARENT rather than removed. It still reserves
+ *  its three pixels, so the card's layout is unchanged to the pixel and a card cannot
+ *  change height by wearing a different tier; `background-origin: border-box` then starts
+ *  the band at the very top of the border box, so the strip lands exactly where the solid
+ *  border used to be and the card's own radius still clips its corners. The other three
+ *  sides keep their own colour and, on an uncollected card, their dashes.
+ *
+ *  It does not share `rarityStrip`'s body, and deliberately: that one paints onto a tile
+ *  which reserves nothing, so it needs neither the transparent border nor `border-box`.
+ *  What the two share is the thing that matters, which is `TIER_META[...].strip` - the
+ *  values, not the mechanism. */
+export function tierTopStrip(tier: StickerTier): CSSProperties {
+  return {
+    borderTopWidth: '3px',
+    borderTopStyle: 'solid',
+    borderTopColor: 'transparent',
+    backgroundImage: TIER_META[tier].strip,
+    backgroundSize: '100% 3px',
+    backgroundRepeat: 'no-repeat',
+    backgroundOrigin: 'border-box',
+  };
+}
 
 /** The tiers Monumental-first, which is the order the album lays its sections out in and
  *  the order the reward picker offers them.

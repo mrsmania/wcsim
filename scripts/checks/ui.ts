@@ -19,6 +19,9 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { check } from './harness';
 import { BTN_SIZES, BTN_SURFACES, BTN_TONES, DANGER_BTN, PRIMARY_BTN, SECONDARY_BTN, btn } from '../../src/components/matchUi';
+import { STICKER_TIER_ORDER } from '../../src/config';
+import { TIER_META, tierTopStrip } from '../../src/components/stickerTheme';
+import { RARITY_INK } from '../../src/components/cupRun/types';
 
 // --- WCAG -----------------------------------------------------------------
 
@@ -553,6 +556,76 @@ export function uiChecks(): void {
               .filter(Boolean)
               .join('; ')
           : `read ${lists} class lists across ${files.length} files`,
+    );
+  }
+
+  // --- The sticker tier ramp, as a band and as a word -------------------------
+  //
+  // The album card wears the same two marks a boost tile wears on `/career`: a 3px strip
+  // across the top, and the tier named in an `-ink` token rather than in the raw accent.
+  // Neither can be seen by anything behavioural - a card with no band and a card with a
+  // band render equally well - and BOTH of them broke silently while being written.
+
+  // `strip` is painted as a `background-image`, because the top rung is a foil and a
+  // border takes one flat colour. A bare hex is a fine `background` SHORTHAND and is not a
+  // valid image, so it computes to `none`: the two lower tiers shipped for one build with
+  // no band at all, on 108 of 115 cards, and the page looked entirely normal. Every rung
+  // therefore holds a gradient, the flat two being one colour twice.
+  {
+    const bare = STICKER_TIER_ORDER.filter((t) => !TIER_META[t].strip.startsWith('linear-gradient('));
+    check(
+      'ui: every sticker tier strip is a paintable background-image, flat rungs included',
+      () =>
+        // Vacuity twice over: the ramp really has three rungs, and the test really rejects
+        // the bare hex it exists to catch - a predicate that accepted `#e4922b` would pass
+        // this block happily and is the exact bug.
+        STICKER_TIER_ORDER.length === 3 &&
+        !'#e4922b'.startsWith('linear-gradient(') &&
+        bare.length === 0,
+      () => `bare (invalid as an image): ${bare.join(', ')}`,
+    );
+  }
+
+  // The band lands exactly where the solid border used to: a 3px TRANSPARENT top border
+  // still reserves the three pixels, and `background-origin: border-box` starts the image
+  // at the top of the border box so the border does not paint over it. Drop either half
+  // and the card either moves by 3px or shows a 1px sliver of the wrong colour.
+  {
+    const bad: string[] = [];
+    for (const t of STICKER_TIER_ORDER) {
+      const s = tierTopStrip(t);
+      if (s.borderTopWidth !== '3px') bad.push(`${t}: reserves ${s.borderTopWidth}, not 3px`);
+      if (s.borderTopColor !== 'transparent') bad.push(`${t}: top border is ${s.borderTopColor}`);
+      if (s.backgroundOrigin !== 'border-box') bad.push(`${t}: origin ${s.backgroundOrigin}`);
+      if (s.backgroundSize !== '100% 3px') bad.push(`${t}: size ${s.backgroundSize}`);
+      if (s.backgroundImage !== TIER_META[t].strip) bad.push(`${t}: image is not the tier strip`);
+    }
+    check(
+      'ui: the sticker card strip is 3px of transparent border filled from the border box',
+      () => STICKER_TIER_ORDER.length === 3 && bad.length === 0,
+      () => bad.join('; '),
+    );
+  }
+
+  // The album and the boost library name their rungs in the SAME three ink tokens. They
+  // are two maps (one keyed on tier, one on rarity) and CLAUDE.md's standing rule is that
+  // the two shelves have to be the same object, so the agreement is asserted rather than
+  // assumed. `-ink` and never the accent: the accent is a surface value and misses AA as a
+  // small label, which is the whole reason the tokens exist.
+  {
+    const album = STICKER_TIER_ORDER.map((t) => TIER_META[t].ink);
+    const career = [RARITY_INK.legendary, RARITY_INK.rare, RARITY_INK.common];
+    const notInk = album.filter((c) => !c.endsWith('-ink'));
+    check(
+      'ui: the album names a tier in the same ink token the boost library does',
+      () =>
+        // Vacuity: three distinct classes, all of them `-ink`. Without the distinctness a
+        // map that had collapsed to one colour would satisfy the comparison.
+        album.length === 3 &&
+        new Set(album).size === 3 &&
+        notInk.length === 0 &&
+        album.join(',') === career.join(','),
+      () => `album ${album.join('/')} vs career ${career.join('/')}${notInk.length ? ` (not ink: ${notInk.join(', ')})` : ''}`,
     );
   }
 }

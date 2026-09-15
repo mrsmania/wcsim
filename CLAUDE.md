@@ -133,7 +133,8 @@ done and why. What that means for anyone working in this tree now:
   `CardDisclosure`, `GROUP_OUTCOME`, `RatingStrip` (the Ovr / Att / Def cells, which the
   build page's readout and the versus result both draw - it takes the three FIGURES rather
   than an XI, because those two measure them differently on purpose, see the versus note); `components/stickerTheme.ts` owns the sticker tier
-  ramp (`TIER_META`, `TIER_ORDER`, the `GOLD_*` accents, `stickerArtSrc`) so nothing has to
+  ramp (`TIER_META`, `TIER_ORDER`, the `GOLD_*` accents, `stickerArtSrc`, plus per-tier
+  `ink` and `tierTopStrip`) so nothing has to
   import `StickerCard` to get a hex; and `--color-grass` / `--color-grass-stripe` are the
   board's two greens.
 - **`RoundRecord` is a DISCRIMINATED UNION** (`GroupRecord | KoRecord` on `stage`), and so
@@ -551,7 +552,12 @@ npm run push:sql -- <file.sql>   # apply a migration / run a query on that serve
                            #   credentials and route; -- --dry-run shows without sending)
 npm run gen:players        # regenerate docs/players.html (it carries both datasets)
 npm run album:fill         # print a console snippet that fills the album (guest only;
-                           #   -- --leave=N / --dupes=N / --clear)
+                           #   -- --leave=N / --gaps=N / --dupes=N / --clear)
+                           #   --leave holds back the RAREST N (an album near completion);
+                           #   --gaps holds back N of EACH tier, which is the one that
+                           #   puts a collected and an uncollected card side by side in
+                           #   every section - the tiers run 80/28/7, so the smallest
+                           #   --leave that reaches a Legendary empties the other two
 python scripts/build-sticker-art.py   # art/stickers-src/*.png -> public/stickers/*.webp
 ```
 
@@ -1821,6 +1827,32 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   `npm run checks` does not fail on a missing file - the silhouette is a correct rendering,
   not a hole - it reports the count and `npm run ratings:sync` names the new ones, which is
   what keeps a gap from going unnoticed. See "The waiting list" above.
+  **THE TIER IS MARKED ONCE PER CARD, AND IT IS THE BOOST LIBRARY'S OWN MARK**
+  (2026-09-15). Three things moved together and `npm run checks` holds all three.
+  **The dots are gone** - the completion counter's legend and every section heading led
+  with a filled circle in the tier's accent, so one screen spent six swatches teaching a
+  ramp that all 115 cards underneath already wear; and two of the three swatches are the
+  same colour to the eye (`#c99a3a` beside `#e4922b` is eight degrees of hue), so what a
+  reader actually got was two identical dots beside two different words. The word names
+  the tier in the legend; the card's own band marks it in the grid.
+  **The band is the career page's band**, `tierTopStrip` rather than a flat
+  `borderTop`, which is what finally gives Monumental the GOLD FOIL a boost tile's top
+  rung has had since 2026-09-02 - the thing that actually separates the two warm rungs,
+  since a border takes one flat colour and a foil is a gradient. The 3px top border is
+  kept and made TRANSPARENT so the card's layout does not move by a pixel, with
+  `background-origin: border-box` putting the image where the border was.
+  **`TIER_META[t].strip` IS NOW ALWAYS A GRADIENT, and that is the trap worth carrying:**
+  a bare hex is a perfectly good `background` shorthand and is NOT a valid
+  `background-image`, so it computes to `none` - the two lower tiers shipped for one build
+  with no band at all on 108 of 115 cards and the page looked entirely normal.
+  `cupRun/types.ts` `RARITY_STRIP` had already hit this from the other side and wraps its
+  own flat two; now the values arrive wrapped, so that map can just read the tier's strip.
+  And **the tier NAME on a card takes `TIER_META[t].ink`**, not the accent - an 8.5px bold
+  word in the raw surface gold measures 2.57 on panel, which is the identical failure the
+  boost library's `RARITY_INK` was added to fix at 9px. A check asserts the album and the
+  boost library name a rung in the same three ink tokens, so the two shelves stay one
+  object rather than two files that currently agree.
+
   **Art pipeline:** originals (full-size PNG) live in **`art/stickers-src/`**, which is
   NOT under `public/` and so is never deployed; `python scripts/build-sticker-art.py`
   resizes them to 400px-wide WebP in `public/stickers/<player.id>.webp`, which is what
