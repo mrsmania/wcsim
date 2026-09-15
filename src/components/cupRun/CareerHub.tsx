@@ -9,6 +9,7 @@ import {
 import { btn, CARD, CARD_FLAT, Meter, MONO_CAP, PAGE_EYEBROW } from '../matchUi';
 import Overlay from '../Overlay';
 import { RarityMark, rarityStrip } from './rarityUi';
+import { byRarityThenName } from './types';
 
 /** A price, and what the price is IN.
  *
@@ -232,7 +233,11 @@ export default function CareerHub({
 }) {
     // Derived once: the heading counts what a run would be offered, and each tile reads
     // its own price and state off the same answer.
-    const boosts = BOONS.map((b) => ({ boon: b, ...boonUnlockState(career, b.id) }));
+    // Rarest first, then by name. `BOONS` is readonly and `map` already hands back a
+    // fresh array, so the catalogue itself is never reordered.
+    const boosts = BOONS.map((b) => ({ boon: b, ...boonUnlockState(career, b.id) })).sort(
+        (x, y) => byRarityThenName(x.boon, y.boon),
+    );
     const inPool = boosts.filter((b) => b.inPool).length;
     // Nothing is spent until this is confirmed. It is the page's own state and not the
     // tile's, so the dialog sits outside the grid and a tile cannot change size by being

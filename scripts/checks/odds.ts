@@ -9,7 +9,7 @@ import { check, xiFor, boonStops, withSeed } from './harness';
 import { simulateTitleOdds } from '../../src/domain/odds';
 import { boostOdds, runOddsNow, ODDS_SAMPLES, ODDS_SIMS } from '../../src/domain/run';
 import { BOONS, type Boon, type Priced } from '../../src/domain/boons';
-import { RARITY_STEP, RARITY_STRIP } from '../../src/components/cupRun/types';
+import { RARITY_STEP, RARITY_STRIP, byRarityThenName } from '../../src/components/cupRun/types';
 import { TIER_META } from '../../src/components/stickerTheme';
 
 const boon = (id: string): Boon => {
@@ -356,6 +356,43 @@ export function oddsChecks(): void {
         () =>
           `steps ${JSON.stringify(RARITY_STEP)}, gold-ink vs amber-ink max channel gap ${gap}`,
       );
+
+      // THE LIBRARY HAS AN ORDER, and it is not the catalogue's. Thirty-two cards were
+      // listed in the order they were written, which is a fact about this file's history
+      // and about nothing a player can see. Rarest first, then by name - so a card's
+      // position depends on the card alone and adding one cannot shuffle the rest.
+      {
+        const sorted = [...BOONS].sort(byRarityThenName);
+        const bad: string[] = [];
+        for (let i = 1; i < sorted.length; i++) {
+          const prev = sorted[i - 1]!;
+          const here = sorted[i]!;
+          const step = RARITY_STEP[here.rarity] - RARITY_STEP[prev.rarity];
+          if (step > 0) bad.push(`${here.name} (${here.rarity}) after ${prev.name} (${prev.rarity})`);
+          else if (step === 0 && prev.name.localeCompare(here.name) > 0) {
+            bad.push(`${here.name} after ${prev.name}`);
+          }
+        }
+        // Vacuity twice over: the catalogue must actually hold all three rarities and more
+        // than one card in some rarity, or "sorted" is true of any order at all. And the
+        // SCREEN has to use it - nothing behavioural can see a list drawn in another order.
+        const rarities = new Set(BOONS.map((b) => b.rarity)).size;
+        const ties = sorted.filter((b, i) => i > 0 && sorted[i - 1]!.rarity === b.rarity).length;
+        check(
+          'odds: the boost library lists rarest first, then alphabetically, and the shop uses that order',
+          () =>
+            bad.length === 0 &&
+            rarities === 3 &&
+            ties > 0 &&
+            /\.sort\(/.test(hub) &&
+            /byRarityThenName/.test(hub),
+          () =>
+            bad.length
+              ? bad.join(', ')
+              : `${rarities} rarities, ${ties} same-rarity neighbours, sorted in the shop: ` +
+                `${/byRarityThenName/.test(hub)}`,
+        );
+      }
     }
   }
 
