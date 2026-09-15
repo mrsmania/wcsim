@@ -1,12 +1,17 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import {
+    ArrowRight,
+    CirclePlay,
+    Coins,
+    Sticker,
+    Users,
+    Zap,
+    type LucideIcon,
+} from 'lucide-react';
 import type { Player } from '../data/types';
-import { SQUADS, WORLD_CUP_YEARS } from '../data/squads';
 import { FEATURES } from '../config';
 import { collectibleCards } from '../domain/album';
-import { CHALLENGES } from '../domain/challenges';
-import { BOONS } from '../domain/boons';
 import StickerCard from './StickerCard';
 import { btn, CARD_FLAT, PAGE_TOP } from './matchUi';
 
@@ -61,16 +66,22 @@ import { btn, CARD_FLAT, PAGE_TOP } from './matchUi';
  *  section, because the bar the beats failed is the one that matters: does it say
  *  something no other block on this page already says?
  *
- *  TWO THINGS ABOUT IT ARE RULES RATHER THAN TASTE. Every figure in the hero strip is
- *  DERIVED (`WORLD_CUP_YEARS`, the dataset's own row count, `CHALLENGES`, `BOONS`) and
- *  none is typed, because a front-page figure is exactly the kind that goes stale
- *  quietly - the honours catalogue alone moved from 130 to 126 in three days, and
- *  eleven comments went on saying 130. None of those four imports costs the bundle
- *  anything: App reaches `domain/career.ts` eagerly through `useCareer`, and that pulls
- *  both catalogues in already. And the loop's five boxes are `CARD_FLAT` with no
- *  shadow, deliberately: the hero and the sticker cards both carry `shadow-hard` and
- *  they are the two things this page is selling, so the band that EXPLAINS sits under
- *  them rather than beside them. */
+ *  The loop's five boxes are `CARD_FLAT` with no shadow, deliberately: the hero and the
+ *  sticker cards both carry `shadow-hard` and they are the two things this page is
+ *  selling, so the band that EXPLAINS sits under them rather than beside them.
+ *
+ *  A LINE OF FIGURES UNDER THE HERO BUTTON SHIPPED WITH IT AND CAME OUT AGAIN THE SAME
+ *  DAY (owner's call: "I don't like that there"). It read "15 World Cups, 9,625 players,
+ *  126 honours, 32 boosts", every value derived off `WORLD_CUP_YEARS`, the dataset's own
+ *  row count, `CHALLENGES` and `BOONS` rather than typed. Recorded because the DERIVING
+ *  is the part worth keeping if the idea ever comes back somewhere else: a figure typed
+ *  onto the front page reads as current for ever and goes wrong the first time a
+ *  catalogue moves, and the honours catalogue alone went from 130 to 126 in three days
+ *  with eleven comments left saying 130. It cost the bundle nothing either, measured
+ *  rather than assumed - App reaches `domain/career.ts` eagerly through `useCareer` and
+ *  that pulls both catalogues in already. What was actually wrong with it is placement,
+ *  not accuracy: it put a specification directly under the one thing on the page you are
+ *  meant to press. */
 interface Props {
     /** Where "Build your XI now" goes. */
     buildTo: string;
@@ -78,50 +89,69 @@ interface Props {
     allPlayers: Player[];
 }
 
-/** The one line of figures the page states about the game's size, under the hero's
- *  button. EVERY ONE IS DERIVED, and that is the whole point of the array: a typed 15 or
- *  130 on the front page reads as current for ever and goes wrong the first time the
- *  dataset or a catalogue moves, which both do regularly.
+/** The line under a section heading, shared by both sections so they cannot drift.
  *
- *  The player count walks the whole dataset rather than the pool the props carry: a
- *  player who has narrowed their World Cups in settings has not made the game smaller,
- *  and this line is the pitch for the game rather than a readout of their save.
+ *  IT HAS NO `max-w`, AND TAKING ONE OFF IS THE WHOLE POINT (2026-09-15, reported as
+ *  "why is there line breaks in the descriptions"). Both of these used to carry
+ *  `max-w-[62ch]`, a reading measure of 451px - under a heading whose section is 1136px
+ *  wide. So the sentence stopped dead a little past a third of the way across with the
+ *  rest of the row empty, which does not read as a measure, it reads as a line break
+ *  somebody left in by accident. A cap and "no arbitrary break" cannot both be had here:
+ *  the loop's sentence is about 847px of text, so any measure narrow enough to be a
+ *  measure breaks it while there is obviously room.
  *
- *  The locale is NAMED rather than left to the browser, or the same figure renders
- *  9,625 here and 9'625 on a Swiss machine, which is the app's one four-digit number and
- *  so the one place that would ever show it. */
-const PLAYER_ROWS = SQUADS.reduce((n, s) => n + s.players.length, 0);
+ *  `text-wrap: balance` is what makes the uncapped version safe rather than merely wide.
+ *  Where the text does wrap - the longer album line at every width, both of them on a
+ *  phone - the browser evens the lines instead of leaving one full and one stubby, so a
+ *  wrap always looks chosen. The hero headline above already relies on it, so this is the
+ *  app's existing tool rather than a new one, and it degrades to ordinary wrapping on a
+ *  browser too old for it. */
+const SECTION_LEDE = 'mt-1 text-[13.5px] text-muted [text-wrap:balance]';
 
-const FACTS: { figure: string; label: string }[] = [
-    { figure: String(WORLD_CUP_YEARS.length), label: 'World Cups' },
-    { figure: PLAYER_ROWS.toLocaleString('en-GB'), label: 'players' },
-    { figure: String(CHALLENGES.length), label: 'honours' },
-    { figure: String(BOONS.length), label: 'boosts' },
-];
-
-/** "One run feeds the next": the loop, as five boxes. A label and one sentence each, no
- *  sub-heading and no icon - the deleted three-beat block had an icon tile and a heading
- *  above its line of grey text, and what killed it was saying the hero's own words
- *  again rather than the furniture it said them in.
+/** "One run feeds the next": the loop, as five numbered boxes.
+ *
+ *  THEY ARE NUMBERED BECAUSE THEY ARE A SEQUENCE, AND THE SEQUENCE IS A RUN RATHER THAN
+ *  A ROUND. A run is one whole tournament - the group and then the knockout bracket - so
+ *  Build happens once at the start, Play is every match of it, and Earn / Collect / Spend
+ *  all land when the run ends. The only thing here that happens per ROUND is the boost
+ *  offer between ties, which is inside Play and paid for out of Spend. Worth keeping
+ *  straight if the copy is ever rewritten: numbering these 1 to 5 as a round's steps
+ *  would be wrong about the game.
+ *
+ *  Each box is a number, an icon, a one-word name and one sentence. The ICONS are the
+ *  thing to be careful with rather than the numbers, because the deleted three-beat block
+ *  also had an icon tile - so read the note at the top of this file first. What killed the
+ *  beats was the WORDS (they restated the hero paragraph one size smaller), not the
+ *  furniture, and these five say something the hero does not. The icons are also much
+ *  smaller here and sit on the title's own row rather than in a tile of their own, which
+ *  is the same reading that took the icon out of the drawn squad's re-roll buttons: an
+ *  icon above a label eats the column, an icon beside one does not.
  *
  *  COLLECT is its own step rather than a clause inside EARN, which is why EARN's
  *  sentence does not mention stickers: the album is the one thing here with a whole
  *  section of its own directly below, so the box is what hands the reader on to it. */
-const STEPS: { name: string; text: string }[] = [
+const STEPS: { name: string; Icon: LucideIcon; text: string }[] = [
     {
         name: 'Build',
+        Icon: Users,
         text: 'Roll national squads and take one man from each, or shop a transfer market on a budget.',
     },
     {
         name: 'Play',
+        Icon: CirclePlay,
         text: 'Simulate the tournament and watch your team struggle or shine, minute by minute.',
     },
     {
         name: 'Earn',
+        Icon: Coins,
         text: 'Paid whether you lift the cup or go out in the group. Honours and a trophy on the shelf if you go all the way.',
     },
-    { name: 'Collect', text: 'Gather stickers of your favourite stars and legends.' },
-    { name: 'Spend', text: 'Feed your team with perks and boosts and go again.' },
+    {
+        name: 'Collect',
+        Icon: Sticker,
+        text: 'Gather stickers of your favourite stars and legends.',
+    },
+    { name: 'Spend', Icon: Zap, text: 'Feed your team with perks and boosts and go again.' },
 ];
 
 /** The all-time XI shown on the hero tactics board (a fixed marketing line-up, not a
@@ -245,38 +275,6 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                             <ArrowRight size={17} strokeWidth={2.5} />
                         </Link>
                     </div>
-
-                    {/* The size of the game, in figures, under the button. It is `font-mono`
-                        because that token IS the marker for "this is a figure or a data
-                        label" (see the seam note in index.css) and this line is nothing
-                        else; every value comes off the dataset and the two catalogues, never
-                        typed - see FACTS above.
-
-                        The text tones are the hero paragraph's own `white/[0.82]` with the
-                        figures at full white, rather than a new value: the scrim under these
-                        words is measured (10.24 for white) and inventing a third opacity here
-                        would be a contrast question nobody had asked. It costs the hero no
-                        HEIGHT on desktop, where the 272px tactics board is much taller than
-                        this column and sets the row on its own.
-
-                        THERE IS NO MIDDLE DOT BETWEEN THE ITEMS, AND THAT IS A WRAP FIX
-                        rather than a preference. A separator drawn between items is fine
-                        while the row is one line and wrong the moment it is two: on a phone
-                        this wraps after "players", and the dot that belonged BETWEEN two
-                        figures came out at the head of the second line as a stray bullet.
-                        Every version of that has the same fault somewhere - a trailing
-                        separator strands the dot at the end of a line instead, and CSS
-                        cannot tell which item starts a row. Spacing separates them at every
-                        width, and the figures being full white against the labels' 0.82 is
-                        what groups each pair. */}
-                    <ul className="mt-[18px] flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-[11.5px] font-semibold text-white/[0.82]">
-                        {FACTS.map((f) => (
-                            <li key={f.label}>
-                                <span className="mr-[5px] text-white">{f.figure}</span>
-                                {f.label}
-                            </li>
-                        ))}
-                    </ul>
                 </div>
 
                 {/* All-time 4-3-3 on the tactics board (desktop only) */}
@@ -340,17 +338,45 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                 <h2 className="font-display text-[22px] font-bold tracking-[-0.01em]">
                     One run feeds the next
                 </h2>
-                <p className="mt-1 max-w-[62ch] text-[13.5px] text-muted">
+                <p className={SECTION_LEDE}>
                     The cup is not the end of it. Everything a run pays is spent on the run
                     after, which is what makes the second one a different game from the first.
                 </p>
                 <ol className="mt-4 grid gap-3 min-[560px]:grid-cols-2 min-[1000px]:grid-cols-5">
-                    {STEPS.map((s) => (
+                    {STEPS.map((s, i) => (
                         <li key={s.name} className={`${CARD_FLAT} px-4 py-[13px]`}>
-                            <h3 className="font-display text-[15px] font-bold tracking-[-0.01em]">
-                                {s.name}
-                            </h3>
-                            <p className="mt-1 text-[12.5px] text-muted">{s.text}</p>
+                            {/* Number, icon, name - one row, in that order, because that is
+                                the order they answer in: which step is this, what is it
+                                about, what is it called. The number is the sequence signal
+                                and the icon is the meaning signal, so they are not saying
+                                the same thing twice.
+
+                                ONE ACCENT, TWO TOKENS, AND THE SPLIT IS MEASURED. The
+                                numeral sits on `chalk` and takes `accent`, which is the
+                                token that exists for green text on a tinted surface (on
+                                graphite it brightens to clear AA there, where `pitch-ink`
+                                reads about 4.4 and misses). The icon sits on the card's own
+                                `panel` and takes `pitch-ink`, which is 8.08 in light and
+                                4.94 on graphite. Using either token for both would fail one
+                                of the two surfaces in one of the two themes. */}
+                            <div className="flex items-center gap-2">
+                                <span
+                                    aria-hidden
+                                    className="grid h-[21px] w-[21px] shrink-0 place-items-center rounded-full bg-chalk font-mono text-[11px] font-bold text-accent"
+                                >
+                                    {i + 1}
+                                </span>
+                                <s.Icon
+                                    size={15}
+                                    strokeWidth={2.2}
+                                    aria-hidden
+                                    className="shrink-0 text-pitch-ink"
+                                />
+                                <h3 className="font-display text-[15px] font-bold tracking-[-0.01em]">
+                                    {s.name}
+                                </h3>
+                            </div>
+                            <p className="mt-2 text-[12.5px] text-muted">{s.text}</p>
                         </li>
                     ))}
                 </ol>
@@ -396,7 +422,7 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                             starts lying the moment it is thrown. The owner supplied the
                             false (shipped) branch; the true branch is the same two facts in
                             the same voice, since only the banking rule differs. */}
-                        <p className="mt-1 max-w-[62ch] text-[13.5px] text-muted">
+                        <p className={SECTION_LEDE}>
                             Players with extraordinary World Cup performances have a sticker,
                             sorted into three tiers.{' '}
                             {FEATURES.stickersOnCupWinOnly
