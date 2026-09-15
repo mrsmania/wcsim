@@ -3970,7 +3970,19 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** **The referee was rebuilt on 2026-09-06**
+**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** **The referee was rebuilt on 2026-09-15**
+from `877da71`, so the public lobby row carries the whole draft's clock (`draft_seconds`) and
+stops advertising a per-pick window to a room that opens none. **No migration and no schema
+change**: the column has existed since 0021 and nothing the referee WRITES moved, so the
+schema stayed at 0026 and the order did not matter in either direction - which is why the
+client half went out first, an older container simply saying less rather than saying
+something wrong. All seven `--verify` steps green, and then the thing `--verify` cannot see:
+**its step 6 shows `draftSeconds` and cannot tell "carried" from "defaulted"**, because the
+room it makes takes the column's own default of 300. The honest probe is a PUBLIC buying room
+opened at **480** and read back off `GET /v1/lobby` - which answered 480, as did the
+invitation read - and then deleted. **When a rebuild adds a field whose test value could be a
+default, pick a value that cannot be**; same family as reading `SWEEP_LAG_MS` out of the
+running bundle below. **The referee was rebuilt before that on 2026-09-06**
 from `96afa16` for `SWEEP_LAG_MS` (roadmap item **60**, closed), which stops the clock's
 auto-fill overwriting a pick that was made in time - see "A PICK THE REFEREE WOULD TAKE IS
 NEVER OVERWRITTEN BY THE CLOCK" below. It is shared game code the referee bundles, so it
@@ -4370,10 +4382,11 @@ an evening this is rather than a countdown), and **the fallback is SILENCE rathe
 figure** - a referee built before the field sends none, and `pickSeconds` is always there and
 always tempting, so reaching for it is exactly the bug coming back. Two things to know:
 
-- **It needs the referee rebuilt to say anything at all.** The client half is safe to deploy
-  first and deliberately so: an older container sends no `draft_seconds`, the row then names
-  its money and its practice opponents and stops, and nothing is wrong on screen - only less
-  is said. Same shape as the invitation read.
+- **It needed the referee rebuilt to say anything at all, and that was done on 2026-09-15**
+  (see the deployment paragraph above). The client half shipped FIRST and that was safe
+  deliberately: an older container sends no `draft_seconds`, the row then names its money and
+  its practice opponents and stops, and nothing is wrong on screen - only less is said. Same
+  shape as the invitation read.
 - **The check that was guarding it was asserting the bug.** `inviteRules(live).includes('20s
   a pick')` passed only because a budget fixture was being printed with a pick clock, so it
   would have gone on pinning the wrong sentence for the most motivated reader in the product.
