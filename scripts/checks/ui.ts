@@ -80,6 +80,54 @@ function palette(css: string, theme: 'light' | 'dark'): Record<string, string> {
   return theme === 'light' ? out : read(css.slice(split), out);
 }
 
+// --- Source reading -------------------------------------------------------
+//
+// Hoisted to module scope when a second sweep wanted it (the scroll lock). It was
+// declared inside the button sweep's own block, which is where it was first needed.
+/** Source with its comments blanked, so prose that quotes a utility is not read as
+ *  code. Tracks quotes on the way through, or a `//` inside a string would eat the
+ *  rest of the line; block comments are replaced by their own newlines so a reported
+ *  line number still points at the right place. */
+function codeOnly(s: string): string {
+  let out = '';
+  let i = 0;
+  let quote: string | null = null;
+  while (i < s.length) {
+    const c = s[i]!;
+    if (quote) {
+      out += c;
+      if (c === '\\') {
+        out += s[i + 1] ?? '';
+        i += 2;
+        continue;
+      }
+      if (c === quote) quote = null;
+      i++;
+      continue;
+    }
+    if (c === "'" || c === '"' || c === '`') {
+      quote = c;
+      out += c;
+      i++;
+      continue;
+    }
+    if (c === '/' && s[i + 1] === '/') {
+      while (i < s.length && s[i] !== '\n') i++;
+      continue;
+    }
+    if (c === '/' && s[i + 1] === '*') {
+      const j = s.indexOf('*/', i + 2);
+      const end = j === -1 ? s.length : j + 2;
+      out += '\n'.repeat((s.slice(i, end).match(/\n/g) ?? []).length);
+      i = end;
+      continue;
+    }
+    out += c;
+    i++;
+  }
+  return out;
+}
+
 export function uiChecks(): void {
   const css = readFileSync('src/index.css', 'utf8');
   const light = palette(css, 'light');
@@ -434,49 +482,6 @@ export function uiChecks(): void {
   // It cannot catch a button composed out of a shared constant plus extra utilities, and
   // does not pretend to. It catches the thing that actually happens.
   {
-    /** Source with its comments blanked, so prose that quotes a utility is not read as
-     *  code. Tracks quotes on the way through, or a `//` inside a string would eat the
-     *  rest of the line; block comments are replaced by their own newlines so a reported
-     *  line number still points at the right place. */
-    const codeOnly = (s: string): string => {
-      let out = '';
-      let i = 0;
-      let quote: string | null = null;
-      while (i < s.length) {
-        const c = s[i]!;
-        if (quote) {
-          out += c;
-          if (c === '\\') {
-            out += s[i + 1] ?? '';
-            i += 2;
-            continue;
-          }
-          if (c === quote) quote = null;
-          i++;
-          continue;
-        }
-        if (c === "'" || c === '"' || c === '`') {
-          quote = c;
-          out += c;
-          i++;
-          continue;
-        }
-        if (c === '/' && s[i + 1] === '/') {
-          while (i < s.length && s[i] !== '\n') i++;
-          continue;
-        }
-        if (c === '/' && s[i + 1] === '*') {
-          const j = s.indexOf('*/', i + 2);
-          const end = j === -1 ? s.length : j + 2;
-          out += '\n'.repeat((s.slice(i, end).match(/\n/g) ?? []).length);
-          i = end;
-          continue;
-        }
-        out += c;
-        i++;
-      }
-      return out;
-    };
 
     const CLASSY = /'([^'\n<>]{12,})'|"([^"\n<>]{12,})"|`([^`\n<>]{12,})`/g;
     const UTILITY = /^[a-z0-9:!/[\]#().,%-]+$/;
@@ -660,6 +665,74 @@ export function uiChecks(): void {
         METALS.includes('bronze') &&
         metallic.length === 0,
       () => `names ${names.join('/')}${metallic.length ? ` (metallic: ${metallic.join(', ')})` : ''}`,
+    );
+  }
+
+  // --- The scroll lock, and the 15px it must not cost -------------------------
+  //
+  // A modal locks the page with `overflow: hidden` on the document element, and that on
+  // its own REMOVES the scrollbar: the layout viewport widens by the bar and the whole
+  // page behind the backdrop jumps sideways. It was reported from the album's trade
+  // modal and it was every modal in the app. Nothing behavioural in this harness can see
+  // it (there is no layout here), and nothing in the BROWSER shouts either - every frame
+  // is a correct rendering of a page that is genuinely 15px wider - so the two things
+  // that keep it fixed are read out of the source.
+
+  // ONE LOCK, SHARED. The bug existed twice because the effect was written out twice, in
+  // the same words, in two components; the next modal copies whichever it finds first.
+  {
+    const HOOK = 'src/hooks/useScrollLock.ts';
+    const files = readdirSync('src', { recursive: true, encoding: 'utf8' })
+      .map((f) => `src/${String(f).split('\\').join('/')}`)
+      .filter((f) => f.endsWith('.tsx') || f.endsWith('.ts'));
+    const bespoke: string[] = [];
+    let callers = 0;
+    for (const f of files) {
+      const src = codeOnly(readFileSync(f, 'utf8'));
+      if (f !== HOOK && /\.style\.overflow\s*=/.test(src)) bespoke.push(f);
+      if (f !== HOOK && src.includes('useScrollLock(')) callers += 1;
+    }
+    check(
+      'ui: every modal locks the page through the one shared hook',
+      () =>
+        // Vacuity: the sweep really read the tree and really found the callers, so a
+        // clean result cannot mean the scan matched nothing at all.
+        files.length > 40 &&
+        callers >= 2 &&
+        bespoke.length === 0,
+      () => `bespoke locks: ${bespoke.join(', ')} (callers found: ${callers})`,
+    );
+  }
+
+  // THE GUTTER IS MEASURED BEFORE IT IS HIDDEN, which is the whole of the fix and is one
+  // line-swap away from being silently useless: after `overflow: hidden` the bar is gone
+  // and `innerWidth - clientWidth` reads 0, so the padding is 0, so the page shifts
+  // exactly as it did before and every other assertion here still passes.
+  {
+    const src = readFileSync('src/hooks/useScrollLock.ts', 'utf8');
+    const measure = src.indexOf('window.innerWidth - el.clientWidth');
+    const hide = src.indexOf("el.style.overflow = 'hidden'");
+    // The measured gutter must actually be WRITTEN to the padding. A bare
+    // `includes('paddingRight')` is not enough and was the first version of this
+    // line: `const prevPadding = el.style.paddingRight` carries the same word, so
+    // deleting the write left the check green while the page shifted again.
+    const pays = /paddingRight\s*=\s*`[^`]*\$\{gutter\}/.test(src);
+    // `scrollbar-gutter: stable` is the obvious one-line answer and does NOT work: it
+    // reserves the gutter for `overflow: scroll` and `auto` only, never for `hidden`.
+    // Measured in Chrome, which fully supports it, and the page still moved the full 15px.
+    const gutterProp = src.includes('scrollbarGutter =') || src.includes("'scrollbar-gutter'");
+    check(
+      'ui: the scroll lock measures the scrollbar before hiding it, and pays it back',
+      () =>
+        measure >= 0 && hide >= 0 && measure < hide && pays && !gutterProp,
+      () =>
+        measure < 0 || hide < 0
+          ? 'the lock no longer measures the gutter or no longer hides the overflow'
+          : measure > hide
+            ? 'measured AFTER hiding, which always reads 0'
+            : gutterProp
+              ? 'scrollbar-gutter does not apply to overflow:hidden'
+              : 'the measurement is not paid back as padding',
     );
   }
 }

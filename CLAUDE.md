@@ -3747,6 +3747,39 @@ spacing. A margin is what separates them.
   siblings under one `relative` root, so `Pitch`'s three placed-player branches are plain
   positioned `<div>`s. The "x" anchors to the badge COLUMN rather than to the name label it
   used to sit inside, so it no longer slides with the length of the name.
+- **A MODAL LOCKS THE PAGE THROUGH `hooks/useScrollLock.ts`, AND THE LOCK COSTS 15px IF
+  YOU WRITE IT THE OBVIOUS WAY** (2026-09-15, reported from the game about the album's
+  trade modal, and it was every modal in the app). Locking is `overflow: hidden` on the
+  document element - the page scrolls on the root, not on `body` - and that on its own
+  REMOVES the scrollbar, so the layout viewport grows by the bar's width and the whole
+  page behind the backdrop jumps sideways. Measured in Chrome at a 1024px window: `body`
+  goes 1009 to 1024, so everything centred moves 7.5px right and everything full-width
+  reflows, in the one moment the reader is being asked to look at something else. Four
+  things to know:
+  - **The gutter is MEASURED and paid back as padding on the same element**, which holds
+    `body` to the pixel (1009 before, locked and after). Measured per lock rather than
+    assumed, because the figure is the platform's: a phone and macOS draw OVERLAY
+    scrollbars that take no layout space, so it reads 0 there and the mechanism costs
+    nothing. **Measure BEFORE hiding** - afterwards the bar is gone and the difference
+    reads 0, which is the fix silently doing nothing.
+  - **`scrollbar-gutter: stable` IS NOT THE FIX**, and it is the obvious one-line answer,
+    so it is worth knowing it was tried and measured first: the property reserves the
+    gutter only for `overflow: scroll` and `auto`, never for `hidden`, and a browser that
+    fully supports it still shifted the full 15px. Do not replace the arithmetic with it.
+  - **`html { overflow-y: scroll }` in `index.css` is a DIFFERENT rule** solving a
+    different jump (a short page and a tall one having the same width), and it is what
+    makes the gutter reliably non-zero on the desktop. The modal's inline `overflow:
+    hidden` overrides it - which is how a rule written to stop the page shifting came to
+    be defeated by a modal.
+  - **The lock COUNTS.** The effect was written out twice, in the same words, in `Overlay`
+    and `GroupDrawReveal`, and the naive save-and-restore pair strands the page when two
+    modals overlap: each copy captures the CURRENT overflow, so an outer one unmounting
+    first restores the scroll while the inner is still up, and the inner then "restores"
+    `hidden` on its way out and the page can never be scrolled again. One counter, locked
+    on the first and released on the last, has no ordering to get wrong.
+  `npm run checks` reads both halves out of the source, because nothing behavioural can
+  see either: there is no layout in the harness, and in the browser every frame is a
+  correct rendering of a page that is genuinely 15px wider.
 - `Tooltip.tsx` portals its bubble to `document.body` with `fixed` positioning (so
   it escapes `overflow` clipping), flips above/below by available space, and
   dismisses on scroll/resize. Hover-only by design.

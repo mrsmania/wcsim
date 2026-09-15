@@ -5,6 +5,7 @@ import { ArrowRight } from 'lucide-react';
 import Flag from './Flag';
 import { CARD, PAGE_EYEBROW, PRIMARY_BTN, RatingChip } from './matchUi';
 import { prefersReducedMotion, SCRAMBLE_MS } from '../hooks/motion';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 /** How often (ms) the drawn flags reshuffle while the draw scrambles. */
 const SCRAMBLE_STEP_MS = 90;
@@ -56,18 +57,10 @@ export default function GroupDrawReveal({ userTeam, opponents, onContinue }: Pro
     // than mean anything.
   }, []);
 
-  // Lock background scroll while the draw is up: the page behind it is the group it
-  // is hiding, so scrolling it defeats the modal. Same pattern as `Overlay` (own
-  // effect with [] deps so the original overflow is captured once and restored on
-  // dismiss); the page scrolls on the document element, so lock that.
-  useEffect(() => {
-    const el = document.documentElement;
-    const prev = el.style.overflow;
-    el.style.overflow = 'hidden';
-    return () => {
-      el.style.overflow = prev;
-    };
-  }, []);
+  // Lock background scroll while the draw is up: the page behind it is the group it is
+  // hiding, so scrolling it defeats the modal. Shared with `Overlay` rather than copied,
+  // which is how both came to shift the page sideways by the scrollbar's width.
+  useScrollLock();
 
   return (
     <div

@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 /** A centred modal over a dimmed backdrop. Closes on the X button, a backdrop click,
  *  or Escape. Shared by the sticker overlays (trade, cup reward, run-end summary,
@@ -24,17 +25,10 @@ export default function Overlay({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  // Lock background scroll while the modal is open (own effect with [] deps so the
-  // original overflow is captured once and restored on close, not clobbered by a
-  // re-render). The page scrolls on the document element, so lock that.
-  useEffect(() => {
-    const el = document.documentElement;
-    const prev = el.style.overflow;
-    el.style.overflow = 'hidden';
-    return () => {
-      el.style.overflow = prev;
-    };
-  }, []);
+  // Hold the page still behind the backdrop. `useScrollLock` also pays back the
+  // scrollbar's width as padding, without which hiding the overflow widens the layout
+  // viewport and the whole page jumps sideways as the modal opens.
+  useScrollLock();
 
   return (
     <div
