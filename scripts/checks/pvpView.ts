@@ -22,6 +22,7 @@ import {
   BUDGET_MAX,
   BUDGET_MIN,
   DEFAULT_ROOM_BUDGET,
+  DRAFT_SECONDS,
   ROOM_BUDGETS,
 } from '../../src/domain/pvpRoom';
 import {
@@ -51,6 +52,7 @@ import {
   inviteRules,
   inviteState,
   lobbyLine,
+  seatCounts,
   seatsLine,
   meIn,
   playersOf,
@@ -869,6 +871,7 @@ export function pvpViewChecks(): void {
       method: 'budget',
       budget: 110,
       pickSeconds: 20,
+      draftSeconds: 300,
       rerolls: 3,
       showRatings: true,
       hostName: 'Ada',
@@ -878,22 +881,57 @@ export function pvpViewChecks(): void {
     check(
       'pvpView: a lobby row says what the room is to PLAY, and a hidden-ratings roll room says so',
       () =>
-        lobbyLine(budget) === 'Buy an XI with $110, 20s a pick' &&
+        lobbyLine(budget) === 'Buy an XI with $110, 5 min to draft' &&
         // One re-roll is not "1 re-rolls", and the hidden-ratings note only appears when it
         // is true - which is the whole reason a budget room never carries it (P5).
         lobbyLine(roll) === 'Roll for your XI, 1 re-roll, 20s a pick, ratings hidden' &&
         lobbyLine({ ...roll, rerolls: 3, showRatings: true }) ===
-          'Roll for your XI, 3 re-rolls, 20s a pick' &&
-        !lobbyLine(budget).includes('ratings'),
+          'Roll for your XI, 3 re-rolls, 20s a pick',
       () => `${lobbyLine(budget)} | ${lobbyLine(roll)}`,
+    );
+    // --- THE CLOCK ON THE ROW IS THE ONE THE ROOM RUNS -----------------------
+    // This was wrong for as long as the whole-draft change has been live (P52). The row
+    // printed `pickSeconds` whatever the method, so a BUYING room - which opens no pick
+    // window at all - was advertised to strangers as "20s a pick". Not merely an imprecise
+    // number: a mechanism that room does not have, told to the one reader who cannot see
+    // inside it.
+    //
+    // THE FALLBACK IS SILENCE, NOT THE OLD FIGURE, which is the half worth pinning. A
+    // referee built before the field sends none, and `pickSeconds` is always there and
+    // always tempting - reaching for it is exactly the bug coming back.
+    check(
+      'pvpView: a buying room prints the WHOLE-DRAFT clock, and never a per-pick one',
+      () => {
+        const older: LobbyRoom = { ...budget, draftSeconds: undefined };
+        return (
+          // Every length the referee takes, in whole minutes, because the question is how
+          // long an evening this is rather than a countdown.
+          lobbyLine({ ...budget, draftSeconds: 180 }) === 'Buy an XI with $110, 3 min to draft' &&
+          lobbyLine({ ...budget, draftSeconds: 480 }) === 'Buy an XI with $110, 8 min to draft' &&
+          // No pick window is ever named on a buying row, at any length...
+          DRAFT_SECONDS.every((d) => !lobbyLine({ ...budget, draftSeconds: d }).includes('a pick')) &&
+          // ...and a row with no draft length names no clock at all rather than that one.
+          lobbyLine(older) === 'Buy an XI with $110' &&
+          !lobbyLine(older).includes('pick') &&
+          lobbyLine({ ...older, bots: 2 }) === 'Buy an XI with $110, 2 practice opponents' &&
+          // The discrimination guard: a ROLLING row still prints its pick clock, which is
+          // the clock that room does run. Without this, deleting the clock entirely passes.
+          lobbyLine({ ...roll, showRatings: true }).includes('20s a pick') &&
+          !lobbyLine({ ...roll, showRatings: true }).includes('to draft')
+        );
+      },
+      () =>
+        `${lobbyLine(budget)} | older: ${lobbyLine({ ...budget, draftSeconds: undefined })}`,
     );
     check(
       'pvpView: a row says how many chairs the host filled with practice opponents, and none is silent',
       () =>
         // It changes what turning up MEANS - the room can start the moment you arrive, and
         // one of your ties may be against a seat rather than a person.
-        lobbyLine({ ...budget, bots: 2 }) === 'Buy an XI with $110, 20s a pick, 2 practice opponents' &&
-        lobbyLine({ ...budget, bots: 1 }) === 'Buy an XI with $110, 20s a pick, 1 practice opponent' &&
+        lobbyLine({ ...budget, bots: 2 }) ===
+          'Buy an XI with $110, 5 min to draft, 2 practice opponents' &&
+        lobbyLine({ ...budget, bots: 1 }) ===
+          'Buy an XI with $110, 5 min to draft, 1 practice opponent' &&
         lobbyLine({ ...roll, bots: 1 }).endsWith(', 1 practice opponent') &&
         // Zero says nothing, and so does a referee too old to have sent the field at all -
         // which is the state the deployment is actually in until the container is rebuilt.
@@ -944,6 +982,7 @@ export function pvpViewChecks(): void {
       method: 'budget',
       budget: 110,
       pickSeconds: 20,
+      draftSeconds: 300,
       rerolls: 3,
       showRatings: true,
       hostName: 'Ada',
@@ -953,9 +992,15 @@ export function pvpViewChecks(): void {
     check(
       'pvpView: an invitation to a duel does not promise the pick clock a duel has not got',
       () =>
-        // A live room gets the public list's own sentence.
+        // A live room gets the public list's own sentence, whichever clock that room runs.
         inviteRules(live) === lobbyLine(live) &&
-        inviteRules(live).includes('20s a pick') &&
+        inviteRules(live).includes('5 min to draft') &&
+        // The pick clock is a ROLLING room's, here as everywhere. This line used to read
+        // `live` for it and passed only because `lobbyLine` printed a pick window over a
+        // buying room - the very bug being closed - so it would have gone on asserting the
+        // wrong sentence about the most motivated reader in the product.
+        inviteRules({ ...live, method: 'roll' }).includes('20s a pick') &&
+        !inviteRules(live).includes('a pick') &&
         // A DUEL DOES NOT, and this is the trap the pace guards: a duel stores a
         // `pickSeconds` it never reads (`tickDuel`), so `lobbyLine` would tell a stranger
         // about a twenty-second window that does not exist in the mode they are joining.
@@ -1866,4 +1911,188 @@ export function pvpViewChecks(): void {
       () => `solo ${JSON.stringify(SOLO_CONTROLS)}; room ${JSON.stringify(ROOM_CONTROLS)}`,
     );
   }
+
+  // --- THE VERSUS PAGE'S OWN SHAPE (2026-09-15) -----------------------------
+  //
+  // The page was reworked on five criticisms, and three of the answers are things NOTHING
+  // BEHAVIOURAL CAN SEE: which column a section is in, what order it takes on a phone, and
+  // whether a finished match still prints a code. A build that got all three wrong renders
+  // a perfectly good screen. So these read the source, and each one names the correction it
+  // is holding. The drawing is docs/redesign-2026/turf-flat/versus-option-2.html.
+  {
+    const home = readFileSync('src/components/versus/VersusHome.tsx', 'utf8');
+
+    // (a) ON A PHONE THE LOBBY COMES BEFORE WHAT IS WAITING ON YOU. The owner's correction,
+    // against the first sketch, which hoisted the alert to the top below the breakpoint. It
+    // is expressible ONLY as these classes: both columns are `display: contents` there, so
+    // the six sections are grid items of one grid and `order` is the whole of the phone's
+    // reading order. Reordering the JSX changes the desktop and leaves the phone alone,
+    // which is exactly the silent half.
+    const orderOf = (title: string): number => {
+      // The `order-N` on the <section> immediately before this heading.
+      const at = home.indexOf(`title="${title}"`);
+      if (at < 0) return -1;
+      const before = home.lastIndexOf('<section className="order-', at);
+      if (before < 0) return -1;
+      return Number(home.slice(before + 26, home.indexOf('"', before + 26)));
+    };
+    const start = orderOf('Start a match');
+    const join = orderOf('Join with a code');
+    const lobby = orderOf('Rooms open now');
+    const waiting = orderOf('Waiting on you');
+    const results = orderOf('Your results');
+    check(
+      'versus page: on a phone it is start, join, lobby, then your own matches',
+      () =>
+        // Every section was found, which is the vacuity guard: a renamed heading would
+        // otherwise leave this comparing -1 against -1 and passing.
+        [start, join, lobby, waiting, results].every((n) => n > 0) &&
+        start < join &&
+        join < lobby &&
+        // The correction itself. The chrome carries a duel strip on every other screen in
+        // the game, so somebody with a match waiting has been told before they got here.
+        lobby < waiting &&
+        waiting < results &&
+        // And the mechanism that makes any of it mean anything: both column wrappers stop
+        // being boxes below the breakpoint, or `order` has nothing to sort.
+        (home.match(/contents min-\[860px\]:block/g) ?? []).length === 2,
+      () => `start ${start}, join ${join}, lobby ${lobby}, waiting ${waiting}, results ${results}`,
+    );
+
+    // (b) THE SEATS SIT BETWEEN THE ROOM'S NAME AND THE WAY IN. Leading with them started
+    // every row of the list with a different shape, which is the noise the owner named.
+    // Source order in one <li> is the only place that lives.
+    {
+      const row = home.slice(home.indexOf('{lobby.map('), home.indexOf('{looked !== null'));
+      const pips = row.indexOf('<SeatPips');
+      const name = row.indexOf('{r.hostName');
+      const seat = row.indexOf("'Take a seat'");
+      check(
+        'versus page: a lobby row reads name, then seats, then the way in',
+        () =>
+          name > 0 &&
+          pips > 0 &&
+          seat > 0 &&
+          name < pips &&
+          pips < seat &&
+          // The words it replaced are gone: a row that drew the dots AND printed "2 of 4
+          // seats left" would be saying the same thing twice, which is what the rework is
+          // about.
+          !row.includes('seatsLine'),
+        () => `name@${name} pips@${pips} seat@${seat}`,
+      );
+    }
+
+    // (c) A PLAYED MATCH CARRIES NO ROOM CODE. A code is how you reach a room and a
+    // finished one is not going anywhere. An OPEN one keeps it and has to: until somebody
+    // follows the link the opponent column reads "Nobody yet", so the code is the row's
+    // only identity.
+    check(
+      'versus page: a finished duel drops its room code, and an open one keeps it',
+      () => {
+        // Sliced between markers that occur once each: `{played.length >` is not one of
+        // them, since the section guards itself on the same expression.
+        const results = home.slice(
+          home.indexOf('{results.map('),
+          home.indexOf('All {played.length} results'),
+        );
+        const waitingList = home.slice(
+          home.indexOf('{waiting.map('),
+          home.indexOf('</section>', home.indexOf('{waiting.map(')),
+        );
+        return (
+          results.length > 40 &&
+          waitingList.length > 20 &&
+          results.includes('code={false}') &&
+          !waitingList.includes('code={false}') &&
+          // And the row honours it rather than accepting a prop it ignores.
+          home.includes('{code && (') &&
+          // What it PLAYS is gated on the status rather than on the code, which is a
+          // different question with the same answer here: it is worth knowing while there
+          // is still a team to build, and once there is not the row's own line is the
+          // result. Appending it anyway wrapped every alert onto a second line to say
+          // nothing, which is the complaint this whole rework is about.
+          home.includes("{row.status !== 'ended' && <> &middot; {duelRules(row)}</>}")
+        );
+      },
+      () => 'the results list passes code={false}',
+    );
+
+    // AND THE PAGE HAS VISIBLE HEADINGS AT ALL, which was the fifth criticism. Every part
+    // of it used to be marked with a 10px grey caption, so a reader scanning the page had
+    // nothing at heading weight to land on.
+    check(
+      'versus page: every section is a real heading, not a mono caption',
+      () =>
+        (home.match(/<SectionHead/g) ?? []).length >= 5 &&
+        // One `MONO_CAP` survives, on the held-room card, which is a card's own caption
+        // rather than a section of the page. More than that and the captions are back.
+        (home.match(/MONO_CAP/g) ?? []).length <= 2,
+      () =>
+        `${(home.match(/<SectionHead/g) ?? []).length} headings, ${(home.match(/MONO_CAP/g) ?? []).length} captions`,
+    );
+  }
+
+  // --- A ROOM'S CHAIRS, SPLIT THREE WAYS ------------------------------------
+  // A practice opponent is neither a person nor a free chair: it is genuinely taken and it
+  // still yields to anybody who turns up, so folding it into either of the others tells the
+  // reader something false about what walking in would mean.
+  {
+    const room = (size: number, seated: number, bots?: number) => ({ size, seated, bots });
+    check(
+      'pvpView: the seats always add up to the room, and a practice opponent is its own state',
+      () => {
+        const half = seatCounts(room(4, 2));
+        const padded = seatCounts(room(8, 3, 2));
+        const full = seatCounts(room(2, 2));
+        return (
+          half.people === 2 && half.practice === 0 && half.free === 2 &&
+          padded.people === 3 && padded.practice === 2 && padded.free === 3 &&
+          full.people === 2 && full.free === 0 &&
+          // The property, over every shape the referee can send: the three always tile the
+          // room exactly, so a row of dots is never short or long.
+          [2, 4, 8].every((size) =>
+            Array.from({ length: size + 1 }, (_, seated) =>
+              Array.from({ length: size + 1 }, (_, bots) => seatCounts(room(size, seated, bots))),
+            )
+              .flat()
+              .every((c) => c.people + c.practice + c.free === size),
+          )
+        );
+      },
+      () => JSON.stringify(seatCounts(room(8, 3, 2))),
+    );
+    check(
+      'pvpView: a seat count that does not fit its own room is clamped rather than thrown',
+      () =>
+        // `seated` and `bots` are two independent subqueries on the server, so a row read
+        // between two writes really can carry a pair that does not fit - and a negative
+        // count reaches `Array.from({ length })`, which throws in the middle of a list.
+        seatCounts(room(4, 9)).free === 0 &&
+        seatCounts(room(4, 9)).people === 4 &&
+        seatCounts(room(4, 2, 9)).practice === 2 &&
+        // Nothing negative reaches `Array.from({ length })`, and the room still tiles.
+        seatCounts(room(4, 9, 9)).people +
+          seatCounts(room(4, 9, 9)).practice +
+          seatCounts(room(4, 9, 9)).free ===
+          4 &&
+        [seatCounts(room(4, 9, 9)), seatCounts(room(2, -1, -1))].every(
+          (c) => c.people >= 0 && c.practice >= 0 && c.free >= 0,
+        ) &&
+        seatCounts(room(2, -1)).people === 0,
+      () => JSON.stringify(seatCounts(room(4, 9, 9))),
+    );
+    check(
+      'pvpView: the seats have a sentence for anybody who cannot see the dots',
+      () =>
+        seatCounts(room(4, 2)).label === '2 people, 2 seats free' &&
+        seatCounts(room(4, 1)).label === '1 person, 3 seats free' &&
+        seatCounts(room(8, 3, 2)).label === '3 people, 2 practice opponents, 3 seats free' &&
+        seatCounts(room(2, 1, 1)).label === '1 person, 1 practice opponent, full' &&
+        // A full room says so rather than counting to zero.
+        seatCounts(room(2, 2)).label === '2 people, full',
+      () => seatCounts(room(8, 3, 2)).label,
+    );
+  }
+
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { WORLD_CUP_YEARS } from '../../data/squads';
 import {
     agoLine,
+    draftLengthLine,
     duelAlert,
     duelDowngraded,
     duelLine,
@@ -12,7 +13,6 @@ import {
     lobbyJoinable,
     lobbyLine,
     offersRatingSwitch,
-    seatsLine,
 } from '../../domain/pvpView';
 import {
     DEFAULT_DRAFT_SECONDS,
@@ -30,54 +30,62 @@ import { RefereeError, createRoom, leaveRoom, readDuels, readLobby } from '../..
 import { onDuelsChanged } from '../../state/pvp/duels';
 import { myRecord, NO_RECORD, type PvpRecord } from '../../state/pvp/records';
 import { onWatchedChange, watchedDuels } from '../../state/pvp/watched';
-import {
-    CARD,
-    CHIP_OFF,
-    CHIP_ON,
-    MONO_CAP,
-    PRIMARY_BTN,
-    SECONDARY_BTN,
-    StageHeader,
-    btn,
-} from '../matchUi';
+import { CARD, CHIP_OFF, CHIP_ON, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader, btn } from '../matchUi';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
-import { RefereeProblem, RoomNote } from './versusUi';
+import {
+    BigChoice,
+    HeadCount,
+    LiveCount,
+    RefereeProblem,
+    RefreshButton,
+    RoomNote,
+    SeatPips,
+    SectionHead,
+    Setting,
+    SettingRow,
+} from './versusUi';
 
 // THE VERSUS TAB: everything you have on, everything you have played, and the way to start
 // another one.
 //
-// IT LEADS WITH YOUR OWN MATCHES because of duels. A live room is a thing you are AT for
-// twenty minutes, so the page that opens one is the page; a duel is a thing you are IN for
-// days, and the question somebody arrives with is "is there anything waiting for me" - not
-// "what settings shall I choose". So your matches are first, the form is beside them, and
-// the public lobby is under it.
+// REWORKED 2026-09-15, on five criticisms of the page it replaces, all of them the owner's
+// and all of them true of what was there: far too much text; the duel history pushing the
+// thing you came for below the fold; a lobby that did not look like a lobby, with a Refresh
+// nobody could tell was pressable; far too many buttons to open a room; and no guidance
+// anywhere, because every part of the page was marked with a 10px grey caption.
 //
-// TWO KINDS OF ROOM, THREE SIZES, PUBLIC OR PRIVATE, AND EITHER CLOCK: buy an XI from a
-// shared budget or roll random squads, two, four or eight people, a code you send to
-// somebody or a room anybody signed in can find, twenty or thirty seconds a pick. That is
-// every setting the referee takes; nothing it accepts is unreachable from here.
+// The drawing is docs/redesign-2026/turf-flat/versus-option-2.html, chosen from five in
+// versus-page-mock.html. Its shape, and the reason for each half:
 //
-// THE LOBBY LIST IS THE HALF OF THIS FEATURE THAT DEPENDS ON OTHER PEOPLE, and it is
-// therefore also the half that looks broken when nobody is playing. So an empty list says
-// so in the room's own voice and puts the answer next to it - open one - rather than
-// rendering an empty table and leaving the reader to wonder whether it loaded.
+// TWO COLUMNS THAT NEVER SWAP: everything you DO on the left, everything that is HAPPENING
+// on the right. That is what answers the second criticism structurally rather than by
+// ordering: the history lives in the other column, so however many duels it grows to it
+// cannot push the form down by a pixel. It also means both columns start at the same height,
+// so the lobby is on screen from the first paint whether or not you have ever played one.
 //
-// SIZE IS THE ONE SETTING THAT CHANGES THE SHAPE OF THE EVENING rather than the shape of an
-// XI, so it is written in rounds and in waiting: a room of eight is three rounds and a draft
-// that finishes when the SLOWEST of eight people finishes (P47), which is the cost that
-// decision knowingly accepts. The host can drop the size later if the room will not fill
-// (P7), which is what stops a room of eight becoming a room of nobody.
+// SEVEN CHIP ROWS BECOME TWO BIG CHOICES AND THREE FOLDED SETTINGS. The form was twenty
+// chips and seven explaining paragraphs to open a room whose defaults are already right.
+// Folding alone would have been no improvement - it would only have hidden them - so each
+// folded row SHOWS ITS OWN ANSWER ("Roll, 3 re-rolls"), and the whole room is legible
+// without opening anything. Which three you get is the field dependency doing the work: a
+// challenge has nobody to wait for and no clock, so it gets two.
 //
-// THE RATINGS SWITCH IS OFFERED FOR A ROLL ROOM AND NOT FOR A BUDGET ONE (P5), and the
-// reason is not squeamishness: a budget room shows a price computed straight from the
-// rating it would be hiding, so the switch would hide nothing. That was P14, and it is
-// void because the two can no longer co-occur. `offersRatingSwitch` is that rule, shared
-// with the checks.
+// ON A PHONE IT IS ONE COLUMN IN THE ORDER start, join, lobby, waiting, on now, results.
+// The obvious alternative - hoist whatever is waiting on you to the top - was drawn and
+// rejected by the owner, and the reason it costs nothing is that the chrome already carries
+// a duel strip on every other screen in the game (`useDuelAlert`): somebody with a match
+// waiting has been told before they ever opened this page. It is `display: contents` on the
+// two column wrappers plus an `order` on each section, so nothing is duplicated and nothing
+// moves between sections - there is one of each in the DOM at every width.
 //
-// WRITTEN IN OUTCOMES, NOT SETTINGS (plan section 8). "$110 buys about one 99-rated star
-// and ten players around 80" is a sentence somebody can act on; "budget: 110" is not, and
-// a player can arrive here having never built an XI, since the mode is deliberately
-// independent of the career.
+// FOUR SECTIONS ON THE RIGHT AND EACH IS ABSENT WHEN EMPTY. "Waiting on you" and the lobby
+// are things to act on now; "On now" and "Your results" are things to look at. An empty
+// "Waiting on you" would be a promise of noise, so it is not rendered at all rather than
+// rendered empty - which is also what keeps a first visit down to two sections.
+//
+// WRITTEN IN OUTCOMES, NOT SETTINGS (plan section 8). "$125 buys about 85 across the team"
+// is a sentence somebody can act on; "budget: 125" is not, and a player can arrive here
+// having never built an XI, since the mode is deliberately independent of the career.
 
 /**
  * What each budget buys, in the only terms that matter: how good the team comes out.
@@ -100,12 +108,12 @@ const BUDGET_COPY: Record<RoomBudget, string> = {
 };
 const BUDGETS = ROOM_BUDGETS.map((value) => ({ value, label: `$${value}`, sub: BUDGET_COPY[value] }));
 
-/** Two, four or eight. No description: the number is the answer, and the lobby states how
- *  many rounds that comes to. */
+/** Two, four or eight, and what the number means for the evening: a room of eight is three
+ *  rounds, and P47's wait is at the end of the draft rather than at every pick. */
 const SIZES = [
-    { value: 2, label: 'Two' },
-    { value: 4, label: 'Four' },
-    { value: 8, label: 'Eight' },
+    { value: 2, label: 'Two', sub: 'One match, and it is over.' },
+    { value: 4, label: 'Four', sub: 'Two rounds: a semi-final and a final.' },
+    { value: 8, label: 'Eight', sub: 'Three rounds. Whoever goes out first stays and watches.' },
 ];
 
 /**
@@ -161,15 +169,6 @@ const REROLLS = [
 ];
 
 /**
- * One row of choices: the labels on the buttons, and ONE line under the row saying what the
- * chosen one means.
- *
- * The description used to live inside each button, which put four sentences on screen to
- * explain one decision and made every option a paragraph. `AscensionPicker` had already
- * settled the right shape - a row of short labels with a single line beneath that follows
- * the selection - and this is that. A button says what it is; the room says what it does.
- */
-/**
  * What to say when the versus server is older than duels.
  *
  * `deployment: true` because it is nothing the player can do anything about, which is the
@@ -182,7 +181,10 @@ const NO_DUELS: RefereeMessage = {
     room: null,
 };
 
-function Choice<T extends number | string>({
+/** One row of chips inside a folded setting: short labels, and one line beneath that
+ *  follows the selection. `AscensionPicker` settled that shape - a button says what it is,
+ *  and the room says what it does - and it is why there is no description inside a chip. */
+function Chips<T extends number | string>({
     label,
     options,
     value,
@@ -195,44 +197,45 @@ function Choice<T extends number | string>({
 }) {
     const chosen = options.find((o) => o.value === value);
     return (
-        <>
-            <div className={`${MONO_CAP} mt-4`}>{label}</div>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {options.map((o) => (
-                    <button
-                        key={String(o.value)}
-                        type="button"
-                        onClick={() => onPick(o.value)}
-                        className={`rounded-[5px] border px-3 py-1.5 font-mono text-[12px] font-bold transition ${
-                            o.value === value ? CHIP_ON : CHIP_OFF
-                        }`}
-                    >
-                        {o.label}
-                    </button>
-                ))}
-            </div>
-            {chosen?.sub && (
-                <p className="mt-1.5 text-[12px] leading-snug text-muted">{chosen.sub}</p>
-            )}
-        </>
+        <SettingRow label={label} note={chosen?.sub}>
+            {options.map((o) => (
+                <button
+                    key={String(o.value)}
+                    type="button"
+                    onClick={() => onPick(o.value)}
+                    className={`rounded-[5px] border px-3 py-1.5 font-mono text-[12px] font-bold transition ${
+                        o.value === value ? CHIP_ON : CHIP_OFF
+                    }`}
+                >
+                    {o.label}
+                </button>
+            ))}
+        </SettingRow>
     );
 }
 
 /**
- * One duel on the list.
+ * One duel on one of the three lists.
  *
  * THE ACTION IS WHAT THE ROW IS FOR, and there are three of them: a match nobody has
  * watched is the loudest thing on this page, then a team that is not sent, then everything
  * else, which is a link to look at. `duelAlert` decides the first two and it is shared with
  * the chrome's strip, so the tab and the page can never disagree about what is waiting.
+ *
+ * `code` is FALSE on a finished one, which is the owner's third correction: a code is how
+ * you reach a room, and a room that has been played is not going anywhere. An open one keeps
+ * it, and has to - a challenge nobody has taken up has no other identity, since the opponent
+ * column reads "Nobody yet" until somebody follows the link.
  */
 function DuelLine({
     row,
     watched,
+    code = true,
     go,
 }: {
     row: DuelRow;
     watched: ReadonlySet<string>;
+    code?: boolean;
     go: (to: string) => void;
 }) {
     const alert = duelAlert(row, watched);
@@ -242,17 +245,19 @@ function DuelLine({
             <div className="min-w-0 flex-1">
                 <div className="text-[13.5px] font-bold text-ink">
                     {row.opponentName || 'Nobody yet'}
-                    <span className="ml-2 font-mono text-[11px] font-medium tracking-[0.1em] text-dim">
-                        {row.code}
-                    </span>
+                    {code && (
+                        <span className="ml-2 font-mono text-[11px] font-medium tracking-[0.1em] text-dim">
+                            {row.code}
+                        </span>
+                    )}
                 </div>
-                <div
-                    className={`text-[12px] ${
-                        alert ? 'font-semibold text-pitch-ink' : 'text-muted'
-                    }`}
-                >
-                    {alert === 'watch' ? 'The match has been played' : duelLine(row)} &middot;{' '}
-                    {duelRules(row)}
+                <div className={`text-[12px] ${alert ? 'font-semibold text-pitch-ink' : 'text-muted'}`}>
+                    {alert === 'watch' ? 'The match has been played' : duelLine(row)}
+                    {/* What it plays is worth knowing while there is still a team to build
+                        and is noise once there is not: a finished row's own line is the
+                        result, and appending "roll for your XI, one man from each squad" to
+                        it wrapped every alert onto a second line to say nothing. */}
+                    {row.status !== 'ended' && <> &middot; {duelRules(row)}</>}
                 </div>
             </div>
             <button
@@ -272,13 +277,12 @@ function DuelLine({
     );
 }
 
-export default function VersusHome({
-    name,
-    onRename,
-}: {
-    name: string;
-    onRename: () => void;
-}) {
+/** How many finished duels are listed before the rest are folded away. A record is
+ *  something you go looking for, so the section says how many there are and shows the
+ *  newest few. */
+const RESULTS_SHOWN = 3;
+
+export default function VersusHome({ name, onRename }: { name: string; onRename: () => void }) {
     const navigate = useNavigate();
     const held = useHeldVersusRoom();
     // ROLLING IS THE DEFAULT (2026-08-30). It is the game this one actually is: a squad you
@@ -295,6 +299,7 @@ export default function VersusHome({
     const [code, setCode] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<RefereeMessage | null>(null);
+    const [allResults, setAllResults] = useState(false);
     // A DUEL IS THE SAME FORM WITH THE WAITING TAKEN OUT (P51): the same two draft methods
     // and the same money, minus everything that only means something when people are
     // present - how many of you, how long a pick gets, who may walk in.
@@ -408,16 +413,32 @@ export default function VersusHome({
     // reader did themselves. `duelsChanged` fires when the referee answers.
     useEffect(() => onDuelsChanged(refreshLobby), [refreshLobby]);
 
-    // ON NOW versus PLAYED. Two lists rather than one sorted list, because they are read
-    // for different reasons: the first is a to-do list and the second is a record. A duel
-    // that CLOSED without a match belongs with the played ones - it is over either way.
-    // A DUEL THAT ENDED WITHOUT AN OUTCOME IS NOT A GAME THAT WAS PLAYED, so it is not on
-    // the list at all - a challenge nobody took up and its sender called off, or one nobody
-    // touched for a week, under a heading reading "Played" is simply untrue. A walkover has
-    // a winner and stays (`duelListed`).
+    // THREE LISTS, NOT TWO, and the split is by what the reader can DO rather than by
+    // whether the game is over. "Waiting on you" is the to-do list, "In play" is the ones
+    // where the next move is somebody else's, "Your results" is the record. The old page
+    // had the first two under one heading, which meant the only urgent thing on the page
+    // sat in a list of things that are not.
+    //
+    // A DUEL THAT ENDED WITHOUT AN OUTCOME IS NOT A GAME THAT WAS PLAYED, so it is on no
+    // list at all - a challenge nobody took up and its sender called off, or one nobody
+    // touched for a week, under a heading reading "Your results" is simply untrue. A
+    // walkover has a winner and stays (`duelListed`).
+    // THE ALERT DECIDES FIRST AND THE STATUS SECOND, which is the one ordering that works.
+    // A finished match nobody has watched is WAITING rather than a result - the score is the
+    // thing being withheld, so filing it under the record would give it away in the same
+    // breath - and the first version of this tested the status first, so such a match was in
+    // neither list and vanished off the page altogether. The three are a partition of
+    // `listed` by construction now: alert, else open, else done.
     const listed = duels.filter(duelListed);
-    const open = listed.filter((d) => d.status !== 'ended');
-    const finished = listed.filter((d) => d.status === 'ended');
+    const waiting = listed.filter((d) => duelAlert(d, watched));
+    const inPlay = listed.filter((d) => !duelAlert(d, watched) && d.status !== 'ended');
+    const played = listed.filter((d) => !duelAlert(d, watched) && d.status === 'ended');
+    const results = allResults ? played : played.slice(0, RESULTS_SHOWN);
+
+    // NOTHING AT ALL YET, which is the only state the long explanation is for. It used to
+    // sit above the controls on every visit, a hundred words nobody reads twice; here it is
+    // shown to the one reader who has never seen a versus match and to nobody else.
+    const firstTime = listed.length === 0 && record.played === 0;
 
     const join = (e: React.FormEvent) => {
         e.preventDefault();
@@ -425,12 +446,63 @@ export default function VersusHome({
         if (c.length >= 4) navigate(`/versus/${c}`);
     };
 
+    // What each folded setting says while it is shut. This is the whole of what makes them
+    // a fold rather than a hiding place, so each one is the room's own words for the value
+    // rather than the value: "Roll, 3 re-rolls", never "roll / 3".
+    const whoAnswer = `${SIZES.find((s) => s.value === size)?.label ?? size} people, ${
+        visibility === 'private' ? 'friends only' : 'anybody'
+    }`;
+    const playersAnswer =
+        method === 'budget'
+            ? `Buy, $${budget} each`
+            : `Roll, ${rerolls === 1 ? '1 re-roll' : `${rerolls} re-rolls`}`;
+    // A BUDGET DUEL HAS NO HOUSE RULES AT ALL, and the section is absent rather than empty:
+    // the ratings switch is not offered for a buying room (P5, a price is computed from the
+    // rating it would hide) and a duel has no clock (P51, nobody is waiting). That leaves
+    // nothing to put in it, which is the field dependency doing its job.
+    const clockAnswer = duel
+        ? null
+        : method === 'budget'
+          ? draftLengthLine(draftSeconds)
+          : `${pickSeconds}s a pick`;
+    const ratingsAnswer = offersRatingSwitch(method)
+        ? showRatings
+            ? 'Ratings on'
+            : 'Ratings hidden'
+        : null;
+    const rulesAnswer = [ratingsAnswer, clockAnswer].filter(Boolean).join(', ');
+
     return (
         <>
-            <StageHeader title="Play somebody" />
+            <StageHeader
+                title="Play somebody"
+                // WHO YOU ARE AND WHAT YOU HAVE DONE, ON THE TITLE'S OWN LINE. It was a
+                // full card, which is a lot of furniture for a name - and a card that often
+                // says only your own name is chrome. Both halves answer the same question,
+                // what the others see of you, and the record half is simply absent until
+                // there is one.
+                controls={
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted">
+                        <span className="font-bold text-ink">{name}</span>
+                        {record.played > 0 && (
+                            <span>
+                                {record.won} won, {record.lost} lost
+                                {record.roomsWon > 0 &&
+                                    `, ${record.roomsWon} room${record.roomsWon === 1 ? '' : 's'} won outright`}
+                            </span>
+                        )}
+                        <button className={btn('secondary', 'compact')} onClick={onRename}>
+                            Change name
+                        </button>
+                    </div>
+                }
+            />
 
+            {/* THE ROOM YOU ARE IN, ABOVE EVERYTHING AND FULL WIDTH. The chrome's own room
+                strip is shown on every screen in the game EXCEPT this one, so this card is
+                the only pointer back, and it outranks both columns at every width. */}
             {held && (
-                <div className={`${CARD} mb-[18px] flex flex-wrap items-center gap-3 p-4`}>
+                <div className={`${CARD} mb-[22px] flex flex-wrap items-center gap-3 p-4`}>
                     <div className="min-w-0 flex-1">
                         <div className={MONO_CAP}>You are in a room</div>
                         <RoomNote>
@@ -443,322 +515,383 @@ export default function VersusHome({
                 </div>
             )}
 
-            {/* WHO YOU ARE, AND WHAT YOU HAVE DONE, ON ONE LINE. Both answer the same
-                question - what the others see of you - and the name is the half that was
-                missing: a player who picked one once had no way of finding out what it was,
-                let alone changing it. It is not two cards, because the record half is often
-                empty and a card that says only your own name is chrome. The name is always
-                there, so this row always is. */}
-            <div className={`${CARD} mb-[18px] flex flex-wrap items-center gap-x-5 gap-y-1 p-4`}>
-                <div className={MONO_CAP}>You are</div>
-                <span className="text-[14px] font-bold text-ink">{name}</span>
-                {record.played > 0 && (
-                    <span className="text-[13px] text-muted">
-                        {record.won} won, {record.lost} lost
-                        {record.roomsWon > 0 &&
-                            `, ${record.roomsWon} room${record.roomsWon === 1 ? '' : 's'} won outright`}
-                    </span>
-                )}
-                <button className={`${btn('secondary', 'compact')} ml-auto`} onClick={onRename}>
-                    Change name
-                </button>
-            </div>
-
-            {/* YOUR MATCHES, FIRST AND FULL WIDTH. Nothing in this game sends a message,
-                so this list is the only way a duel ever reaches anybody: a team waiting to
-                be sent, an opponent who has just sent theirs, a match played overnight
-                while nobody was watching. A form for starting another one is not what
-                somebody opens this page to find. */}
-            {open.length > 0 && (
-                <div className={`${CARD} mb-[22px] p-4`}>
-                    <div className={MONO_CAP}>On now</div>
-                    <ul className="mt-1">
-                        {open.map((d) => (
-                            <DuelLine key={d.code} row={d} watched={watched} go={navigate} />
-                        ))}
-                    </ul>
-                </div>
-            )}
-
-            {finished.length > 0 && (
-                <div className={`${CARD} mb-[22px] p-4`}>
-                    <div className={MONO_CAP}>Played</div>
-                    <ul className="mt-1">
-                        {finished.map((d) => (
-                            <DuelLine key={d.code} row={d} watched={watched} go={navigate} />
-                        ))}
-                    </ul>
-                </div>
-            )}
-
-            <div className="grid items-start gap-[22px] min-[860px]:grid-cols-2">
-                <div className={`${CARD} p-4`}>
-                    <div className={MONO_CAP}>{duel ? 'Challenge somebody' : 'Make a room'}</div>
-                    <RoomNote>
-                        An XI each out of all {WORLD_CUP_YEARS.length} World Cups, then one
-                        match. Your career, album and perks stay out of it: eleven players
-                        against eleven.
-                        {duel && (
-                            <span className="mt-1.5 block">
-                                You get a link to send. Whoever opens it takes the challenge,
-                                you each build in your own time once you are both ready, and
-                                the match plays itself when the second team is sent.
-                            </span>
-                        )}
-                    </RoomNote>
-
-                    <Choice
-                        label="When you play it"
-                        value={pace}
-                        onPick={setPace}
-                        options={[
-                            {
-                                value: 'live' as const,
-                                label: 'Together, now',
-                                sub: 'Everybody in the room at once, on a pick clock.',
-                            },
-                            {
-                                value: 'async' as const,
-                                label: 'In your own time',
-                                sub: 'Challenge one person. Neither of you has to be here: build your XI whenever, and the match plays itself when the second one is in.',
-                            },
-                        ]}
-                    />
-
-                    {duel ? null : (
-                        <>
-                            <Choice
-                                label="How many of you"
-                                value={size}
-                                onPick={setSize}
-                                options={SIZES}
-                            />
-
-                            <Choice
-                                label="Who can join"
-                                value={visibility}
-                                onPick={setVisibility}
-                                options={[
-                                    {
-                                        value: 'private' as const,
-                                        label: 'Just my friends',
-                                        sub: 'Code only. Nobody can find it, or even confirm it exists.',
-                                    },
-                                    {
-                                        value: 'public' as const,
-                                        label: 'Anybody',
-                                        sub: 'Listed below for anyone signed in. It still has a code.',
-                                    },
-                                ]}
-                            />
-                        </>
-                    )}
-
-                    <Choice
-                        label="How you get your players"
-                        value={method}
-                        onPick={setMethod}
-                        // Rolling first, because it is the default and every other row in
-                        // this form puts its default first.
-                        options={[
-                            {
-                                value: 'roll' as const,
-                                label: 'Roll for them',
-                                sub: 'Random squads, one man from each. The skill is knowing who to take.',
-                            },
-                            {
-                                value: 'budget' as const,
-                                label: 'Buy them',
-                                sub: 'Shop the whole dataset. The skill is knowing what a player is worth.',
-                            },
-                        ]}
-                    />
-
-                    {method === 'budget' ? (
-                        <Choice
-                            label="How much each"
-                            value={budget}
-                            onPick={setBudget}
-                            options={BUDGETS}
-                        />
-                    ) : (
-                        <>
-                            <Choice
-                                label="Re-rolls each"
-                                value={rerolls}
-                                onPick={setRerolls}
-                                options={REROLLS}
-                            />
-                            {/* P40: this is a HOUSE RULE and the copy says so. The app ships
-                                a squad browser whose whole purpose is to expose every rating,
-                                and a second tab defeats it completely. It hides the numbers
-                                on the room's own screens, which is worth having and is all it
-                                claims. */}
-                            <Choice
-                                label="The numbers"
-                                value={showRatings ? 'on' : 'off'}
-                                onPick={(v) => setShowRatings(v === 'on')}
-                                options={[
-                                    { value: 'on' as const, label: 'Ratings on' },
-                                    {
-                                        value: 'off' as const,
-                                        label: 'Ratings hidden',
-                                        sub: 'Pick on the name and the year. The numbers come back at the whistle.',
-                                    },
-                                ]}
-                            />
-                            {!showRatings && (
-                                <RoomNote>
-                                    <span className="mt-2 block">
-                                        A house rule, not a lock: the Squads tab shows every
-                                        rating, so a second tab defeats it. Agree not to.
-                                    </span>
-                                </RoomNote>
+            {/* THE TWO COLUMNS. Below 860px both wrappers are `display: contents`, so the
+                six sections become grid items of this one grid and the `order` on each puts
+                them in the phone's order; at and above it the wrappers are blocks, and
+                `order` has no meaning outside a flex or grid parent, so source order wins
+                and nothing has to be reset. */}
+            <div className="grid items-start gap-[22px] min-[860px]:grid-cols-[1.15fr_1fr]">
+                <div className="contents min-[860px]:block min-[860px]:space-y-[22px]">
+                    <section className="order-1">
+                        <SectionHead title="Start a match" />
+                        <div className={`${CARD} p-4`}>
+                            {firstTime && (
+                                <p className="mb-3 text-[13px] leading-relaxed text-muted">
+                                    An XI each out of all {WORLD_CUP_YEARS.length} World Cups,
+                                    then one match. Your career, album and perks stay out of
+                                    it: eleven players against eleven.
+                                </p>
                             )}
-                        </>
+
+                            <BigChoice
+                                name="When you play it"
+                                value={pace}
+                                onPick={setPace}
+                                options={[
+                                    {
+                                        value: 'async' as const,
+                                        label: 'In your own time',
+                                        sub: 'Challenge one person by link. Neither of you has to be here.',
+                                    },
+                                    {
+                                        value: 'live' as const,
+                                        label: 'Together, now',
+                                        sub: 'Two to eight people in the room at once, on a clock.',
+                                    },
+                                ]}
+                            />
+
+                            <div className="mt-3">
+                                {!duel && (
+                                    <Setting label="Who is playing" answer={whoAnswer}>
+                                        <Chips
+                                            label="How many of you"
+                                            value={size}
+                                            onPick={setSize}
+                                            options={SIZES}
+                                        />
+                                        <Chips
+                                            label="Who can join"
+                                            value={visibility}
+                                            onPick={setVisibility}
+                                            options={[
+                                                {
+                                                    value: 'private' as const,
+                                                    label: 'Just my friends',
+                                                    sub: 'Code only. Nobody can find it, or even confirm it exists.',
+                                                },
+                                                {
+                                                    value: 'public' as const,
+                                                    label: 'Anybody',
+                                                    sub: 'Listed for anyone signed in. It still has a code.',
+                                                },
+                                            ]}
+                                        />
+                                    </Setting>
+                                )}
+
+                                <Setting label="How you get your players" answer={playersAnswer}>
+                                    <BigChoice
+                                        name="How you get your players"
+                                        value={method}
+                                        onPick={setMethod}
+                                        options={[
+                                            {
+                                                value: 'roll' as const,
+                                                label: 'Roll for them',
+                                                sub: 'Random squads, one man from each. The skill is knowing who to take.',
+                                            },
+                                            {
+                                                value: 'budget' as const,
+                                                label: 'Buy them',
+                                                sub: 'Shop the whole dataset. The skill is knowing what a player is worth.',
+                                            },
+                                        ]}
+                                    />
+                                    {method === 'budget' ? (
+                                        <Chips
+                                            label="How much each"
+                                            value={budget}
+                                            onPick={setBudget}
+                                            options={BUDGETS}
+                                        />
+                                    ) : (
+                                        <Chips
+                                            label="Re-rolls each"
+                                            value={rerolls}
+                                            onPick={setRerolls}
+                                            options={REROLLS}
+                                        />
+                                    )}
+                                </Setting>
+
+                                {rulesAnswer && (
+                                    <Setting label="House rules" answer={rulesAnswer}>
+                                        {/* P40: this is a HOUSE RULE and the copy says so.
+                                            The app ships a squad browser whose whole purpose
+                                            is to expose every rating, and a second tab
+                                            defeats it completely. It hides the numbers on
+                                            the room's own screens, which is worth having and
+                                            is all it claims. */}
+                                        {offersRatingSwitch(method) && (
+                                            <Chips
+                                                label="The numbers"
+                                                value={showRatings ? 'on' : 'off'}
+                                                onPick={(v) => setShowRatings(v === 'on')}
+                                                options={[
+                                                    { value: 'on' as const, label: 'Ratings on' },
+                                                    {
+                                                        value: 'off' as const,
+                                                        label: 'Ratings hidden',
+                                                        sub: 'Pick on the name and the year, and the numbers come back at the whistle. A house rule, not a lock: the Squads tab shows every rating, so agree not to.',
+                                                    },
+                                                ]}
+                                            />
+                                        )}
+                                        {/* TWO CLOCKS, because the two methods no longer keep
+                                            time the same way (P52). A roll draft is eleven
+                                            decisions about eleven dealt squads, so it runs a
+                                            window per pick; a budget draft is one decision
+                                            about one pool of money, so it runs one clock over
+                                            the lot and lets you go back and sell. */}
+                                        {!duel &&
+                                            (method === 'budget' ? (
+                                                <Chips
+                                                    label="How long the whole draft gets"
+                                                    value={draftSeconds}
+                                                    onPick={setDraftSeconds}
+                                                    options={DRAFTS}
+                                                />
+                                            ) : (
+                                                <Chips
+                                                    label="How long a pick gets"
+                                                    value={pickSeconds}
+                                                    onPick={setPickSeconds}
+                                                    options={CLOCKS}
+                                                />
+                                            ))}
+                                    </Setting>
+                                )}
+                            </div>
+
+                            {duel && !duelsRoute && (
+                                <p className="mt-4 rounded-[5px] border border-line bg-faint px-3 py-2.5 text-[12px] leading-snug text-muted">
+                                    The versus server here has not been rebuilt for duels yet,
+                                    so a challenge cannot be sent. Everything else about versus
+                                    works; play "Together, now" until it is updated.
+                                </p>
+                            )}
+                            {/* THE OTHER SKEW HAS NO PROBE and cannot have one: a server that
+                                has duels but predates the change below answers this route
+                                perfectly well. It is caught on the ANSWER instead
+                                (`duelDowngraded`), which is why that guard tests the status
+                                as well as the pace. */}
+
+                            <button
+                                className={`${PRIMARY_BTN} mt-4 w-full`}
+                                disabled={busy || (duel && !duelsRoute)}
+                                onClick={make}
+                            >
+                                {duel ? 'Send a challenge' : 'Open a room'}
+                            </button>
+                            {duel && (
+                                <p className="mt-2 text-[12px] leading-snug text-muted">
+                                    You get a link to send. Whoever opens it takes it on, and
+                                    you each build whenever you get to it.
+                                </p>
+                            )}
+                            {error && (
+                                <RefereeProblem
+                                    message={error}
+                                    // The one refusal with an answer: go to the room that
+                                    // holds your seat. Without this the player is told they
+                                    // are in a room and given no way to reach it, which is
+                                    // how the reported bug felt even after leaving started
+                                    // working.
+                                    action={
+                                        error.room ? (
+                                            <button
+                                                className={SECONDARY_BTN}
+                                                onClick={() => navigate(`/versus/${error.room}`)}
+                                            >
+                                                Go to room {error.room}
+                                            </button>
+                                        ) : undefined
+                                    }
+                                />
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="order-2">
+                        <SectionHead title="Join with a code" />
+                        <form className={`${CARD} flex flex-wrap items-center gap-3 p-4`} onSubmit={join}>
+                            <input
+                                value={code}
+                                onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 8))}
+                                autoCapitalize="characters"
+                                autoComplete="off"
+                                spellCheck={false}
+                                placeholder="ABC234"
+                                aria-label="Room code"
+                                className="min-w-0 flex-1 rounded-[5px] border border-line bg-ground px-3 py-2.5 text-center font-mono text-[18px] font-bold tracking-[0.3em] text-ink outline-none focus:border-pitch"
+                            />
+                            <button className={SECONDARY_BTN} disabled={code.trim().length < 4}>
+                                Go
+                            </button>
+                        </form>
+                    </section>
+                </div>
+
+                <div className="contents min-[860px]:block min-[860px]:space-y-[22px]">
+                    {waiting.length > 0 && (
+                        <section className="order-4">
+                            <SectionHead
+                                title="Waiting on you"
+                                count={<HeadCount>{waiting.length}</HeadCount>}
+                            />
+                            {/* The one card on the page that carries the ink border: it is
+                                the only thing here with something to do about it. */}
+                            <div className={`${CARD} border-pitch-dark p-4`}>
+                                <ul>
+                                    {waiting.map((d) => (
+                                        <DuelLine key={d.code} row={d} watched={watched} go={navigate} />
+                                    ))}
+                                </ul>
+                            </div>
+                        </section>
                     )}
 
-                    {/* LAST, because it is the last thing to decide - and it is now TWO
-                        settings rather than one, because the two methods no longer keep
-                        time the same way (P52). A roll draft is eleven decisions about
-                        eleven dealt squads, so it runs a window per pick; a budget draft is
-                        one decision about one pool of money, so it runs one clock over the
-                        lot and lets you go back and sell. A duel has neither: nobody is
-                        waiting, which is the whole point of it. */}
-                    {!duel &&
-                        (method === 'budget' ? (
-                            <Choice
-                                label="How long the whole draft gets"
-                                value={draftSeconds}
-                                onPick={setDraftSeconds}
-                                options={DRAFTS}
-                            />
-                        ) : (
-                            <Choice
-                                label="How long a pick gets"
-                                value={pickSeconds}
-                                onPick={setPickSeconds}
-                                options={CLOCKS}
-                            />
-                        ))}
-
-                    {duel && !duelsRoute && (
-                        <p className="mt-4 rounded-[5px] border border-line bg-faint px-3 py-2.5 text-[12px] leading-snug text-muted">
-                            The versus server here has not been rebuilt for duels yet, so a
-                            challenge cannot be sent. Everything else about versus works;
-                            play "Together, now" until it is updated.
-                        </p>
-                    )}
-                    {/* THE OTHER SKEW HAS NO PROBE and cannot have one: a server that has
-                        duels but predates the change below answers this route perfectly
-                        well. It is caught on the ANSWER instead (`duelDowngraded`), which
-                        is why that guard tests the status as well as the pace. */}
-
-                    <button
-                        className={`${PRIMARY_BTN} mt-4 w-full`}
-                        disabled={busy || (duel && !duelsRoute)}
-                        onClick={make}
-                    >
-                        {duel ? 'Start building my XI' : 'Open a room'}
-                    </button>
-                    {error && (
-                        <RefereeProblem
-                            message={error}
-                            // The one refusal with an answer: go to the room that holds
-                            // your seat. Without this the player is told they are in a room
-                            // and given no way to reach it, which is how the reported bug
-                            // felt even after leaving started working.
-                            action={
-                                error.room ? (
-                                    <button
-                                        className={SECONDARY_BTN}
-                                        onClick={() => navigate(`/versus/${error.room}`)}
-                                    >
-                                        Go to room {error.room}
-                                    </button>
+                    <section className="order-3">
+                        <SectionHead
+                            title="Rooms open now"
+                            count={
+                                lobby && lobby.length > 0 ? (
+                                    // Short, because the heading above it already says
+                                    // what is being counted and the three of them have to
+                                    // share one line with Refresh at 390px.
+                                    <LiveCount>{lobby.filter(lobbyJoinable).length} free</LiveCount>
+                                ) : lobby ? (
+                                    <HeadCount>none</HeadCount>
                                 ) : undefined
                             }
+                            end={<RefreshButton onClick={refreshLobby} />}
                         />
-                    )}
-                </div>
+                        <div className={`${CARD} p-4`}>
+                            {lobby === null ? (
+                                <RoomNote>Looking.</RoomNote>
+                            ) : lobby.length === 0 ? (
+                                // THE HALF OF THIS FEATURE THAT DEPENDS ON OTHER PEOPLE is
+                                // also the half that looks broken when nobody is playing. So
+                                // an empty list says so in the room's own voice and puts both
+                                // answers next to it, rather than rendering an empty table and
+                                // leaving the reader to wonder whether it loaded.
+                                <RoomNote>
+                                    Nobody has a public room open just now. Open one with
+                                    "Anybody" and it appears here for everyone signed in, or
+                                    send a challenge and play it whenever you both get to it.
+                                </RoomNote>
+                            ) : (
+                                <ul>
+                                    {lobby.map((r) => {
+                                        const open = lobbyJoinable(r);
+                                        return (
+                                            <li
+                                                key={r.code}
+                                                className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-hair py-2.5 last:border-b-0"
+                                            >
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="text-[13.5px] font-bold text-ink">
+                                                        {r.hostName || 'Somebody'}
+                                                        {/* The code is on the row because a
+                                                            public room's code is not a secret,
+                                                            and it is what somebody reads out
+                                                            when they say "I'm in this one". */}
+                                                        <span className="ml-2 font-mono text-[11px] font-medium tracking-[0.1em] text-dim">
+                                                            {r.code}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-[12px] text-muted">
+                                                        {lobbyLine(r)} &middot; {agoLine(r.openedAt, at)}
+                                                    </div>
+                                                </div>
+                                                {/* THE SEATS, BETWEEN THE NAME AND THE WAY IN.
+                                                    The row said "2 of 4 seats left" in words
+                                                    and led with nothing; drawn and placed here
+                                                    the list gets three columns that line up. */}
+                                                <SeatPips size={r.size} seated={r.seated} bots={r.bots} />
+                                                {/* A ROW action, so it takes its own tighter
+                                                    box: the page-level size would be taller
+                                                    than the hairline row it sits in. */}
+                                                <button
+                                                    type="button"
+                                                    disabled={!open}
+                                                    className={`shrink-0 ${btn(open ? 'primary' : 'secondary', 'compact')}`}
+                                                    onClick={() => navigate(`/versus/${r.code}`)}
+                                                >
+                                                    {open ? 'Take a seat' : 'Full'}
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            )}
+                            {lobby !== null && lobby.length > 0 && (
+                                // UNDER THE LIST, because it describes the list rather than
+                                // the control above it: what Refresh is FOR, given that the
+                                // list already keeps itself up to date.
+                                //
+                                // It says the interval rather than when it last looked, and
+                                // that is a correction rather than a shortening: an age
+                                // between two stamps taken in the same breath is always
+                                // "just now", so the line would have been decoration that
+                                // could never be wrong and could never be useful either.
+                                <p className="mt-2.5 text-[12px] text-dim">
+                                    This list refreshes itself every 10 seconds.
+                                </p>
+                            )}
+                        </div>
+                    </section>
 
-                <div className="flex flex-col gap-[22px]">
-                <div className={`${CARD} p-4`}>
-                    <div className="flex items-baseline gap-3">
-                        <div className={MONO_CAP}>Rooms you can join</div>
-                        <button
-                            type="button"
-                            className="ml-auto font-mono text-[11px] font-semibold text-muted hover:text-pitch-ink"
-                            onClick={refreshLobby}
-                        >
-                            Refresh
-                        </button>
-                    </div>
-                    {lobby === null ? null : lobby.length === 0 ? (
-                        <RoomNote>
-                            Nobody has a public room open. Open one and it appears here.
-                        </RoomNote>
-                    ) : (
-                        <ul className="mt-1">
-                            {lobby.map((r) => {
-                                const open = lobbyJoinable(r);
-                                return (
-                                    <li
-                                        key={r.code}
-                                        className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-hair py-2.5 last:border-b-0"
+                    {inPlay.length > 0 && (
+                        <section className="order-5">
+                            <SectionHead
+                                title="On now"
+                                count={<HeadCount>{inPlay.length}</HeadCount>}
+                            />
+                            <div className={`${CARD} p-4`}>
+                                <ul>
+                                    {inPlay.map((d) => (
+                                        <DuelLine key={d.code} row={d} watched={watched} go={navigate} />
+                                    ))}
+                                </ul>
+                            </div>
+                        </section>
+                    )}
+
+                    {played.length > 0 && (
+                        <section className="order-6">
+                            <SectionHead
+                                title="Your results"
+                                count={<HeadCount>{played.length}</HeadCount>}
+                            />
+                            <div className={`${CARD} p-4`}>
+                                <ul>
+                                    {results.map((d) => (
+                                        <DuelLine
+                                            key={d.code}
+                                            row={d}
+                                            watched={watched}
+                                            // NO CODE ON A FINISHED ONE. A code is how you
+                                            // reach a room, and a room that has been played
+                                            // is not going anywhere.
+                                            code={false}
+                                            go={navigate}
+                                        />
+                                    ))}
+                                </ul>
+                                {played.length > RESULTS_SHOWN && !allResults && (
+                                    <button
+                                        type="button"
+                                        className="mt-2.5 text-[12px] font-semibold text-pitch-ink hover:underline"
+                                        onClick={() => setAllResults(true)}
                                     >
-                                        <div className="min-w-0 flex-1">
-                                            <div className="text-[13.5px] font-bold text-ink">
-                                                {r.hostName || 'Somebody'}
-                                                {/* The code is on the row because a public
-                                                    room's code is not a secret, and it is
-                                                    what somebody reads out when they say
-                                                    "I'm in this one". */}
-                                                <span className="ml-2 font-mono text-[11px] font-medium tracking-[0.1em] text-dim">
-                                                    {r.code}
-                                                </span>
-                                                <span className="ml-2 font-mono text-[11px] font-medium text-muted">
-                                                    {seatsLine(r)}
-                                                </span>
-                                            </div>
-                                            <div className="text-[12px] text-muted">
-                                                {lobbyLine(r)} &middot; {agoLine(r.openedAt, at)}
-                                            </div>
-                                        </div>
-                                        {/* A ROW action, so it takes the identity token and
-                                            its own tighter box: the page-level size would
-                                            be taller than the hairline row it sits in. */}
-                                        <button
-                                            type="button"
-                                            disabled={!open}
-                                            className={`shrink-0 ${btn('secondary', 'compact')}`}
-                                            onClick={() => navigate(`/versus/${r.code}`)}
-                                        >
-                                            {open ? 'Take a seat' : 'Full'}
-                                        </button>
-                                    </li>
-                                );
-                            })}
-                        </ul>
+                                        All {played.length} results
+                                    </button>
+                                )}
+                            </div>
+                        </section>
                     )}
-                </div>
-
-                <form className={`${CARD} p-4`} onSubmit={join}>
-                    <div className={MONO_CAP}>Join with a code</div>
-                    <input
-                        value={code}
-                        onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 8))}
-                        autoCapitalize="characters"
-                        autoComplete="off"
-                        spellCheck={false}
-                        placeholder="ABC234"
-                        aria-label="Room code"
-                        className="mt-3 w-full rounded-[5px] border border-line bg-ground px-3 py-2.5 text-center font-mono text-[20px] font-bold tracking-[0.3em] text-ink outline-none focus:border-pitch"
-                    />
-                    <button className={`${SECONDARY_BTN} mt-3 w-full`} disabled={code.trim().length < 4}>
-                        Go to the room
-                    </button>
-                </form>
                 </div>
             </div>
         </>

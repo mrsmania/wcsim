@@ -87,7 +87,18 @@ export interface LobbyRoom {
   bots?: number;
   method: 'roll' | 'budget';
   budget: number;
+  /** The per-pick clock, which is a ROLL room's. A budget room runs `draftSeconds` over the
+   *  whole draft and opens no pick window at all (P52), so this figure is stored and never
+   *  read there - which is why the row carries both and `lobbyLine` picks by the method. */
   pickSeconds: number;
+  /** The whole draft's clock, which is a BUDGET room's.
+   *
+   *  Optional because it was added after the field it describes: a referee that predates it
+   *  says nothing, and `lobbyLine` then prints no clock for a buying room rather than
+   *  falling back to `pickSeconds`. That fallback is exactly the bug this closes - the list
+   *  told a stranger "20s a pick" about a room that hands out no pick windows - and an
+   *  honest silence beats a confident wrong number. */
+  draftSeconds?: number;
   rerolls: number;
   showRatings: boolean;
   /** The host's display name, which is the only thing on the row that is a person. */

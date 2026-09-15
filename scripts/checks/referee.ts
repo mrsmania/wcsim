@@ -156,6 +156,9 @@ class MemStore implements RoomStore {
         method: r.room.method,
         budget: r.room.budget,
         pickSeconds: r.room.pick_seconds,
+        // The whole draft's clock, which is what a BUYING room runs (P52) and what its row
+        // prints instead of a pick window it never opens.
+        draftSeconds: r.room.draft_seconds ?? undefined,
         rerolls: r.room.rerolls,
         showRatings: r.room.show_ratings,
         hostName: this.names[r.room.host_id] ?? '',

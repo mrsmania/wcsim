@@ -371,6 +371,7 @@ export function pgStore(pool: Pool): RoomStore {
         method: 'roll' | 'budget';
         budget: number;
         pick_seconds: number;
+        draft_seconds: number | null;
         rerolls: number;
         show_ratings: boolean;
         host_name: string | null;
@@ -380,8 +381,8 @@ export function pgStore(pool: Pool): RoomStore {
         // `seated` counts PEOPLE and `bots` the chairs the host filled, because a bot yields
         // its seat to anybody who turns up (`joinRoom`): folding the two together would
         // print "Full" over a room that is open.
-        `select r.code, r.size, r.method, r.budget, r.pick_seconds, r.rerolls,
-                r.show_ratings, r.created_at, p.display_name as host_name,
+        `select r.code, r.size, r.method, r.budget, r.pick_seconds, r.draft_seconds,
+                r.rerolls, r.show_ratings, r.created_at, p.display_name as host_name,
                 (select count(*) from pvp_members m where m.room_id = r.id) as seated,
                 (select count(*) from pvp_bots b where b.room_id = r.id) as bots
            from pvp_rooms r join profiles p on p.id = r.host_id
@@ -398,6 +399,10 @@ export function pgStore(pool: Pool): RoomStore {
         method: x.method,
         budget: x.budget,
         pickSeconds: x.pick_seconds,
+        // The clock a BUYING room actually runs (P52). Absent only from a room stored
+        // before 0021, which that column's own default has not left any of; `lobbyLine`
+        // then prints no clock rather than the pick window such a room never opens.
+        draftSeconds: x.draft_seconds ?? undefined,
         rerolls: x.rerolls,
         showRatings: x.show_ratings,
         hostName: x.host_name ?? '',
@@ -425,13 +430,15 @@ export function pgStore(pool: Pool): RoomStore {
         method: 'roll' | 'budget';
         budget: number;
         pick_seconds: number;
+        draft_seconds: number | null;
         rerolls: number;
         show_ratings: boolean;
         host_name: string | null;
         created_at: Date | string;
       }>(
         `select r.code, r.pace, r.status, r.size, r.method, r.budget, r.pick_seconds,
-                r.rerolls, r.show_ratings, r.created_at, p.display_name as host_name,
+                r.draft_seconds, r.rerolls, r.show_ratings, r.created_at,
+                p.display_name as host_name,
                 (select count(*) from pvp_members m where m.room_id = r.id) as seated,
                 (select count(*) from pvp_bots b where b.room_id = r.id) as bots
            from pvp_rooms r join profiles p on p.id = r.host_id
@@ -450,6 +457,7 @@ export function pgStore(pool: Pool): RoomStore {
         method: x.method,
         budget: x.budget,
         pickSeconds: x.pick_seconds,
+        draftSeconds: x.draft_seconds ?? undefined,
         rerolls: x.rerolls,
         showRatings: x.show_ratings,
         hostName: x.host_name ?? '',

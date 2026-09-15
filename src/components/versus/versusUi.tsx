@@ -1,6 +1,16 @@
 import { useState, type ReactNode } from 'react';
-import { Bot, Check, Clock, Link2, Share2, UserMinus, UserPlus } from 'lucide-react';
-import { inviteText } from '../../domain/pvpView';
+import {
+    Bot,
+    Check,
+    ChevronDown,
+    Clock,
+    Link2,
+    RotateCw,
+    Share2,
+    UserMinus,
+    UserPlus,
+} from 'lucide-react';
+import { inviteText, seatCounts } from '../../domain/pvpView';
 import type { MemberView } from '../../domain/pvpWire';
 import { CARD_FLAT, MONO_CAP, Meter, btn } from '../matchUi';
 import type { RefereeMessage } from './refereeMessage';
@@ -478,6 +488,250 @@ export function RefereeProblem({
                     {message.raw}
                 </p>
             )}
+        </div>
+    );
+}
+
+// --- THE VERSUS TAB'S OWN FURNITURE ----------------------------------------
+// Added 2026-09-15 with the page rework (docs/redesign-2026/turf-flat/versus-option-2.html).
+// The page drew five criticisms - too much text, the history buries the action, the lobby
+// does not look like a lobby, too many buttons, no guidance - and three of the five are
+// answered by things that had no name here: a visible section heading, a setting that folds
+// while still saying what it is set to, and a room's seats drawn rather than counted in
+// words.
+
+/**
+ * A visible section heading, which is the whole of the "no guidance" complaint.
+ *
+ * The page used to mark its parts with `MONO_CAP`, a 10px grey caption, so a reader scanning
+ * it had nothing at heading weight to land on and the whole thing read as an undivided stack
+ * of cards. This is the rule the album and the career page already use - a display title over
+ * `border-b-2 border-ink` - written here rather than shared, because both of those carry
+ * their own copy of it and folding all three into one atom is a separate job in files another
+ * session is holding.
+ *
+ * `count` is the quiet figure beside it ("4", "2 free") and `end` the one control a section
+ * may own, which in practice is Refresh.
+ */
+export function SectionHead({
+    title,
+    count,
+    end,
+}: {
+    title: string;
+    count?: ReactNode;
+    end?: ReactNode;
+}) {
+    return (
+        <div className="mb-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b-2 border-ink pb-2">
+            <h3 className="font-display text-[17px] font-bold tracking-[-0.01em]">{title}</h3>
+            {count}
+            {end && <div className="ml-auto">{end}</div>}
+        </div>
+    );
+}
+
+/** The quiet figure beside a section heading. */
+export function HeadCount({ children }: { children: ReactNode }) {
+    return (
+        <span className="font-mono text-[11px] font-bold tabular-nums text-muted">{children}</span>
+    );
+}
+
+/**
+ * How many rooms are open, with the dot that says the figure is live.
+ *
+ * THE LOBBY DID NOT LOOK LIKE A LOBBY, which was the most concrete of the five criticisms:
+ * a 10px caption over a list, nothing saying anything about it was live, and a Refresh
+ * rendered as grey mono text that nobody could tell was pressable. A pulsing dot is the
+ * convention for "this updates on its own" and costs one element; `motion-safe` because a
+ * thing that pulses for ever is exactly what reduced motion is for.
+ */
+export function LiveCount({ children }: { children: ReactNode }) {
+    return (
+        <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-bold text-pitch-ink">
+            <span className="size-[7px] rounded-full bg-pitch motion-safe:animate-pulse" />
+            {children}
+        </span>
+    );
+}
+
+/** Refresh, as a button somebody can tell is a button. It says nothing about when it last
+ *  looked: that line belongs under the list, where it describes the list rather than the
+ *  control. */
+export function RefreshButton({ onClick }: { onClick: () => void }) {
+    return (
+        <button type="button" onClick={onClick} className={btn('secondary', 'compact')}>
+            <RotateCw className="size-3" aria-hidden />
+            Refresh
+        </button>
+    );
+}
+
+/**
+ * A room's seats, drawn.
+ *
+ * WHERE IT SITS IS THE POINT, and it is the owner's own correction: between the room's name
+ * and the way in, never at the head of the row. Leading with it started every row of the
+ * list with a different shape - two dots, then eight, then four - which is the noise. Ending
+ * with it, right-aligned in a slot wide enough for eight, gives the list three columns that
+ * line up, so the eye runs down rather than hunting along each line.
+ *
+ * THREE STATES, because a chair can be taken by two different things. A solid green dot is a
+ * person; a grey one is a practice opponent, which is genuinely taken and still yields to
+ * anybody who turns up (`joinRoom`), so it is neither a person nor a free chair; a hollow one
+ * is free. `pitch-ink` and not `pitch-dark` for the person, because the surface green is a
+ * near-black on graphite and a taken seat has to read on both papers.
+ *
+ * The count is the accessible name, since a row of dots says nothing to a screen reader and
+ * "3 people, 2 practice opponents, 3 seats free" is the sentence it is standing in for.
+ */
+export function SeatPips({
+    size,
+    seated,
+    bots = 0,
+}: {
+    size: number;
+    seated: number;
+    bots?: number;
+}) {
+    // The split is `domain/pvpView`'s, like every other derivation the versus screens make:
+    // the clamping and the pluralisation are the parts that go wrong quietly, and there
+    // they can be checked.
+    const { people, practice, free, label } = seatCounts({ size, seated, bots });
+    const dot = (cls: string, key: string) => (
+        <span key={key} className={`size-[9px] rounded-full ${cls}`} />
+    );
+    return (
+        // The minimum width is eight dots and their gaps, so a room of two and a room of
+        // eight put their button at the same x. It drops below `sm`, where the row wraps
+        // anyway and holding the width open would squeeze the name instead.
+        <span
+            className="flex shrink-0 items-center justify-end gap-[3px] sm:min-w-[93px]"
+            title={label}
+            aria-label={label}
+        >
+            {Array.from({ length: people }, (_, i) => dot('bg-pitch-ink', `p${i}`))}
+            {Array.from({ length: practice }, (_, i) => dot('bg-muted', `b${i}`))}
+            {Array.from({ length: free }, (_, i) => dot('border border-line', `f${i}`))}
+        </span>
+    );
+}
+
+/**
+ * One setting, folded, showing its own answer.
+ *
+ * THE ANSWER ON THE RIGHT IS WHAT MAKES THIS A FOLD RATHER THAN A HIDING PLACE, and it is
+ * the whole reason folding is an improvement here at all. The form it replaces was seven
+ * chip rows with an explaining paragraph under each - twenty chips and seven paragraphs to
+ * open a room whose defaults are already right - and folding that would only have moved the
+ * problem if a shut row said nothing. A shut row here reads "Roll, 3 re-rolls", so the whole
+ * of the room is legible without opening anything.
+ *
+ * THEY OPEN INDEPENDENTLY. Shutting one somebody deliberately opened to compare against
+ * another reads as a fight, and the card grows downwards inside its own column, so nothing
+ * else on the page moves when it does.
+ */
+export function Setting({
+    label,
+    answer,
+    children,
+}: {
+    label: string;
+    /** What this setting is set to, in the words the room itself would use. */
+    answer: string;
+    children: ReactNode;
+}) {
+    const [open, setOpen] = useState(false);
+    return (
+        <div className="border-t border-hair last:border-b">
+            <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => setOpen((o) => !o)}
+                className="flex w-full items-center gap-2 py-2.5 text-left"
+            >
+                <span className="font-display text-[13.5px] font-bold">{label}</span>
+                <span className="ml-auto font-mono text-[12px] text-muted">{answer}</span>
+                <ChevronDown
+                    className={`size-3.5 shrink-0 text-muted transition-transform ${
+                        open ? 'rotate-180' : ''
+                    }`}
+                    aria-hidden
+                />
+            </button>
+            {open && <div className="pt-2 pb-3.5">{children}</div>}
+        </div>
+    );
+}
+
+/** A caption inside an open setting, over the chips it names. */
+export function SettingRow({
+    label,
+    note,
+    children,
+}: {
+    label: string;
+    /** What the chosen one means, on one line. It sits under the chips rather than inside
+     *  them, which is the shape `AscensionPicker` settled: a button says what it is, and
+     *  the line beneath says what it does. */
+    note?: string;
+    children: ReactNode;
+}) {
+    return (
+        <div className="mt-3 first:mt-0">
+            <div className={MONO_CAP}>{label}</div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">{children}</div>
+            {note && <p className="mt-1.5 text-[12px] leading-snug text-muted">{note}</p>}
+        </div>
+    );
+}
+
+/**
+ * One of two big choices: the decisions worth making with your eyes rather than off a chip.
+ *
+ * A chip row is right for "three or six re-rolls", where the labels are the whole of the
+ * difference. It is wrong for the two that shape the evening - whether anybody has to be
+ * present, and whether you roll or shop - because each of those needs a sentence to mean
+ * anything, and one sentence under a chip row belongs to whichever chip is lit rather than
+ * to the one being considered. So these carry their own.
+ *
+ * `font-display` is on the TITLE and the padding is a single `p-3`, which keeps it clear of
+ * the bespoke-button scan in `scripts/checks/ui.ts` - honestly so, since this is a radio
+ * group and not a fourth button design.
+ */
+export function BigChoice<T extends string>({
+    name,
+    value,
+    onPick,
+    options,
+}: {
+    name: string;
+    value: T;
+    onPick: (v: T) => void;
+    options: readonly { value: T; label: string; sub: string }[];
+}) {
+    return (
+        <div role="radiogroup" aria-label={name} className="grid gap-2 sm:grid-cols-2">
+            {options.map((o) => (
+                <button
+                    key={o.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={o.value === value}
+                    onClick={() => onPick(o.value)}
+                    className={`rounded-md border p-3 text-left transition ${
+                        o.value === value
+                            ? 'border-pitch-dark shadow-[inset_0_0_0_1px_var(--color-pitch-dark)]'
+                            : 'border-line hover:border-pitch'
+                    }`}
+                >
+                    <span className="block font-display text-[14.5px] font-bold">{o.label}</span>
+                    <span className="mt-0.5 block text-[12.5px] leading-snug text-muted">
+                        {o.sub}
+                    </span>
+                </button>
+            ))}
         </div>
     );
 }

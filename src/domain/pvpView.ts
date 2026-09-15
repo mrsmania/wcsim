@@ -195,6 +195,14 @@ export type DuelTurn = 'yours' | 'theirs' | 'sent' | 'done';
 
 export function duelTurn(row: DuelRow): DuelTurn {
     if (row.status === 'ended') return 'done';
+    // NOBODY HAS TAKEN IT UP YET, which is the ordinary first state of every challenge and
+    // was being read as `theirs` - so the list said "The match is being played" over a duel
+    // whose link had not been opened. The `sent` branch below it had the right sentence and
+    // had become unreachable: it tests a room that is DRAFTING with one seat filled, which
+    // is the pre-P54 shape, where a duel opened straight into its challenger's draft. Since
+    // a duel waits in a lobby until both seats are filled and both players are ready, the
+    // state moved and the test did not follow it.
+    if (row.status === 'lobby' && (row.seated ?? 2) < 2) return 'sent';
     if (row.status !== 'drafting') return 'theirs';
     // SENDING IS WHAT ENDS YOUR HALF OF IT, not filling the eleventh slot: a duel has no
     // clock, so the XI stays yours until you say otherwise. Until then it is your move
@@ -255,6 +263,12 @@ export function duelLine(row: DuelRow): string {
                 ? 'Your XI is ready to send'
                 : `Your move, ${row.yourPicks} of ${XI_SLOTS} picked`;
         case 'theirs':
+            // Taken up, and not started: both of you are in the lobby and one of you has
+            // not pressed Ready. It cannot say which, since the row carries no readiness -
+            // but "the match is being played" is the one thing that is certainly false.
+            if (row.status === 'lobby') {
+                return `${row.opponentName || 'They'} took it up. Ready when you both are`;
+            }
             return row.status === 'drafting'
                 ? `${row.opponentName || 'They'} are building, ${row.theirPicks} of ${XI_SLOTS} picked`
                 : 'The match is being played';
@@ -867,18 +881,87 @@ export function spectateTie(view: RoomView): TieView | null {
  *
  * It is here rather than inside the component for the reason the rest of this file is: it
  * is a derivation, and a derivation can be checked.
+ *
+ * THE CLOCK IS THE ONE THE ROOM ACTUALLY RUNS, and for a long time it was not. This printed
+ * `pickSeconds` whatever the method, so a buying room was advertised as "20s a pick" - and a
+ * buying room opens no pick window at all, running one clock over the whole draft instead
+ * (P52). The figure was not merely imprecise, it described a mechanism that room does not
+ * have, to the one reader who has never seen inside it.
+ *
+ * A ROOM THAT CANNOT SAY SAYS NOTHING. `draftSeconds` reaches the row only from a referee
+ * built after it, and the tempting fallback - print `pickSeconds`, which is always there -
+ * is exactly the bug. So a buying room from an older server names its money and its
+ * practice opponents and stops, which is true, where the old line was confident and wrong.
  */
 export function lobbyLine(room: LobbyRoom): string {
-    const clock = `${room.pickSeconds}s a pick`;
     // The practice opponents, when there are any: it changes what turning up means, since
     // the room can start the moment you arrive and one of your ties may be against a seat
     // rather than a person. Taken as zero from a referee that predates them.
     const bots = room.bots ?? 0;
     const practice = bots ? `, ${bots} practice opponent${bots === 1 ? '' : 's'}` : '';
-    if (room.method === 'budget') return `Buy an XI with $${room.budget}, ${clock}${practice}`;
+    if (room.method === 'budget') {
+        const whole = draftLengthLine(room.draftSeconds);
+        return `Buy an XI with $${room.budget}${whole ? `, ${whole}` : ''}${practice}`;
+    }
     const rr = room.rerolls === 1 ? '1 re-roll' : `${room.rerolls} re-rolls`;
     const hidden = room.showRatings ? '' : ', ratings hidden';
-    return `Roll for your XI, ${rr}, ${clock}${hidden}${practice}`;
+    return `Roll for your XI, ${rr}, ${room.pickSeconds}s a pick${hidden}${practice}`;
+}
+
+/**
+ * The whole draft's clock in minutes, for a row that has one.
+ *
+ * MINUTES BECAUSE THE THREE LENGTHS ARE WHOLE ONES (180 / 300 / 480 is 3, 5 and 8), and
+ * because the figure answers "how long an evening is this" rather than a countdown - the
+ * countdown is `DraftClock`'s job, inside the room, in seconds. A length that is not a whole
+ * number of minutes would round here, which is fine for the same reason: nobody joins a room
+ * on the strength of thirty seconds either way.
+ *
+ * Null when the row does not carry one, which is the whole point: see `lobbyLine`.
+ */
+export function draftLengthLine(draftSeconds: number | undefined): string | null {
+    if (!draftSeconds || draftSeconds <= 0) return null;
+    return `${Math.round(draftSeconds / 60)} min to draft`;
+}
+
+/**
+ * A room's chairs, split by what is in them.
+ *
+ * DRAWN RATHER THAN COUNTED IN WORDS since 2026-09-15: the lobby row shows one dot a chair,
+ * which is what lets three columns of a list line up and be read down rather than along.
+ * The split is here rather than in the component for the reason the rest of this file is:
+ * it is a derivation, and a derivation can be checked - and this one has three ways to go
+ * wrong quietly (a bot count larger than the empty chairs, a `seated` larger than the room,
+ * and the pluralisation).
+ *
+ * A PRACTICE OPPONENT IS NEITHER A PERSON NOR A FREE CHAIR, which is the whole reason there
+ * are three numbers and not two. It is genuinely taken - the room can start with it in - and
+ * it still yields to anybody who turns up (`joinRoom`), so folding it into either of the
+ * others tells the reader something false about what walking in would mean.
+ *
+ * Both counts are clamped, because they come off a wire: `seated` and `bots` are counted by
+ * two independent subqueries on the server, so a row read between two writes can carry a
+ * pair that does not fit its own room, and a negative `Array.from` length would throw in the
+ * middle of a list.
+ */
+export function seatCounts(room: Pick<LobbyRoom, 'size' | 'seated' | 'bots'>): {
+    people: number;
+    practice: number;
+    free: number;
+    /** The same thing as a sentence, which is what a screen reader gets instead of dots. */
+    label: string;
+} {
+    const people = Math.max(0, Math.min(room.size, room.seated));
+    const practice = Math.max(0, Math.min(room.size - people, room.bots ?? 0));
+    const free = Math.max(0, room.size - people - practice);
+    const label = [
+        `${people} ${people === 1 ? 'person' : 'people'}`,
+        practice ? `${practice} practice opponent${practice === 1 ? '' : 's'}` : '',
+        free ? `${free} seat${free === 1 ? '' : 's'} free` : 'full',
+    ]
+        .filter(Boolean)
+        .join(', ');
+    return { people, practice, free, label };
 }
 
 /** How many seats are still open, and how that reads. A row whose room filled while you

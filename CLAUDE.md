@@ -4272,6 +4272,81 @@ three files, since nothing behavioural can see this: a build that never re-reads
 with the server within ten seconds and looks right in every fixture. **The general shape:
 when a screen navigates without waiting for a write, ask what the DESTINATION reads.**
 
+**THE VERSUS PAGE WAS REWORKED ON 2026-09-15, on five criticisms, and four of the five are
+about the SHAPE rather than the feature.** The owner's reading of `/versus`: far too much
+text; the duel history pushing the make/join/lobby section below the fold; a lobby that did
+not look like a lobby, with a Refresh nobody could tell was pressable; far too many buttons
+to open a room; and no guidance anywhere, since every part of the page was marked with a
+10px grey caption. All five were true of what was there. Five redrawings are in
+`docs/redesign-2026/turf-flat/versus-page-mock.html` and the chosen one, elaborated with the
+owner's three corrections, in `versus-option-2.html`. What shipped:
+
+- **TWO COLUMNS THAT NEVER SWAP: everything you DO on the left, everything that is HAPPENING
+  on the right.** That answers "the history buries the action" structurally rather than by
+  ordering - the duel lists live in the other column, so however long they grow they cannot
+  push the form down by a pixel, and both columns start at the same height so the lobby is on
+  screen from the first paint whether or not you have ever played one.
+- **SEVEN CHIP ROWS BECOME TWO BIG CHOICES AND THREE FOLDED SETTINGS, and the fold is only an
+  improvement because each one SHOWS ITS OWN ANSWER.** The form was twenty chips and seven
+  explaining paragraphs to open a room whose defaults are already right; folding that alone
+  would have moved the problem rather than fixed it, so a shut row reads "Roll, 3 re-rolls"
+  and the whole room is legible without opening anything. Which three you get is the field
+  dependency: a challenge has nobody to wait for and no clock, so it gets two, and a BUDGET
+  DUEL HAS NO HOUSE RULES AT ALL (no ratings switch, P5; no clock, P51) so that section is
+  absent rather than empty.
+- **ON A PHONE IT IS ONE COLUMN IN THE ORDER start, join, lobby, waiting, in play, results**,
+  which is the owner's correction against the first sketch: waiting does NOT hoist to the
+  top. It costs nothing because **the chrome already carries a duel strip on every other
+  screen in the game** (`useDuelAlert`), so somebody with a match waiting has been told
+  before they opened this page. The mechanism is `display: contents` on the two column
+  wrappers plus an `order-N` on each section, so there is one of each in the DOM at every
+  width and nothing is duplicated - and above the breakpoint the wrappers are blocks, where
+  `order` has no meaning, so source order wins with nothing to reset.
+- **THE SEATS ARE DRAWN, AND THEY SIT BETWEEN THE ROOM'S NAME AND THE WAY IN.** Also the
+  owner's correction: leading with them started every row of the list with a different shape,
+  where ending with them, right-aligned in a slot wide enough for eight, gives three columns
+  that line up so the eye runs down rather than along. Three states, because a chair can be
+  taken by two different things: a solid `pitch-ink` dot is a person, a grey one a practice
+  opponent (genuinely taken, and it still yields to anybody who turns up), a hollow one free.
+  The split is `seatCounts` in `domain/pvpView.ts` rather than inside the component, because
+  the clamping and the pluralisation are the parts that go wrong quietly.
+- **A PLAYED MATCH CARRIES NO ROOM CODE**, the third correction: a code is how you reach a
+  room and a finished one is not going anywhere. An OPEN one keeps it and has to, since until
+  somebody follows the link the opponent column reads "Nobody yet".
+- **THREE DUEL LISTS, NOT TWO, split by what the reader can DO rather than by whether the
+  game is over**: "Waiting on you" is the to-do list, "In play" is where the next move is
+  somebody else's, "Your results" is the record. The old page had the first two under one
+  heading, so the only urgent thing on the page sat in a list of things that are not. Each is
+  absent when empty, which is also what keeps a first visit to two sections. **A finished
+  match nobody has watched is WAITING, not a result** - the score is the thing being
+  withheld, so filing it under the record would give it away in the same breath.
+- **The hundred-word introduction is shown to somebody who has never played one and to
+  nobody else.** Fourteen paragraphs of copy became four, three of which are first-visit only.
+- **Nothing behavioural can see any of this**, so `npm run checks` reads the source for the
+  three corrections, with the sections all being FOUND as the vacuity guard - a renamed
+  heading would otherwise leave the order check comparing -1 against -1 and passing. All
+  three were mutation-tested red.
+
+**AND THE LOBBY ROW TOLD STRANGERS THE WRONG CLOCK, which is a real bug fixed in the same
+pass.** `lobbyLine` printed `pickSeconds` whatever the method, so a BUYING room was
+advertised as "20s a pick" - and a buying room opens no pick window at all, running one clock
+over the whole draft instead (P52). Not an imprecise number: a mechanism that room does not
+have, told to the one reader who cannot see inside it. `LobbyRoom.draftSeconds` carries the
+real figure now (`draftLengthLine` prints it in whole minutes, since the question is how long
+an evening this is rather than a countdown), and **the fallback is SILENCE rather than the old
+figure** - a referee built before the field sends none, and `pickSeconds` is always there and
+always tempting, so reaching for it is exactly the bug coming back. Two things to know:
+
+- **It needs the referee rebuilt to say anything at all.** The client half is safe to deploy
+  first and deliberately so: an older container sends no `draft_seconds`, the row then names
+  its money and its practice opponents and stops, and nothing is wrong on screen - only less
+  is said. Same shape as the invitation read.
+- **The check that was guarding it was asserting the bug.** `inviteRules(live).includes('20s
+  a pick')` passed only because a budget fixture was being printed with a pick clock, so it
+  would have gone on pinning the wrong sentence for the most motivated reader in the product.
+  It reads a ROLLING room for the pick clock now. **A check written against buggy behaviour
+  locks the bug in**, which is the same lesson as the vacuous `prime-years` check.
+
 - **Routes are `/versus` and `/versus/:code`**, reached from the Versus tab, not a segment
   under Play. It became **the sixth tab on 2026-08-31**, when duels made it a
   place you check rather than a place you visit - see "Navigation" above for why that is a
