@@ -6,7 +6,7 @@ import {
     tierRank,
     type StickerTier,
 } from '../config';
-import { shuffled } from './random';
+import { pick, shuffled } from './random';
 
 /**
  * The persisted sticker collection. Kept deliberately flat (collected ids + a
@@ -146,6 +146,63 @@ export function collectiblesByTier(allPlayers: Player[]): Record<StickerTier, Pl
         list.sort((a, b) => b.elo - a.elo || a.name.localeCompare(b.name));
     }
     return groups;
+}
+
+/** How many cards the front page's showcase shows at once, and how many of them are lit
+ *  rather than greyed. The lit count is drawn per turn so the row is not the same shape
+ *  every time; one or two of five is enough to read as "these are the ones you have"
+ *  without the greyed majority losing the contrast that makes the point. */
+export const SHOWCASE_COUNT = 5;
+const SHOWCASE_LIT = [1, 2] as const;
+
+/** One turn of that showcase: the cards in the order they are drawn in, and which of them
+ *  to show in colour. */
+export interface ShowcaseSet {
+    cards: CollectibleCard[];
+    /** Indexes into `cards`. */
+    lit: number[];
+}
+
+/** Draw a showcase turn: `count` collectibles in a RANDOM order, with **at least one of
+ *  every tier the pool can supply**, plus the one or two to light up.
+ *
+ *  THE TIER GUARANTEE IS "EVERY TIER THE POOL HAS", NOT "ALL THREE", AND THAT IS NOT
+ *  PEDANTRY. The pool handed in is the player's SELECTED World Cups (`poolYears`), which
+ *  they can narrow to a single tournament - and a single tournament need not contain all
+ *  three bands. 1978 is the worked example: its two collectibles are Kempes 91 and
+ *  Rensenbrink 90, both Legendary, so a function that insisted on one of each would either
+ *  throw or loop for ever on a perfectly ordinary setting. It takes one from each tier that
+ *  is NOT empty and fills the rest from everything left.
+ *
+ *  It also returns fewer than `count` rather than repeating a card when the pool holds
+ *  fewer than that, which is the same setting taken to its end: narrowed to 1978 there are
+ *  two cards in the world and the row is two cards long.
+ *
+ *  The shuffle at the end is what makes the row read as a handful rather than as a ranking:
+ *  drawn tier by tier it would come out gold, amber, green, and then the two fillers, in
+ *  that order every single turn. */
+export function showcaseSet(allPlayers: Player[], count = SHOWCASE_COUNT): ShowcaseSet {
+    const byTier = collectiblesByTier(allPlayers);
+    const taken = new Set<string>();
+    const chosen: CollectibleCard[] = [];
+
+    for (const tier of STICKER_TIER_ORDER) {
+        const list = byTier[tier];
+        if (!list.length || chosen.length >= count) continue;
+        const player = pick(list);
+        taken.add(player.id);
+        chosen.push({ player, tier });
+    }
+    for (const card of shuffled(collectibleCards(allPlayers))) {
+        if (chosen.length >= count) break;
+        if (taken.has(card.player.id)) continue;
+        taken.add(card.player.id);
+        chosen.push(card);
+    }
+
+    const cards = shuffled(chosen);
+    const lit = shuffled(cards.map((_, i) => i)).slice(0, Math.min(cards.length, pick(SHOWCASE_LIT)));
+    return { cards, lit };
 }
 
 /** What a cup win may pick from, best tier first then rating-desc (album spec FR-3 / D-1).

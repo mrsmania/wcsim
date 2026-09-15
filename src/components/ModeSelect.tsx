@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
     ArrowRight,
@@ -11,8 +11,10 @@ import {
 } from 'lucide-react';
 import type { Player } from '../data/types';
 import { FEATURES } from '../config';
-import { collectibleCards } from '../domain/album';
+import { showcaseSet, type ShowcaseSet } from '../domain/album';
 import StickerCard from './StickerCard';
+import { stickerArtSrc } from './stickerTheme';
+import { prefersReducedMotion } from '../hooks/motion';
 import { btn, CARD_FLAT, PAGE_TOP } from './matchUi';
 
 /** The front page (route `/`): a marketing hero that sells the fantasy, then the
@@ -192,16 +194,74 @@ const GRASS_STRIPE = 'var(--color-grass-stripe)';
 //
 // See the note on `btn` in matchUi for why a surface is not a fourth design.
 
+/** How long one showcase turn stays up, and how long the row spends faded out between two
+ *  of them.
+ *
+ *  NINE SECONDS, NOT SEVEN (asked as an open question, 2026-09-15). Reading five cards is
+ *  the thing being paced: a name, a nation, a year and a rating each, which takes four to
+ *  six seconds at a glance, and the swap costs most of a second at each end. Seven leaves
+ *  almost no margin over that, so the row changes while somebody is still on the fifth
+ *  card - and the failure is asymmetric, because a rotation that interrupts reads as a
+ *  fault where one that waits a beat too long reads as nothing at all. Nine still turns
+ *  over twice in the time it takes to read the section beside it, which is the point of
+ *  rotating rather than showing a fixed five. */
+const SHOWCASE_MS = 9000;
+const SHOWCASE_FADE_MS = 320;
+
+/** The rotating "chase the legends" row: a fresh draw every `SHOWCASE_MS`, faded between.
+ *
+ *  IT HOLDS STILL UNDER `prefers-reduced-motion`, and that is a requirement rather than a
+ *  courtesy - WCAG 2.2.2 is about content that updates on its own, which is exactly what
+ *  this is. There is no pause control, so not starting the interval at all is the honest
+ *  answer; one draw is shown and it stays.
+ *
+ *  THE NEXT TURN'S ART IS FETCHED DURING THIS ONE. Every card's image is a separate lazy
+ *  webp, so without this the row fades back in holding five empty frames and fills them in
+ *  as the network answers - a flicker every nine seconds, on the one part of the page that
+ *  exists to look good. The browser's cache is the whole mechanism: an `Image()` whose src
+ *  is set and which is then dropped still leaves the file cached for the real `<img>`.
+ *
+ *  The draw lives in `domain/album.ts` rather than here because the tier guarantee has a
+ *  real edge case in it (see `showcaseSet`), and it is the state ITSELF rather than a memo,
+ *  or every unrelated render would deal a new row. */
+function useShowcase(allPlayers: Player[]): ShowcaseSet & { shown: boolean } {
+    const enabled = FEATURES.stickerAlbum;
+    const [turn, setTurn] = useState<ShowcaseSet>(() =>
+        enabled ? showcaseSet(allPlayers) : { cards: [], lit: [] },
+    );
+    const [shown, setShown] = useState(true);
+
+    // A narrowed year pool changes who is collectible at all, so a fresh draw is owed.
+    useEffect(() => {
+        if (enabled) setTurn(showcaseSet(allPlayers));
+    }, [enabled, allPlayers]);
+
+    useEffect(() => {
+        if (!enabled || prefersReducedMotion() || allPlayers.length === 0) return;
+        let swap: ReturnType<typeof setTimeout> | undefined;
+        const tick = setInterval(() => {
+            const next = showcaseSet(allPlayers);
+            for (const { player } of next.cards) {
+                const img = new Image();
+                img.src = stickerArtSrc(player.id);
+            }
+            setShown(false);
+            swap = setTimeout(() => {
+                setTurn(next);
+                setShown(true);
+            }, SHOWCASE_FADE_MS);
+        }, SHOWCASE_MS);
+        return () => {
+            clearInterval(tick);
+            if (swap) clearTimeout(swap);
+        };
+    }, [enabled, allPlayers]);
+
+    return { ...turn, shown };
+}
+
 export default function ModeSelect({ buildTo, allPlayers }: Props) {
-    // The rarest collectibles (highest-rated), for the "chase the legends" showcase.
-    const legends = useMemo(() => {
-        if (!FEATURES.stickerAlbum) return [];
-        return collectibleCards(allPlayers)
-            .sort(
-                (a, b) => b.player.elo - a.player.elo || a.player.name.localeCompare(b.player.name),
-            )
-            .slice(0, 5);
-    }, [allPlayers]);
+    const legends = useShowcase(allPlayers);
 
     return (
         <div className={PAGE_TOP}>
@@ -351,18 +411,32 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                                 and the icon is the meaning signal, so they are not saying
                                 the same thing twice.
 
-                                ONE ACCENT, TWO TOKENS, AND THE SPLIT IS MEASURED. The
-                                numeral sits on `chalk` and takes `accent`, which is the
-                                token that exists for green text on a tinted surface (on
-                                graphite it brightens to clear AA there, where `pitch-ink`
-                                reads about 4.4 and misses). The icon sits on the card's own
-                                `panel` and takes `pitch-ink`, which is 8.08 in light and
-                                4.94 on graphite. Using either token for both would fail one
-                                of the two surfaces in one of the two themes. */}
+                                THEY ARE GOLD, AND `amber-ink` IS HOW GOLD IS SPELT ON PAPER
+                                (2026-09-15, asked for: the same gold as the hero's "Win the
+                                World Cup"). It IS that colour - on graphite the two tokens
+                                are the identical `#eea23a`, so the headline and these are
+                                literally the same value there. In the LIGHT theme they part,
+                                and they have to: the headline's surface amber sits on
+                                scrimmed dark grass at 3.79, while on a white card it
+                                measures **2.49**, which fails the 4.5 an 11px bold numeral
+                                needs and even the 3:1 a meaningful glyph needs. `amber-ink`
+                                is the deeper amber that clears both, which is the entire
+                                reason that token exists. Do not "correct" either of these to
+                                `text-amber` to match the headline's hex: on this surface
+                                that is not the same colour, it is the same colour unreadable.
+
+                                The disc went from `chalk` to a faint amber wash in the same
+                                pass, because a gold numeral in a green disc reads as two
+                                accents rather than one. It is the app's own tinted-amber
+                                idiom (`bg-amber/[0.16]` under `text-amber-ink`, 5.25 light
+                                and 7.84 dark), the same one the album's duplicate counts and
+                                the run XI's Boost tag use - and the reason that idiom exists
+                                at all is that a SOLID amber pill cannot be made to pass with
+                                any foreground in both themes. */}
                             <div className="flex items-center gap-2">
                                 <span
                                     aria-hidden
-                                    className="grid h-[21px] w-[21px] shrink-0 place-items-center rounded-full bg-chalk font-mono text-[11px] font-bold text-accent"
+                                    className="grid h-[21px] w-[21px] shrink-0 place-items-center rounded-full bg-amber/[0.16] font-mono text-[11px] font-bold text-amber-ink"
                                 >
                                     {i + 1}
                                 </span>
@@ -370,7 +444,7 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                                     size={15}
                                     strokeWidth={2.2}
                                     aria-hidden
-                                    className="shrink-0 text-pitch-ink"
+                                    className="shrink-0 text-amber-ink"
                                 />
                                 <h3 className="font-display text-[15px] font-bold tracking-[-0.01em]">
                                     {s.name}
@@ -383,7 +457,7 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
             </section>
 
             {/* CHASE THE LEGENDS */}
-            {FEATURES.stickerAlbum && legends.length > 0 && (
+            {FEATURES.stickerAlbum && legends.cards.length > 0 && (
                 <section className="mt-10">
                     {/* One block, not a flex row: the `justify-between` here used to hold a
                         control on the right and has held nothing since it went, so a
@@ -432,24 +506,49 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                             stickers are offered for less money on the transfer market.
                         </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 min-[460px]:grid-cols-3 min-[760px]:grid-cols-5">
-                        {legends.map(({ player: p, tier }) => (
+                    {/* The row fades out and back rather than cutting, and the fade is on the
+                        GRID rather than on each card: five cards changing together is one
+                        event, where five independent fades read as five things going wrong at
+                        once. `transition` already covers opacity, so this costs one class. */}
+                    <div
+                        className={`grid grid-cols-2 gap-3 transition-opacity duration-300 min-[460px]:grid-cols-3 min-[760px]:grid-cols-5 ${
+                            legends.shown ? 'opacity-100' : 'opacity-0'
+                        }`}
+                    >
+                        {legends.cards.map(({ player: p, tier }, i) => (
                             // The album's OWN card, not a second design of one. This showcase is a
                             // promise about the shelf those five end up on, and it used to keep a
                             // card of its own - a different border, a different rating cell, a
                             // country code where the album has a flag - so the thing being promised
                             // did not look like the thing you get.
                             //
-                            // Grayscale until hovered, and only where hover EXISTS: on touch there
-                            // is nothing to hover, so the cards are in colour from the start rather
-                            // than permanently grey.
+                            // GREY IS "NOT YOURS YET" AND LIT IS "COLLECTED", which is what the one
+                            // or two lit cards per turn are for: a row where every card looks the
+                            // same is a catalogue, and a row with two in colour among three ghosts
+                            // is the album halfway filled. On a TOUCH screen there is no grey at
+                            // all - it was always gated on hover existing - so there the lift is
+                            // the whole of the distinction, which is correct rather than a
+                            // shortfall: a phone reader is never going to see a hover state, so
+                            // showing the cards in colour is the honest default and the lit ones
+                            // are the ones standing proud.
+                            //
+                            // A LIT CARD OMITS `grayscale` RATHER THAN OVERRIDING IT WITH
+                            // `grayscale-0`. Two conflicting utilities of equal specificity are
+                            // settled by their order in the generated stylesheet, not by the order
+                            // they are written in the class string - the exact trap the boost
+                            // pick's `bg-panel` beside `bg-pitch-dark` fell into. So the class is
+                            // present or absent, never fought.
                             <div
                                 key={p.id}
                                 // `grid` rather than a plain block: the card is the one child, so it
                                 // stretches to the wrapper the way it stretches to the album's own
                                 // grid cell, and a name that wraps to two lines does not leave the
                                 // four beside it short.
-                                className="grid transition duration-300 [@media(hover:hover)]:grayscale hover:-translate-y-[3px] hover:grayscale-0"
+                                className={`grid transition duration-300 hover:-translate-y-[3px] hover:grayscale-0 ${
+                                    legends.lit.includes(i)
+                                        ? '-translate-y-[3px]'
+                                        : '[@media(hover:hover)]:grayscale'
+                                }`}
                             >
                                 <StickerCard player={p} tier={tier} collected />
                             </div>

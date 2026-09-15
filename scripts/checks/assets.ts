@@ -6,8 +6,14 @@
 
 import { check } from './harness';
 import { readFileSync, readdirSync } from 'node:fs';
-import { ALL_PLAYERS, SQUAD_BY_ID } from '../../src/data/squads';
-import { collectiblePlayers, tierOf } from '../../src/domain/album';
+import { ALL_PLAYERS, SQUAD_BY_ID, squadsInPool } from '../../src/data/squads';
+import {
+  SHOWCASE_COUNT,
+  collectiblePlayers,
+  showcaseSet,
+  tierOf,
+} from '../../src/domain/album';
+import { withSeed } from './harness';
 import { SETTINGS_KEY } from '../../src/state/settingsStorage';
 import { CATALOGUE_PATH, catalogueChecksum, catalogueRows, checksumInFile } from '../collectibles';
 
@@ -307,4 +313,76 @@ export function assetsChecks(): void {
       () => guilty.join(', '),
     );
   }
+
+  // --- the front page's rotating showcase ---------------------------------------
+  // The draw promises three things and only one of them is visible on screen, so all
+  // three are asserted here: the tier spread, the fact that it does not repeat a card,
+  // and that it degrades on a pool too narrow to keep the promise.
+  {
+    const spreads = withSeed(0x5ADE5, () =>
+      Array.from({ length: 400 }, () => showcaseSet(ALL_PLAYERS)),
+    );
+    check(
+      `showcase: 400 draws are each ${SHOWCASE_COUNT} cards with no repeat`,
+      () =>
+        spreads.length === 400 &&
+        spreads.every(
+          (s) =>
+            s.cards.length === SHOWCASE_COUNT &&
+            new Set(s.cards.map((c) => c.player.id)).size === SHOWCASE_COUNT,
+        ),
+    );
+    check(
+      'showcase: every draw over the whole dataset carries all three tiers',
+      () => spreads.every((s) => new Set(s.cards.map((c) => c.tier)).size === 3),
+      () => {
+        const bad = spreads.find((s) => new Set(s.cards.map((c) => c.tier)).size !== 3);
+        return bad ? bad.cards.map((c) => `${c.player.name} (${c.tier})`).join(', ') : '';
+      },
+    );
+    // The vacuity guard, and it is doing real work rather than ticking a box: measured
+    // over the whole dataset an untiered draw of five carries all three tiers **77 times
+    // in 400** against this function's 400, because the top tier is 7 cards in 115. So the
+    // check above would pass about a fifth of the time on a function that did nothing at
+    // all, and this is what says it did something.
+    const blind = withSeed(0x5ADE5, () =>
+      Array.from({ length: 400 }, () =>
+        [...collectiblePlayers(ALL_PLAYERS)].sort(() => Math.random() - 0.5).slice(0, SHOWCASE_COUNT),
+      ),
+    );
+    const blindAllThree = blind.filter(
+      (cards) => new Set(cards.map((p) => tierOf(p))).size === 3,
+    ).length;
+    check(
+      'showcase: an untiered draw of the same size would NOT carry all three',
+      () => blindAllThree < 400,
+      () => `${blindAllThree} of 400 happened to`,
+    );
+    // One tournament, two collectibles, both Legendary - which is exactly the pool a
+    // player who narrows their years to 1978 hands this function. It must return the two
+    // it has rather than throwing or looping for a tier that does not exist.
+    const narrow = squadsInPool([1978]).flatMap((s) => s.players);
+    const narrowCards = collectiblePlayers(narrow);
+    const drawn = withSeed(0x1978, () => showcaseSet(narrow));
+    check(
+      'showcase: a pool with one tier and fewer cards than the row returns what it has',
+      () =>
+        narrowCards.length > 0 &&
+        narrowCards.length < SHOWCASE_COUNT &&
+        drawn.cards.length === narrowCards.length &&
+        new Set(drawn.cards.map((c) => c.tier)).size === 1,
+      () => `${narrowCards.length} collectible(s) in 1978, drew ${drawn.cards.length}`,
+    );
+    check(
+      'showcase: one or two of every draw are lit, and they index real cards',
+      () =>
+        spreads.every(
+          (s) =>
+            (s.lit.length === 1 || s.lit.length === 2) &&
+            new Set(s.lit).size === s.lit.length &&
+            s.lit.every((i) => i >= 0 && i < s.cards.length),
+        ),
+    );
+  }
+
 }
