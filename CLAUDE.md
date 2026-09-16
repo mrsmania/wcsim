@@ -1861,7 +1861,10 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   in it; plus a dashed border over `bg-ground/60` and no shadow, so against the tifo
   shadow on the cards beside it the gap sat visually behind the grid. One frame now
   (`border-line bg-panel shadow-hard`), and `MissingArt` fills the art block with a large
-  `?` on `bg-faint`, the app's unearned-SURFACE token. The rating band is the tier's on
+  `?` and NO background of its own, so the card's surface shows through - the same choice
+  the missing-artwork silhouette makes, and for the same reason: one mark then works in
+  both themes. It sat on `bg-faint` for a day and read as a picture that had failed to
+  load rather than as a slot with nothing in it. The rating band is the tier's on
   both cards and only the FIGURE is held back, as **`??`** - "??" reads as a number being
   kept from you where a lone "?" read as a shrug, and leaving the band unfilled had the
   one row that carries the tier's colour missing from most of the album.

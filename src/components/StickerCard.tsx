@@ -93,12 +93,15 @@ export function StickerArt({
  *  is computed from the same three constants `StickerArt` uses, so the two cannot drift:
  *  change the crop and both boxes move together.
  *
- *  `bg-faint` is the app's "unearned surface" token, the one the honours ledger already
- *  uses for an entry nobody has earned, so the slot reads as empty without being a hole. */
+ *  NO BACKGROUND OF ITS OWN: the card's surface shows through, which is the same choice
+ *  `STICKER_PLACEHOLDER_SRC` makes for the silhouette and for the same reason - one mark
+ *  then works on both themes without a second value to keep in step. It sat on `bg-faint`
+ *  (the unearned-surface token) for a day, which drew a grey panel inside a white card and
+ *  read as a picture that had failed to load rather than as a slot with nothing in it. */
 function MissingArt({ className = '' }: { className?: string }) {
     return (
         <div
-            className={`grid w-full place-items-center overflow-hidden bg-faint ${className}`}
+            className={`grid w-full place-items-center overflow-hidden ${className}`}
             style={{ aspectRatio: `${ART_W} / ${ART_H * ART_VISIBLE_FRACTION}` }}
             aria-hidden="true"
         >
