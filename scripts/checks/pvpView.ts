@@ -1938,7 +1938,7 @@ export function pvpViewChecks(): void {
     };
     const start = orderOf('Start a match');
     const join = orderOf('Join with a code');
-    const lobby = orderOf('Rooms open now');
+    const lobby = orderOf('Lobby');
     const waiting = orderOf('Waiting on you');
     const results = orderOf('Your results');
     check(

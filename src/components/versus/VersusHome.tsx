@@ -30,12 +30,20 @@ import { RefereeError, createRoom, leaveRoom, readDuels, readLobby } from '../..
 import { onDuelsChanged } from '../../state/pvp/duels';
 import { myRecord, NO_RECORD, type PvpRecord } from '../../state/pvp/records';
 import { onWatchedChange, watchedDuels } from '../../state/pvp/watched';
-import { CARD, CHIP_OFF, CHIP_ON, MONO_CAP, PRIMARY_BTN, SECONDARY_BTN, StageHeader, btn } from '../matchUi';
+import {
+    CARD,
+    CHIP_OFF,
+    CHIP_ON,
+    MONO_CAP,
+    PRIMARY_BTN,
+    SECONDARY_BTN,
+    StageHeader,
+    btn,
+} from '../matchUi';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
 import {
     BigChoice,
     HeadCount,
-    LiveCount,
     RefereeProblem,
     RefreshButton,
     RoomNote,
@@ -99,21 +107,18 @@ import {
  * buy, over all fifteen tournaments. Re-derive them rather than trusting them; the dataset
  * moves, and this figure has been restated once already.
  */
-const BUDGET_COPY: Record<RoomBudget, string> = {
-    100: 'Tight. A well-shopped XI rates about 82, and every slot is a compromise.',
-    125: 'About 85 across the team. Room for a name or two, and the rest is judgement.',
-    150: 'About 88. Three genuine greats, or spread it and take nine good ones.',
-    175: 'About 90. The squeeze is mostly off and the XI is elite either way.',
-    200: 'About 92. Nearly every slot can be a great, so the game is won elsewhere.',
-};
-const BUDGETS = ROOM_BUDGETS.map((value) => ({ value, label: `$${value}`, sub: BUDGET_COPY[value] }));
+
+const BUDGETS = ROOM_BUDGETS.map((value) => ({
+    value,
+    label: `$${value}`,
+}));
 
 /** Two, four or eight, and what the number means for the evening: a room of eight is three
  *  rounds, and P47's wait is at the end of the draft rather than at every pick. */
 const SIZES = [
-    { value: 2, label: 'Two', sub: 'One match, and it is over.' },
-    { value: 4, label: 'Four', sub: 'Two rounds: a semi-final and a final.' },
-    { value: 8, label: 'Eight', sub: 'Three rounds. Whoever goes out first stays and watches.' },
+    { value: 2, label: 'Two' },
+    { value: 4, label: 'Four' },
+    { value: 8, label: 'Eight' },
 ];
 
 /**
@@ -127,11 +132,10 @@ const SIZES = [
  * shopping a market and roomy for taking one man off a dealt squad, so tying the two
  * would make one of the two rooms wrong.
  */
-const CLOCK_COPY: Record<PickSeconds, { label: string; sub: string }> = {
-    20: { label: '20 seconds', sub: 'Fast. Decide on instinct and keep the room moving.' },
+const CLOCK_COPY: Record<PickSeconds, { label: string }> = {
+    20: { label: '20 seconds' },
     30: {
         label: '30 seconds',
-        sub: 'Considered. Time to read the market, or the squad you were dealt.',
     },
 };
 
@@ -144,18 +148,15 @@ const CLOCKS = PICK_SECONDS.map((value) => ({ value, ...CLOCK_COPY[value] }));
 /** And the WHOLE DRAFT's lengths (P52), which is what a budget room runs instead. Built
  *  from the domain's own list for the same reason, and worded in what the time is FOR: the
  *  question a host is answering is how long an evening this is, not how many seconds. */
-const DRAFT_COPY: Record<DraftSeconds, { label: string; sub: string }> = {
+const DRAFT_COPY: Record<DraftSeconds, { label: string }> = {
     180: {
         label: '3 minutes',
-        sub: 'Brisk. About what eleven twenty-second picks used to add up to.',
     },
     300: {
         label: '5 minutes',
-        sub: 'Room to shop, change your mind and rearrange the shape.',
     },
     480: {
         label: '8 minutes',
-        sub: 'Unhurried. Read the market properly and tune the last few slots.',
     },
 };
 const DRAFTS = DRAFT_SECONDS.map((value) => ({ value, ...DRAFT_COPY[value] }));
@@ -163,9 +164,9 @@ const DRAFTS = DRAFT_SECONDS.map((value) => ({ value, ...DRAFT_COPY[value] }));
 /** How many re-rolls a roll room allows. Named in outcomes: what the number MEANS is how
  *  often you can refuse a squad you were dealt. */
 const REROLLS = [
-    { value: 0, label: 'None', sub: 'Take what you are dealt, every time.' },
-    { value: 3, label: 'Three', sub: 'Enough to refuse a squad with nobody you need.' },
-    { value: 6, label: 'Six', sub: 'You will nearly always get a shape you want.' },
+    { value: 0, label: 'None' },
+    { value: 3, label: 'Three' },
+    { value: 6, label: 'Six' },
 ];
 
 /**
@@ -175,7 +176,7 @@ const REROLLS = [
  * distinction that field exists for: this is the owner's to fix by rebuilding the server.
  */
 const NO_DUELS: RefereeMessage = {
-    text: 'The versus server is running an older build, so the challenge it opened is not the one this page knows how to play. It has been closed again. Play "Together, now" until the server is updated.',
+    text: 'The versus server is running an older build, so the challenge it opened is not the one this page knows how to play. It has been closed again. Play "Create a cup" until the server is updated.',
     raw: 'duels not deployed',
     deployment: true,
     room: null,
@@ -251,7 +252,9 @@ function DuelLine({
                         </span>
                     )}
                 </div>
-                <div className={`text-[12px] ${alert ? 'font-semibold text-pitch-ink' : 'text-muted'}`}>
+                <div
+                    className={`text-[12px] ${alert ? 'font-semibold text-pitch-ink' : 'text-muted'}`}
+                >
                     {alert === 'watch' ? 'The match has been played' : duelLine(row)}
                     {/* What it plays is worth knowing while there is still a team to build
                         and is noise once there is not: a finished row's own line is the
@@ -357,8 +360,9 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
     };
 
     // The lobby, and this account's record. Both are decorations beside the thing you came
-    // to do, so neither failing puts anything on screen: the list simply stays empty and
-    // the record stays at zero.
+    // to do, so neither failing puts anything on screen: the list simply stays empty, and
+    // the record resolves to zeros, which only decides whether a first visit gets the
+    // introduction.
     const [lobby, setLobby] = useState<LobbyRoom[] | null>(null);
     const [duels, setDuels] = useState<DuelRow[]>([]);
     // Whether this server does duels at all, probed off the list below rather than
@@ -476,23 +480,14 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
         <>
             <StageHeader
                 title="Play somebody"
-                // WHO YOU ARE AND WHAT YOU HAVE DONE, ON THE TITLE'S OWN LINE. It was a
-                // full card, which is a lot of furniture for a name - and a card that often
-                // says only your own name is chrome. Both halves answer the same question,
-                // what the others see of you, and the record half is simply absent until
-                // there is one.
+                // WHO YOU ARE, ON THE TITLE'S OWN LINE. It was a full card, which is a
+                // lot of furniture for a name, and a card that says only your own name is
+                // chrome.
                 controls={
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted">
-                        <span className="font-bold text-ink">{name}</span>
-                        {record.played > 0 && (
-                            <span>
-                                {record.won} won, {record.lost} lost
-                                {record.roomsWon > 0 &&
-                                    `, ${record.roomsWon} room${record.roomsWon === 1 ? '' : 's'} won outright`}
-                            </span>
-                        )}
+                        Your name: <span className="font-bold text-ink">{name}</span>
                         <button className={btn('secondary', 'compact')} onClick={onRename}>
-                            Change name
+                            Change
                         </button>
                     </div>
                 }
@@ -509,7 +504,10 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                             {held.code} &middot; {held.line}
                         </RoomNote>
                     </div>
-                    <button className={PRIMARY_BTN} onClick={() => navigate(`/versus/${held.code}`)}>
+                    <button
+                        className={PRIMARY_BTN}
+                        onClick={() => navigate(`/versus/${held.code}`)}
+                    >
                         Back to it
                     </button>
                 </div>
@@ -527,9 +525,9 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                         <div className={`${CARD} p-4`}>
                             {firstTime && (
                                 <p className="mb-3 text-[13px] leading-relaxed text-muted">
-                                    An XI each out of all {WORLD_CUP_YEARS.length} World Cups,
-                                    then one match. Your career, album and perks stay out of
-                                    it: eleven players against eleven.
+                                    An XI each out of all {WORLD_CUP_YEARS.length} World Cups, then
+                                    one match. Your career, album and perks stay out of it: eleven
+                                    players against eleven.
                                 </p>
                             )}
 
@@ -540,13 +538,13 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                                 options={[
                                     {
                                         value: 'async' as const,
-                                        label: 'In your own time',
-                                        sub: 'Challenge one person by link. Neither of you has to be here.',
+                                        label: 'Challenge a friend',
+                                        sub: 'Cross swords with whomever you send your personal link.',
                                     },
                                     {
                                         value: 'live' as const,
-                                        label: 'Together, now',
-                                        sub: 'Two to eight people in the room at once, on a clock.',
+                                        label: 'Create a cup',
+                                        sub: 'Round of eight, semifinal or final, challenge whoever is online.',
                                     },
                                 ]}
                             />
@@ -555,25 +553,25 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                                 {!duel && (
                                     <Setting label="Who is playing" answer={whoAnswer}>
                                         <Chips
-                                            label="How many of you"
+                                            label="How many users?"
                                             value={size}
                                             onPick={setSize}
                                             options={SIZES}
                                         />
                                         <Chips
-                                            label="Who can join"
+                                            label="Who can join?"
                                             value={visibility}
                                             onPick={setVisibility}
                                             options={[
                                                 {
-                                                    value: 'private' as const,
-                                                    label: 'Just my friends',
-                                                    sub: 'Code only. Nobody can find it, or even confirm it exists.',
-                                                },
-                                                {
                                                     value: 'public' as const,
                                                     label: 'Anybody',
-                                                    sub: 'Listed for anyone signed in. It still has a code.',
+                                                    sub: 'Room will be Listed in the lobby, open for the public.',
+                                                },
+                                                {
+                                                    value: 'private' as const,
+                                                    label: 'Friends only',
+                                                    sub: 'Users can only join via code.',
                                                 },
                                             ]}
                                         />
@@ -589,25 +587,25 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                                             {
                                                 value: 'roll' as const,
                                                 label: 'Roll for them',
-                                                sub: 'Random squads, one man from each. The skill is knowing who to take.',
+                                                sub: 'XI random squads, one man from each.',
                                             },
                                             {
                                                 value: 'budget' as const,
                                                 label: 'Buy them',
-                                                sub: 'Shop the whole dataset. The skill is knowing what a player is worth.',
+                                                sub: 'Shop your XI from the transfer market.',
                                             },
                                         ]}
                                     />
                                     {method === 'budget' ? (
                                         <Chips
-                                            label="How much each"
+                                            label="How much budget per user?"
                                             value={budget}
                                             onPick={setBudget}
                                             options={BUDGETS}
                                         />
                                     ) : (
                                         <Chips
-                                            label="Re-rolls each"
+                                            label="How many re-rolls per user?"
                                             value={rerolls}
                                             onPick={setRerolls}
                                             options={REROLLS}
@@ -625,15 +623,14 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                                             is all it claims. */}
                                         {offersRatingSwitch(method) && (
                                             <Chips
-                                                label="The numbers"
                                                 value={showRatings ? 'on' : 'off'}
+                                                label="Display player ratings while drafting?"
                                                 onPick={(v) => setShowRatings(v === 'on')}
                                                 options={[
                                                     { value: 'on' as const, label: 'Ratings on' },
                                                     {
                                                         value: 'off' as const,
-                                                        label: 'Ratings hidden',
-                                                        sub: 'Pick on the name and the year, and the numbers come back at the whistle. A house rule, not a lock: the Squads tab shows every rating, so agree not to.',
+                                                        label: 'Ratings off',
                                                     },
                                                 ]}
                                             />
@@ -647,14 +644,14 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                                         {!duel &&
                                             (method === 'budget' ? (
                                                 <Chips
-                                                    label="How long the whole draft gets"
+                                                    label="How much time for drafting the XI?"
                                                     value={draftSeconds}
                                                     onPick={setDraftSeconds}
                                                     options={DRAFTS}
                                                 />
                                             ) : (
                                                 <Chips
-                                                    label="How long a pick gets"
+                                                    label="How much time per pick?"
                                                     value={pickSeconds}
                                                     onPick={setPickSeconds}
                                                     options={CLOCKS}
@@ -666,9 +663,9 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
 
                             {duel && !duelsRoute && (
                                 <p className="mt-4 rounded-[5px] border border-line bg-faint px-3 py-2.5 text-[12px] leading-snug text-muted">
-                                    The versus server here has not been rebuilt for duels yet,
-                                    so a challenge cannot be sent. Everything else about versus
-                                    works; play "Together, now" until it is updated.
+                                    The versus server here has not been rebuilt for duels yet, so a
+                                    challenge cannot be sent. Everything else about versus works;
+                                    play "Create a cup" until it is updated.
                                 </p>
                             )}
                             {/* THE OTHER SKEW HAS NO PROBE and cannot have one: a server that
@@ -682,14 +679,8 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                                 disabled={busy || (duel && !duelsRoute)}
                                 onClick={make}
                             >
-                                {duel ? 'Send a challenge' : 'Open a room'}
+                                {duel ? 'Create challenge' : 'Open room'}
                             </button>
-                            {duel && (
-                                <p className="mt-2 text-[12px] leading-snug text-muted">
-                                    You get a link to send. Whoever opens it takes it on, and
-                                    you each build whenever you get to it.
-                                </p>
-                            )}
                             {error && (
                                 <RefereeProblem
                                     message={error}
@@ -715,7 +706,10 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
 
                     <section className="order-2">
                         <SectionHead title="Join with a code" />
-                        <form className={`${CARD} flex flex-wrap items-center gap-3 p-4`} onSubmit={join}>
+                        <form
+                            className={`${CARD} flex flex-wrap items-center gap-3 p-4`}
+                            onSubmit={join}
+                        >
                             <input
                                 value={code}
                                 onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 8))}
@@ -745,7 +739,12 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                             <div className={`${CARD} border-pitch-dark p-4`}>
                                 <ul>
                                     {waiting.map((d) => (
-                                        <DuelLine key={d.code} row={d} watched={watched} go={navigate} />
+                                        <DuelLine
+                                            key={d.code}
+                                            row={d}
+                                            watched={watched}
+                                            go={navigate}
+                                        />
                                     ))}
                                 </ul>
                             </div>
@@ -753,34 +752,17 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                     )}
 
                     <section className="order-3">
-                        <SectionHead
-                            title="Rooms open now"
-                            count={
-                                lobby && lobby.length > 0 ? (
-                                    // Short, because the heading above it already says
-                                    // what is being counted and the three of them have to
-                                    // share one line with Refresh at 390px.
-                                    <LiveCount>{lobby.filter(lobbyJoinable).length} free</LiveCount>
-                                ) : lobby ? (
-                                    <HeadCount>none</HeadCount>
-                                ) : undefined
-                            }
-                            end={<RefreshButton onClick={refreshLobby} />}
-                        />
+                        <SectionHead title="Lobby" end={<RefreshButton onClick={refreshLobby} />} />
                         <div className={`${CARD} p-4`}>
                             {lobby === null ? (
                                 <RoomNote>Looking.</RoomNote>
                             ) : lobby.length === 0 ? (
                                 // THE HALF OF THIS FEATURE THAT DEPENDS ON OTHER PEOPLE is
                                 // also the half that looks broken when nobody is playing. So
-                                // an empty list says so in the room's own voice and puts both
-                                // answers next to it, rather than rendering an empty table and
-                                // leaving the reader to wonder whether it loaded.
-                                <RoomNote>
-                                    Nobody has a public room open just now. Open one with
-                                    "Anybody" and it appears here for everyone signed in, or
-                                    send a challenge and play it whenever you both get to it.
-                                </RoomNote>
+                                // an empty list says so in the room's own voice, rather than
+                                // rendering an empty table and leaving the reader to wonder
+                                // whether it loaded.
+                                <RoomNote>No open rooms right now.</RoomNote>
                             ) : (
                                 <ul>
                                     {lobby.map((r) => {
@@ -802,14 +784,19 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                                                         </span>
                                                     </div>
                                                     <div className="text-[12px] text-muted">
-                                                        {lobbyLine(r)} &middot; {agoLine(r.openedAt, at)}
+                                                        {lobbyLine(r)} &middot;{' '}
+                                                        {agoLine(r.openedAt, at)}
                                                     </div>
                                                 </div>
                                                 {/* THE SEATS, BETWEEN THE NAME AND THE WAY IN.
                                                     The row said "2 of 4 seats left" in words
                                                     and led with nothing; drawn and placed here
                                                     the list gets three columns that line up. */}
-                                                <SeatPips size={r.size} seated={r.seated} bots={r.bots} />
+                                                <SeatPips
+                                                    size={r.size}
+                                                    seated={r.seated}
+                                                    bots={r.bots}
+                                                />
                                                 {/* A ROW action, so it takes its own tighter
                                                     box: the page-level size would be taller
                                                     than the hairline row it sits in. */}
@@ -852,7 +839,12 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                             <div className={`${CARD} p-4`}>
                                 <ul>
                                     {inPlay.map((d) => (
-                                        <DuelLine key={d.code} row={d} watched={watched} go={navigate} />
+                                        <DuelLine
+                                            key={d.code}
+                                            row={d}
+                                            watched={watched}
+                                            go={navigate}
+                                        />
                                     ))}
                                 </ul>
                             </div>
@@ -861,10 +853,7 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
 
                     {played.length > 0 && (
                         <section className="order-6">
-                            <SectionHead
-                                title="Your results"
-                                count={<HeadCount>{played.length}</HeadCount>}
-                            />
+                            <SectionHead title="Your results" />
                             <div className={`${CARD} p-4`}>
                                 <ul>
                                     {results.map((d) => (

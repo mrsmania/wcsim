@@ -510,8 +510,8 @@ export function RefereeProblem({
  * their own copy of it and folding all three into one atom is a separate job in files another
  * session is holding.
  *
- * `count` is the quiet figure beside it ("4", "2 free") and `end` the one control a section
- * may own, which in practice is Refresh.
+ * `count` is the quiet figure beside it ("4") and `end` the one control a section may own,
+ * which in practice is Refresh.
  */
 export function SectionHead({
     title,
@@ -535,24 +535,6 @@ export function SectionHead({
 export function HeadCount({ children }: { children: ReactNode }) {
     return (
         <span className="font-mono text-[11px] font-bold tabular-nums text-muted">{children}</span>
-    );
-}
-
-/**
- * How many rooms are open, with the dot that says the figure is live.
- *
- * THE LOBBY DID NOT LOOK LIKE A LOBBY, which was the most concrete of the five criticisms:
- * a 10px caption over a list, nothing saying anything about it was live, and a Refresh
- * rendered as grey mono text that nobody could tell was pressable. A pulsing dot is the
- * convention for "this updates on its own" and costs one element; `motion-safe` because a
- * thing that pulses for ever is exactly what reduced motion is for.
- */
-export function LiveCount({ children }: { children: ReactNode }) {
-    return (
-        <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-bold text-pitch-ink">
-            <span className="size-[7px] rounded-full bg-pitch motion-safe:animate-pulse" />
-            {children}
-        </span>
     );
 }
 

@@ -17,282 +17,280 @@ import ConfirmAction from './ConfirmAction';
 const CODE_LENGTH = 6;
 
 const FIELD =
-  'w-full rounded-md border border-line bg-ground px-3 py-2 text-[13.5px] outline-none focus:border-pitch';
+    'w-full rounded-md border border-line bg-ground px-3 py-2 text-[13.5px] outline-none focus:border-pitch';
 
 type Stage = 'idle' | 'sending' | 'code' | 'verifying' | 'deleting';
 
 export default function AccountPanel({
-  email,
-  onSignedIn,
-  onSignedOut,
+    email,
+    onSignedIn,
+    onSignedOut,
 }: {
-  /** The signed-in address, or null for a guest. */
-  email: string | null;
-  onSignedIn: () => void;
-  onSignedOut: () => void;
+    /** The signed-in address, or null for a guest. */
+    email: string | null;
+    onSignedIn: () => void;
+    onSignedOut: () => void;
 }) {
-  const fieldId = useId();
-  const [stage, setStage] = useState<Stage>('idle');
-  const [address, setAddress] = useState('');
-  const [code, setCode] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  // Guards the auto-submit: state updates are async, so two change events in quick
-  // succession could both pass a stage check and send the code twice.
-  const verifyingRef = useRef(false);
+    const fieldId = useId();
+    const [stage, setStage] = useState<Stage>('idle');
+    const [address, setAddress] = useState('');
+    const [code, setCode] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    // Guards the auto-submit: state updates are async, so two change events in quick
+    // succession could both pass a stage check and send the code twice.
+    const verifyingRef = useRef(false);
 
-  if (!FEATURES.accounts) return null;
+    if (!FEATURES.accounts) return null;
 
-  const fail = (err: unknown) => {
-    setError(err instanceof Error ? err.message : String(err));
-    setStage((s) => (s === 'verifying' ? 'code' : 'idle'));
-  };
+    const fail = (err: unknown) => {
+        setError(err instanceof Error ? err.message : String(err));
+        setStage((s) => (s === 'verifying' ? 'code' : 'idle'));
+    };
 
-  const send = async () => {
-    setError(null);
-    setStage('sending');
-    try {
-      const { requestCode } = await import('../state/auth');
-      await requestCode(address);
-      setStage('code');
-    } catch (err) {
-      fail(err);
-    }
-  };
+    const send = async () => {
+        setError(null);
+        setStage('sending');
+        try {
+            const { requestCode } = await import('../state/auth');
+            await requestCode(address);
+            setStage('code');
+        } catch (err) {
+            fail(err);
+        }
+    };
 
-  // Takes the code so the auto-submit below can pass the digits it just read: calling
-  // this from an onChange handler cannot use the state, which has not updated yet.
-  const verify = async (value: string = code) => {
-    if (verifyingRef.current) return;
-    verifyingRef.current = true;
-    setError(null);
-    setStage('verifying');
-    try {
-      const { submitCode } = await import('../state/auth');
-      await submitCode(address, value);
-      // The store has to be rebuilt against the account, which happens on reload.
-      onSignedIn();
-    } catch (err) {
-      fail(err);
-    } finally {
-      verifyingRef.current = false;
-    }
-  };
+    // Takes the code so the auto-submit below can pass the digits it just read: calling
+    // this from an onChange handler cannot use the state, which has not updated yet.
+    const verify = async (value: string = code) => {
+        if (verifyingRef.current) return;
+        verifyingRef.current = true;
+        setError(null);
+        setStage('verifying');
+        try {
+            const { submitCode } = await import('../state/auth');
+            await submitCode(address, value);
+            // The store has to be rebuilt against the account, which happens on reload.
+            onSignedIn();
+        } catch (err) {
+            fail(err);
+        } finally {
+            verifyingRef.current = false;
+        }
+    };
 
-  // A complete code submits itself, whether it was pasted, filled in by the phone's
-  // one-time-code suggestion, or finished by typing the sixth digit - all three are a
-  // single change event, so there is nothing to press. Digits only and capped at six, so
-  // a pasted "123 456" still counts as complete and a stray character cannot block it.
-  const onCodeChange = (raw: string) => {
-    const digits = raw.replace(/\D/g, '').slice(0, CODE_LENGTH);
-    setCode(digits);
-    if (digits.length === CODE_LENGTH) void verify(digits);
-  };
+    // A complete code submits itself, whether it was pasted, filled in by the phone's
+    // one-time-code suggestion, or finished by typing the sixth digit - all three are a
+    // single change event, so there is nothing to press. Digits only and capped at six, so
+    // a pasted "123 456" still counts as complete and a stray character cannot block it.
+    const onCodeChange = (raw: string) => {
+        const digits = raw.replace(/\D/g, '').slice(0, CODE_LENGTH);
+        setCode(digits);
+        if (digits.length === CODE_LENGTH) void verify(digits);
+    };
 
-  // Both stages are real forms, so Enter submits and phone keyboards offer Go/Send.
-  // The guards repeat the buttons' disabled conditions: a browser will not fire implicit
-  // submission while the submit button is disabled, but nothing else may either.
-  const canSend = address.includes('@') && stage !== 'sending';
-  const canVerify = code.length === CODE_LENGTH && stage !== 'verifying';
+    // Both stages are real forms, so Enter submits and phone keyboards offer Go/Send.
+    // The guards repeat the buttons' disabled conditions: a browser will not fire implicit
+    // submission while the submit button is disabled, but nothing else may either.
+    const canSend = address.includes('@') && stage !== 'sending';
+    const canVerify = code.length === CODE_LENGTH && stage !== 'verifying';
 
-  const onSendSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (canSend) void send();
-  };
+    const onSendSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        if (canSend) void send();
+    };
 
-  const onVerifySubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (canVerify) void verify();
-  };
+    const onVerifySubmit = (e: FormEvent) => {
+        e.preventDefault();
+        if (canVerify) void verify();
+    };
 
-  const remove = async () => {
-    setError(null);
-    setStage('deleting');
-    try {
-      const { deleteAccount } = await import('../state/auth');
-      await deleteAccount();
-      // Same handover as signing out: the store has to be rebuilt as a guest, and the
-      // versus room pointer goes with the account it belonged to.
-      holdVersusRoom(null);
-      onSignedOut();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-      setStage('idle');
-    }
-  };
+    const remove = async () => {
+        setError(null);
+        setStage('deleting');
+        try {
+            const { deleteAccount } = await import('../state/auth');
+            await deleteAccount();
+            // Same handover as signing out: the store has to be rebuilt as a guest, and the
+            // versus room pointer goes with the account it belonged to.
+            holdVersusRoom(null);
+            onSignedOut();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+            setStage('idle');
+        }
+    };
 
-  const out = async (scope: 'local' | 'global') => {
-    setError(null);
-    try {
-      const { signOut } = await import('../state/auth');
-      await signOut(scope);
-      // The versus room pointer goes with the account. It lives in `sessionStorage` and
-      // signing out RELOADS the page, so without this it survives into the guest session
-      // and offers a way back to a room only an account can read. App also refuses to
-      // show one without an account, which is the belt to this pair of braces.
-      holdVersusRoom(null);
-      onSignedOut();
-    } catch (err) {
-      fail(err);
-    }
-  };
+    const out = async (scope: 'local' | 'global') => {
+        setError(null);
+        try {
+            const { signOut } = await import('../state/auth');
+            await signOut(scope);
+            // The versus room pointer goes with the account. It lives in `sessionStorage` and
+            // signing out RELOADS the page, so without this it survives into the guest session
+            // and offers a way back to a room only an account can read. App also refuses to
+            // show one without an account, which is the belt to this pair of braces.
+            holdVersusRoom(null);
+            onSignedOut();
+        } catch (err) {
+            fail(err);
+        }
+    };
 
-  if (email) {
-    return (
-      <div>
-        <div className="text-[13.5px] font-semibold">Signed in</div>
-        <p className="mt-0.5 font-mono text-[12px] text-muted">{email}</p>
-        <div className="mt-2.5 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void out('local')}
-            className={btn('secondary', 'compact')}
-          >
-            Sign out
-          </button>
-          <button
-            type="button"
-            onClick={() => void out('global')}
-            className={btn('secondary', 'compact')}
-          >
-            Sign out everywhere
-          </button>
-        </div>
+    if (email) {
+        return (
+            <div>
+                <div className="text-[13.5px] font-semibold">Signed in</div>
+                <p className="mt-0.5 font-mono text-[12px] text-muted">{email}</p>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                    <button
+                        type="button"
+                        onClick={() => void out('local')}
+                        className={btn('secondary', 'compact')}
+                    >
+                        Sign out
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => void out('global')}
+                        className={btn('secondary', 'compact')}
+                    >
+                        Sign out everywhere
+                    </button>
+                </div>
 
-        {/* Deleting is irreversible and cascades through everything, so it sits apart
+                {/* Deleting is irreversible and cascades through everything, so it sits apart
             from the sign-out actions and asks first (FR-24). */}
-        <div className="mt-3 border-t border-line pt-3">
-          <ConfirmAction
-            triggerLabel="Delete my account"
-            triggerClassName={btn('danger', 'compact')}
-            confirmClassName="rounded-md border border-loss/40 bg-loss/[0.06] p-3"
-            promptClassName="text-[12.5px] leading-snug"
-            rowClassName="mt-2.5 flex flex-wrap gap-2"
-            prompt={
-              <>
-                Delete <b>{email}</b> for good? Your album, career and run history go with
-                it, and there is no undo. Progress saved in this browser as a guest is
-                separate and stays where it is.
-              </>
-            }
-            confirmLabel="Yes, delete everything"
-            busyLabel="Deleting..."
-            busy={stage === 'deleting'}
-            onConfirm={() => void remove()}
-          />
-        </div>
+                <div className="mt-3 border-t border-line pt-3">
+                    <ConfirmAction
+                        triggerLabel="Delete my account"
+                        triggerClassName={btn('danger', 'compact')}
+                        confirmClassName="rounded-md border border-loss/40 bg-loss/[0.06] p-3"
+                        promptClassName="text-[12.5px] leading-snug"
+                        rowClassName="mt-2.5 flex flex-wrap gap-2"
+                        prompt={
+                            <>
+                                Delete <b>{email}</b> for good? Your album, career and run history
+                                go with it, and there is no undo. Progress saved in this browser as
+                                a guest is separate and stays where it is.
+                            </>
+                        }
+                        confirmLabel="Yes, delete everything"
+                        busyLabel="Deleting..."
+                        busy={stage === 'deleting'}
+                        onConfirm={() => void remove()}
+                    />
+                </div>
 
-        {error && <p className="mt-2 text-[12px] text-loss">{error}</p>}
-      </div>
-    );
-  }
+                {error && <p className="mt-2 text-[12px] text-loss">{error}</p>}
+            </div>
+        );
+    }
 
-  // The two stages are the same shape on purpose (2026-09-14): a line telling you what to
-  // type, the field, and a line underneath saying what it buys. It used to open with one
-  // paragraph doing all three jobs at once above an unlabelled box, so the field was the
-  // only thing on the sheet with nothing attached to it. The line above is a real
-  // `<label>`, which is what makes tapping it focus the field and replaces the `aria-label`
-  // each input used to carry.
-  return (
-    <div>
-      {stage === 'code' || stage === 'verifying' ? (
+    // The two stages are the same shape on purpose (2026-09-14): a line telling you what to
+    // type, the field, and a line underneath saying what it buys. It used to open with one
+    // paragraph doing all three jobs at once above an unlabelled box, so the field was the
+    // only thing on the sheet with nothing attached to it. The line above is a real
+    // `<label>`, which is what makes tapping it focus the field and replaces the `aria-label`
+    // each input used to carry.
+    return (
         <div>
-          <label htmlFor={fieldId} className="block text-[13.5px] font-semibold">
-            Enter the code we sent you
-          </label>
-          <p className="mt-0.5 text-[12px] leading-snug text-muted">
-            Six digits, on their way to <b className="font-semibold">{address}</b>.
-          </p>
-          <form
-            className="mt-2 flex flex-col gap-2 sm:flex-row"
-            onSubmit={onVerifySubmit}
-            noValidate
-          >
-            <input
-              id={fieldId}
-              className={`${FIELD} font-mono tracking-[0.3em]`}
-              value={code}
-              onChange={(e) => onCodeChange(e.target.value)}
-              inputMode="numeric"
-              maxLength={CODE_LENGTH}
-              autoComplete="one-time-code"
-              placeholder="000000"
-            />
-            <button
-              type="submit"
-              disabled={!canVerify}
-              className={`${PRIMARY_BTN} shrink-0 disabled:opacity-50`}
-            >
-              {stage === 'verifying' ? 'Checking...' : 'Sign in'}
-            </button>
-          </form>
-          <p className="mt-2 text-[12px] leading-snug text-muted">
-            The code is good for one sign-in and expires shortly. If it has not arrived in a
-            minute, look in your spam folder.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setStage('idle');
-              setCode('');
-            }}
-            className="mt-2 text-[12px] text-muted underline"
-          >
-            Use a different address
-          </button>
-        </div>
-      ) : (
-        <div>
-          <label htmlFor={fieldId} className="block text-[13.5px] font-semibold">
-            Enter your email to sign in
-          </label>
-          <p className="mt-0.5 text-[12px] leading-snug text-muted">
-            No password needed. You&apos;ll receive a six-digit code to sign in.
-          </p>
-          <form
-            className="mt-2 flex flex-col gap-2 sm:flex-row"
-            onSubmit={onSendSubmit}
-            noValidate
-          >
-            <input
-              id={fieldId}
-              className={FIELD}
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-            />
-            <button
-              type="submit"
-              disabled={!canSend}
-              className={`${PRIMARY_BTN} shrink-0 disabled:opacity-50`}
-            >
-              {stage === 'sending' ? 'Sending...' : 'Continue'}
-            </button>
-          </form>
-          <div className="mt-4 text-[12px] leading-snug text-muted">
-            <p className="font-semibold text-ink">What an account is for</p>
-            {/* Bullets rather than a paragraph (2026-09-14, asked for): these are four
+            {stage === 'code' || stage === 'verifying' ? (
+                <div>
+                    <label htmlFor={fieldId} className="block text-[13.5px] font-semibold">
+                        Enter the code we sent you
+                    </label>
+                    <p className="mt-0.5 text-[12px] leading-snug text-muted">
+                        Email sent to <b className="font-semibold">{address}</b>.
+                    </p>
+                    <form
+                        className="mt-2 flex flex-col gap-2 sm:flex-row"
+                        onSubmit={onVerifySubmit}
+                        noValidate
+                    >
+                        <input
+                            id={fieldId}
+                            className={`${FIELD} font-mono tracking-[0.3em]`}
+                            value={code}
+                            onChange={(e) => onCodeChange(e.target.value)}
+                            inputMode="numeric"
+                            maxLength={CODE_LENGTH}
+                            autoComplete="one-time-code"
+                            placeholder="000000"
+                        />
+                        <button
+                            type="submit"
+                            disabled={!canVerify}
+                            className={`${PRIMARY_BTN} shrink-0 disabled:opacity-50`}
+                        >
+                            {stage === 'verifying' ? 'Checking...' : 'Confirm'}
+                        </button>
+                    </form>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setStage('idle');
+                            setCode('');
+                        }}
+                        className="mt-2 text-[12px] text-muted underline"
+                    >
+                        Use a different address
+                    </button>
+                </div>
+            ) : (
+                <div>
+                    <label htmlFor={fieldId} className="block text-[13.5px] font-semibold">
+                        Enter your email to sign in
+                    </label>
+                    <p className="mt-0.5 text-[12px] leading-snug text-muted">
+                        No password needed. You&apos;ll receive a six-digit code to sign in.
+                    </p>
+                    <form
+                        className="mt-2 flex flex-col gap-2 sm:flex-row"
+                        onSubmit={onSendSubmit}
+                        noValidate
+                    >
+                        <input
+                            id={fieldId}
+                            className={FIELD}
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                            type="email"
+                            autoComplete="email"
+                            placeholder="you@example.com"
+                        />
+                        <button
+                            type="submit"
+                            disabled={!canSend}
+                            className={`${PRIMARY_BTN} shrink-0 disabled:opacity-50`}
+                        >
+                            {stage === 'sending' ? 'Sending...' : 'Continue'}
+                        </button>
+                    </form>
+                    <div className="mt-4 text-[12px] leading-snug text-muted">
+                        <p className="font-semibold text-ink">What an account is for</p>
+                        {/* Bullets rather than a paragraph (2026-09-14, asked for): these are four
                 separate things you get, and a reader picking between signing in and playing
                 on as a guest is scanning for the one that matters to them rather than
                 reading a sentence to the end. The guest line stays prose underneath,
                 because it is the opposite point and would read as a fifth benefit in the
                 list. */}
-            <ul className="mt-1 list-disc space-y-1 pl-[1.1rem] marker:text-dim">
-              <li>Your sticker album, career and settings are kept on the server.</li>
-              <li>The same progress on your phone and your laptop.</li>
-              <li>Clearing your browser cannot lose any of it.</li>
-              {FEATURES.pvp && <li>It is what lets you play other people in Versus.</li>}
-            </ul>
-            <p className="mt-2">
-              You do not need one. The whole game is playable as a guest, and guest progress
-              moves across with you the first time you sign in.
-            </p>
-          </div>
-        </div>
-      )}
+                        <ul className="mt-1 list-disc space-y-1 pl-[1.1rem] marker:text-dim">
+                            <li>Your sticker album, career and settings are kept on the server.</li>
+                            <li>The same progress on your phone and your laptop.</li>
+                            <li>Clearing your browser cannot lose any of it.</li>
+                            {FEATURES.pvp && (
+                                <li>It is what lets you play other people in Versus.</li>
+                            )}
+                        </ul>
+                        <p className="mt-2">
+                            You do not need one. The whole game is playable as a guest, and guest
+                            progress moves across with you the first time you sign in.
+                        </p>
+                    </div>
+                </div>
+            )}
 
-      {error && <p className="mt-2 text-[12px] text-loss">{error}</p>}
-    </div>
-  );
+            {error && <p className="mt-2 text-[12px] text-loss">{error}</p>}
+        </div>
+    );
 }

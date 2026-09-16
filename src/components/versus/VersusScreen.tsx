@@ -101,7 +101,8 @@ export default function VersusScreen({
                     {gate.kind === 'mismatch' && (
                         <p className={`${MONO_CAP} mt-3`}>
                             here {mine.protocol}/{mine.dataset}
-                            {gate.theirs && ` · there ${gate.theirs.protocol}/${gate.theirs.dataset}`}
+                            {gate.theirs &&
+                                ` · there ${gate.theirs.protocol}/${gate.theirs.dataset}`}
                         </p>
                     )}
                 </div>
@@ -186,17 +187,16 @@ function SignedOut({ code, onOpenAccount }: { code: string | null; onOpenAccount
                 <StageHeader title="Play somebody" />
                 <div className={`${CARD} p-5`}>
                     <RoomNote>
-                        Two, four or eight people, a team each from the same money or the same
-                        dice, and a knockout to settle it. Play whoever is around, or send a
-                        link to the people you want. It needs an account, because the others
-                        have to know who they beat and the result has to live somewhere none of
-                        you can edit.
+                        Two, four or eight people, a team each from the same money or the same dice,
+                        and a knockout to settle it. Play whoever is around, or send a link to the
+                        people you want. It needs an account, because the others have to know who
+                        they beat and the result has to live somewhere none of you can edit.
                     </RoomNote>
                     <RoomNote>
                         <span className="mt-2 block">
-                            An email address and a six-digit code, no password. Everything you
-                            have already - your XI, your run, your album - stays exactly as it
-                            is; a room never touches any of it.
+                            An email address and a six-digit code, no password. Everything you have
+                            already - your XI, your run, your album - stays exactly as it is; a room
+                            never touches any of it.
                         </span>
                     </RoomNote>
                     <div className="mt-4">
@@ -236,15 +236,15 @@ function SignedOut({ code, onOpenAccount }: { code: string | null; onOpenAccount
                 )}
                 <div className="mt-3">
                     <RoomNote>
-                        A team each, from the same money or the same dice, and a match to
-                        settle it. One thing stands between you and it: a room needs an
-                        account, because the other player has to know who they beat and the
-                        result has to live somewhere neither of you can edit.
+                        A team each, from the same money or the same dice, and a match to settle it.
+                        One thing stands between you and it: a room needs an account, because the
+                        other player has to know who they beat and the result has to live somewhere
+                        neither of you can edit.
                     </RoomNote>
                     <RoomNote>
                         <span className="mt-2 block">
-                            An email address and a six-digit code, no password. Sign in and you
-                            come straight back here
+                            An email address and a six-digit code, no password. Sign in and you come
+                            straight back here
                             {seatWaiting
                                 ? ', and your seat is taken the moment you land.'
                                 : // A room that is full, under way or over. Repeating the
@@ -361,18 +361,8 @@ function NamePanel({
             />
             <form className={`${CARD} max-w-[460px] p-5`} onSubmit={submit}>
                 <RoomNote>
-                    What everybody else sees. {NAME_MIN} to {NAME_MAX} characters, and one
-                    nobody else is using.
+                    Enter a new name. {NAME_MIN} to {NAME_MAX} characters.
                 </RoomNote>
-                {current !== null && (
-                    <RoomNote>
-                        <span className="mt-2 block">
-                            It changes everywhere at once, rooms you are already in included.
-                            Nothing you have won moves with it: your record follows the
-                            account, not the name.
-                        </span>
-                    </RoomNote>
-                )}
                 <input
                     value={raw}
                     onChange={(e) => setRaw(e.target.value)}
@@ -383,7 +373,8 @@ function NamePanel({
                 />
                 {raw.trim() !== '' && !verdict.ok && (
                     <p className="mt-2 text-[13px] text-muted">
-                        {verdict.faults.includes('too-short') && `At least ${NAME_MIN} characters. `}
+                        {verdict.faults.includes('too-short') &&
+                            `At least ${NAME_MIN} characters. `}
                         {verdict.faults.includes('too-long') && `At most ${NAME_MAX} characters. `}
                         {verdict.faults.includes('bad-character') &&
                             `Not allowed: ${verdict.rejected.join(' ')}`}
@@ -400,7 +391,7 @@ function NamePanel({
                     other versus screen. */}
                 <div className="mt-4">
                     <button className={PRIMARY_BTN} disabled={!verdict.ok || busy || unchanged}>
-                        {current === null ? "That's me" : 'Call me that'}
+                        Save
                     </button>
                 </div>
             </form>

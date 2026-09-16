@@ -37,8 +37,7 @@ export const NAME_MAX = 16;
  *  refused, because a paste from a web page routinely carries one and the player cannot
  *  see what they would be being told off for. The bidi controls are the dangerous half:
  *  they can make a name RENDER as something other than what it is. */
-const INVISIBLE =
-  /[\u00ad\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/gu;
+const INVISIBLE = /[\u00ad\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/gu;
 
 /** Anything that is not a printable character we allow, once the invisibles are gone.
  *  Control characters included: they are not whitespace and must not survive. */
@@ -49,14 +48,14 @@ const DISALLOWED = /[^\p{Script=Latin}\p{Mark}\p{Nd} \-_.']/gu;
 export type NameFault = 'too-short' | 'too-long' | 'bad-character';
 
 export interface NameVerdict {
-  ok: boolean;
-  /** The name as it will be STORED and shown - normalised, never the raw input. */
-  name: string;
-  /** The folded key uniqueness is judged on. Empty when the name is not ok. */
-  key: string;
-  faults: NameFault[];
-  /** The characters that were refused, for a message that says which. Empty when none. */
-  rejected: string[];
+    ok: boolean;
+    /** The name as it will be STORED and shown - normalised, never the raw input. */
+    name: string;
+    /** The folded key uniqueness is judged on. Empty when the name is not ok. */
+    key: string;
+    faults: NameFault[];
+    /** The characters that were refused, for a message that says which. Empty when none. */
+    rejected: string[];
 }
 
 /**
@@ -70,11 +69,7 @@ export interface NameVerdict {
  * again.
  */
 export function normalizeName(raw: string): string {
-  return raw
-    .normalize('NFC')
-    .replace(INVISIBLE, '')
-    .replace(/\s+/gu, ' ')
-    .trim();
+    return raw.normalize('NFC').replace(INVISIBLE, '').replace(/\s+/gu, ' ').trim();
 }
 
 /**
@@ -86,12 +81,12 @@ export function normalizeName(raw: string): string {
  * which they do because they both call this function.
  */
 export function nameKeyOf(raw: string): string {
-  return normalizeName(raw).toLocaleLowerCase('en-US');
+    return normalizeName(raw).toLocaleLowerCase('en-US');
 }
 
 /** Codepoints, not UTF-16 units. */
 function lengthOf(name: string): number {
-  return [...name].length;
+    return [...name].length;
 }
 
 /**
@@ -101,20 +96,20 @@ function lengthOf(name: string): number {
  * would become - the difference between "that is not allowed" and "we would call you this".
  */
 export function validateName(raw: string): NameVerdict {
-  const name = normalizeName(raw);
-  const faults: NameFault[] = [];
-  const rejected = [...new Set(name.match(DISALLOWED) ?? [])];
-  const n = lengthOf(name);
-  if (n < NAME_MIN) faults.push('too-short');
-  if (n > NAME_MAX) faults.push('too-long');
-  if (rejected.length) faults.push('bad-character');
-  return {
-    ok: faults.length === 0,
-    name,
-    key: faults.length === 0 ? nameKeyOf(name) : '',
-    faults,
-    rejected,
-  };
+    const name = normalizeName(raw);
+    const faults: NameFault[] = [];
+    const rejected = [...new Set(name.match(DISALLOWED) ?? [])];
+    const n = lengthOf(name);
+    if (n < NAME_MIN) faults.push('too-short');
+    if (n > NAME_MAX) faults.push('too-long');
+    if (rejected.length) faults.push('bad-character');
+    return {
+        ok: faults.length === 0,
+        name,
+        key: faults.length === 0 ? nameKeyOf(name) : '',
+        faults,
+        rejected,
+    };
 }
 
 /** Three letters for the compact bracket cells. `pvpTeam` takes a `code` and deliberately
@@ -122,6 +117,6 @@ export function validateName(raw: string): NameVerdict {
  *  with its own normalisation - this is that decision, in one place, so two screens cannot
  *  disagree about what a player is called in a tree. */
 export function codeOf(name: string): string {
-  const letters = [...normalizeName(name)].filter((c) => /[\p{Script=Latin}\p{Nd}]/u.test(c));
-  return (letters.join('').slice(0, 3) || '???').toLocaleUpperCase('en-US');
+    const letters = [...normalizeName(name)].filter((c) => /[\p{Script=Latin}\p{Nd}]/u.test(c));
+    return (letters.join('').slice(0, 3) || '???').toLocaleUpperCase('en-US');
 }
