@@ -785,7 +785,7 @@ from playback.
 reducer stays the source of truth for *the build*. `App` branches on
 `location.pathname`: `/` (the front page), `/play` (the build page =
 setup/draft/complete, sub-view derived from `formation` + `isComplete`, not `phase`),
-`/cup-run`, `/career`, `/album`, `/records` + `/records/cabinet`,
+`/cup-run`, `/career`, `/album`, `/records` + `/records/cabinet` + `/records/versus`,
 `/squads/*`, and `/versus` + `/versus/:code` (one destination, gated on `FEATURES.pvp`). Anything else hits a catch-all `<Navigate to="/">`, which is what the
 deleted `/group`, `/knockout` and the four legacy aliases now do. Navigation happens via `useNavigate` in the tab
 bar and the transition handlers (`handleReset`), which never rebuild existing state, so
@@ -1004,10 +1004,17 @@ onto a second row below the fold. Do not add a seventh without a reason of that 
   the sub-line. This is the same reading that removed the crumb's right-aligned count
   above: navigation is for getting there, and the destination does the reporting.
 - **Routes:** `/play` (the one build route), `/career` (the hub, split off the live run -
-  a shop and a step of play cannot be the same address), `/records` +
-  `/records/cabinet` (the two honours screens as segments of one destination, which is why
-  the honours are one tab and not two). `/group` and `/knockout` are **gone** (see "There is one way
-  to play" above); they hit the catch-all and redirect to `/`.
+  a shop and a step of play cannot be the same address), `/records` + `/records/cabinet` +
+  `/records/versus` (the **three** honours screens as segments of one destination, which is
+  why the honours are one tab and not three). `/group` and `/knockout` are **gone** (see
+  "There is one way to play" above); they hit the catch-all and redirect to `/`.
+  **The third segment arrived 2026-09-17** and is the only one that is not always there:
+  the ledger and the cabinet are derived from the career and the album, so they work for a
+  guest and cannot fail, while a room is account-only (P17), so the versus segment needs an
+  account **and** a referee. It is absent rather than disabled, and `screenOf` falls back to
+  the ledger for it exactly as it does for the cabinet - a segment that is not there loses an
+  option off the control, it does not redirect you off the page. `isRecords` has to name it
+  or the Records **tab** goes dark on a page reached from the Records tab.
 - **The four legacy aliases went on 2026-08-24** (hygiene D14): `/quick-run` and
   `/career-mode` for the build, `/challenges` and `/cabinet` for the two honours screens.
   They existed to protect bookmarks made before the navigation rework, and the app has
@@ -4385,19 +4392,54 @@ owner's three corrections, in `versus-option-2.html`. What shipped:
 - **A PLAYED MATCH CARRIES NO ROOM CODE**, the third correction: a code is how you reach a
   room and a finished one is not going anywhere. An OPEN one keeps it and has to, since until
   somebody follows the link the opponent column reads "Nobody yet".
-- **THREE DUEL LISTS, NOT TWO, split by what the reader can DO rather than by whether the
-  game is over**: "Waiting on you" is the to-do list, "In play" is where the next move is
-  somebody else's, "Your results" is the record. The old page had the first two under one
-  heading, so the only urgent thing on the page sat in a list of things that are not. Each is
-  absent when empty, which is also what keeps a first visit to two sections. **A finished
-  match nobody has watched is WAITING, not a result** - the score is the thing being
-  withheld, so filing it under the record would give it away in the same breath.
+- **THE LISTS SPLIT BY WHAT THE READER CAN DO rather than by whether the game is over**:
+  "Waiting on you" is the to-do list and "On now" is where the next move is somebody else's.
+  The old page had both under one heading, so the only urgent thing on it sat in a list of
+  things that are not. Each is absent when empty, which is also what keeps a first visit to
+  two sections. **A finished match nobody has watched is WAITING, not a result** - the score
+  is the thing being withheld, so filing it under a record would give it away in the same
+  breath. There were **three** lists until 2026-09-17; see the next entry for where the
+  third went.
+- **THE ARCHIVE IS ON RECORDS, AND ON RECORDS ONLY** (2026-09-17, asked for). Finished
+  matches you have watched, and the win/loss record beside them, are the third segment of
+  `/records`. Three things about it:
+  - **The record had been fetched and not shown at all**, which is what prompted it: the
+    versus page's header printed "3 won, 1 lost" beside your name until a wording pass took
+    the line out, leaving a lookup whose only remaining reader was the test for a first
+    visit. That test still needs it - a live room leaves **no duel row behind**, so without
+    the record somebody who has played six tournaments and never sent a challenge would be
+    greeted as a newcomer for ever - which is why the lookup stays on the versus page too.
+    The FIGURES are on Records; the versus page reads only whether `played` is zero.
+  - **It MOVED rather than being copied.** A list in two places is the failure this codebase
+    keeps deleting (the career hub's challenge overview, the crumb that restated the tab, the
+    front page's second door into versus), and it renders perfectly on both pages until
+    somebody notices they are reading the same thing twice. What stays on the versus page is
+    the half you can act on, and an unwatched result is one of those, so it is announced
+    there and in the chrome's strip and lands in Records once it has been watched. The one
+    cross-reference is a single line saying where the archive went, which earns its place
+    because without it a match you watched looks deleted.
+  - **The row is a shared atom now** (`DuelLine` in `versusUi`), both pages drawing the
+    identical row and differing only in what they pass. `code` is false on a finished one and
+    the finished list is now the ONLY caller that passes it, so `npm run checks` reads both
+    pages for that rule: a move that dropped it would print a dead room code beside every
+    result and nothing else would notice.
 - **The hundred-word introduction is shown to somebody who has never played one and to
-  nobody else.** Fourteen paragraphs of copy became four, three of which are first-visit only.
+  nobody else.** Fourteen paragraphs of copy became four. **One of them is first-visit
+  only** - a single line at the head of "Start a match" - and this entry said three until
+  2026-09-17, when somebody went looking for the other two.
 - **Nothing behavioural can see any of this**, so `npm run checks` reads the source for the
   three corrections, with the sections all being FOUND as the vacuity guard - a renamed
   heading would otherwise leave the order check comparing -1 against -1 and passing. All
-  three were mutation-tested red.
+  three were mutation-tested red. **That guard has since earned its keep twice**, on the
+  lobby heading's rename and on the archive's move, both of which turned it red rather than
+  letting it pass on a comparison of -1 against -1.
+- **A SOURCE-READING CHECK MUST STRIP COMMENTS FIRST, and `codeOnly` is now in the checks
+  harness** rather than inside whichever sweep wanted it. The trap is that the better a
+  change is documented, the likelier its own check is to match the paragraph explaining it:
+  the button sweep hit this on its own explanation, and the archive move hit it on a comment
+  naming the heading that had just left the page. It is the harness's, like `check` and
+  `withSeed`, because the checks modules share through the harness and never through each
+  other.
 
 **AND THE LOBBY ROW TOLD STRANGERS THE WRONG CLOCK, which is a real bug fixed in the same
 pass.** `lobbyLine` printed `pickSeconds` whatever the method, so a BUYING room was

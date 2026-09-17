@@ -6,10 +6,7 @@ import {
     draftLengthLine,
     duelAlert,
     duelDowngraded,
-    duelLine,
-    duelRules,
     duelListed,
-    duelTurn,
     lobbyJoinable,
     lobbyLine,
     offersRatingSwitch,
@@ -43,6 +40,7 @@ import {
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
 import {
     BigChoice,
+    DuelLine,
     HeadCount,
     RefereeProblem,
     RefreshButton,
@@ -78,7 +76,7 @@ import {
 // without opening anything. Which three you get is the field dependency doing the work: a
 // challenge has nobody to wait for and no clock, so it gets two.
 //
-// ON A PHONE IT IS ONE COLUMN IN THE ORDER start, join, lobby, waiting, on now, results.
+// ON A PHONE IT IS ONE COLUMN IN THE ORDER start, join, lobby, waiting, on now.
 // The obvious alternative - hoist whatever is waiting on you to the top - was drawn and
 // rejected by the owner, and the reason it costs nothing is that the chrome already carries
 // a duel strip on every other screen in the game (`useDuelAlert`): somebody with a match
@@ -86,10 +84,17 @@ import {
 // two column wrappers plus an `order` on each section, so nothing is duplicated and nothing
 // moves between sections - there is one of each in the DOM at every width.
 //
-// FOUR SECTIONS ON THE RIGHT AND EACH IS ABSENT WHEN EMPTY. "Waiting on you" and the lobby
-// are things to act on now; "On now" and "Your results" are things to look at. An empty
-// "Waiting on you" would be a promise of noise, so it is not rendered at all rather than
-// rendered empty - which is also what keeps a first visit down to two sections.
+// THREE SECTIONS ON THE RIGHT AND EACH IS ABSENT WHEN EMPTY. "Waiting on you" and the lobby
+// are things to act on now; "On now" is the one to look at. An empty "Waiting on you" would
+// be a promise of noise, so it is not rendered at all rather than rendered empty - which is
+// also what keeps a first visit down to two sections.
+//
+// THE ARCHIVE IS NOT HERE ANY MORE (2026-09-17). Finished matches you have watched are the
+// third segment of Records, beside the honours ledger and the trophy cabinet, because this
+// page is where you go to DO something and that is a list which only ever grows. Nothing is
+// duplicated: a result you have not watched is still on this page, under "Waiting on you",
+// since the score is the thing being withheld and watching it is an action. It lands in
+// Records once you have.
 //
 // WRITTEN IN OUTCOMES, NOT SETTINGS (plan section 8). "$125 buys about 85 across the team"
 // is a sentence somebody can act on; "budget: 125" is not, and a player can arrive here
@@ -215,76 +220,6 @@ function Chips<T extends number | string>({
     );
 }
 
-/**
- * One duel on one of the three lists.
- *
- * THE ACTION IS WHAT THE ROW IS FOR, and there are three of them: a match nobody has
- * watched is the loudest thing on this page, then a team that is not sent, then everything
- * else, which is a link to look at. `duelAlert` decides the first two and it is shared with
- * the chrome's strip, so the tab and the page can never disagree about what is waiting.
- *
- * `code` is FALSE on a finished one, which is the owner's third correction: a code is how
- * you reach a room, and a room that has been played is not going anywhere. An open one keeps
- * it, and has to - a challenge nobody has taken up has no other identity, since the opponent
- * column reads "Nobody yet" until somebody follows the link.
- */
-function DuelLine({
-    row,
-    watched,
-    code = true,
-    go,
-}: {
-    row: DuelRow;
-    watched: ReadonlySet<string>;
-    code?: boolean;
-    go: (to: string) => void;
-}) {
-    const alert = duelAlert(row, watched);
-    const turn = duelTurn(row);
-    return (
-        <li className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-hair py-2.5 last:border-b-0">
-            <div className="min-w-0 flex-1">
-                <div className="text-[13.5px] font-bold text-ink">
-                    {row.opponentName || 'Nobody yet'}
-                    {code && (
-                        <span className="ml-2 font-mono text-[11px] font-medium tracking-[0.1em] text-dim">
-                            {row.code}
-                        </span>
-                    )}
-                </div>
-                <div
-                    className={`text-[12px] ${alert ? 'font-semibold text-pitch-ink' : 'text-muted'}`}
-                >
-                    {alert === 'watch' ? 'The match has been played' : duelLine(row)}
-                    {/* What it plays is worth knowing while there is still a team to build
-                        and is noise once there is not: a finished row's own line is the
-                        result, and appending "roll for your XI, one man from each squad" to
-                        it wrapped every alert onto a second line to say nothing. */}
-                    {row.status !== 'ended' && <> &middot; {duelRules(row)}</>}
-                </div>
-            </div>
-            <button
-                type="button"
-                className={`shrink-0 ${btn(alert ? 'primary' : 'secondary', 'compact')}`}
-                onClick={() => go(`/versus/${row.code}`)}
-            >
-                {alert === 'watch'
-                    ? 'Watch it'
-                    : alert === 'your-move'
-                      ? 'Your move'
-                      : turn === 'done'
-                        ? 'See it'
-                        : 'Open'}
-            </button>
-        </li>
-    );
-}
-
-/** How many finished duels are listed before the rest are folded away. A record is
- *  something you go looking for, so the section says how many there are and shows the
- *  newest few. */
-const RESULTS_SHOWN = 3;
-
 export default function VersusHome({ name, onRename }: { name: string; onRename: () => void }) {
     const navigate = useNavigate();
     const held = useHeldVersusRoom();
@@ -302,7 +237,6 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
     const [code, setCode] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<RefereeMessage | null>(null);
-    const [allResults, setAllResults] = useState(false);
     // A DUEL IS THE SAME FORM WITH THE WAITING TAKEN OUT (P51): the same two draft methods
     // and the same money, minus everything that only means something when people are
     // present - how many of you, how long a pick gets, who may walk in.
@@ -417,11 +351,10 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
     // reader did themselves. `duelsChanged` fires when the referee answers.
     useEffect(() => onDuelsChanged(refreshLobby), [refreshLobby]);
 
-    // THREE LISTS, NOT TWO, and the split is by what the reader can DO rather than by
-    // whether the game is over. "Waiting on you" is the to-do list, "In play" is the ones
-    // where the next move is somebody else's, "Your results" is the record. The old page
-    // had the first two under one heading, which meant the only urgent thing on the page
-    // sat in a list of things that are not.
+    // TWO LISTS, AND THE SPLIT IS BY WHAT THE READER CAN DO rather than by whether the
+    // game is over. "Waiting on you" is the to-do list and "In play" is the ones where the
+    // next move is somebody else's. There were three until 2026-09-17, when the record went
+    // to the Records tab; the page that remains is the half you can act on.
     //
     // A DUEL THAT ENDED WITHOUT AN OUTCOME IS NOT A GAME THAT WAS PLAYED, so it is on no
     // list at all - a challenge nobody took up and its sender called off, or one nobody
@@ -431,13 +364,12 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
     // A finished match nobody has watched is WAITING rather than a result - the score is the
     // thing being withheld, so filing it under the record would give it away in the same
     // breath - and the first version of this tested the status first, so such a match was in
-    // neither list and vanished off the page altogether. The three are a partition of
-    // `listed` by construction now: alert, else open, else done.
+    // neither list and vanished off the page altogether. A finished match you HAVE watched
+    // matches neither test and is on Records instead, which is the same partition read one
+    // page wider: alert here, else open here, else done there.
     const listed = duels.filter(duelListed);
     const waiting = listed.filter((d) => duelAlert(d, watched));
     const inPlay = listed.filter((d) => !duelAlert(d, watched) && d.status !== 'ended');
-    const played = listed.filter((d) => !duelAlert(d, watched) && d.status === 'ended');
-    const results = allResults ? played : played.slice(0, RESULTS_SHOWN);
 
     // NOTHING AT ALL YET, which is the only state the long explanation is for. It used to
     // sit above the controls on every visit, a hundred words nobody reads twice; here it is
@@ -851,34 +783,25 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                         </section>
                     )}
 
-                    {played.length > 0 && (
+                    {/* WHERE THE ARCHIVE WENT. One quiet line, and it earns its place
+                        rather than being a second navigation: the results used to be at
+                        the foot of this column, so without it a match you watched simply
+                        appears to have been deleted. It is shown only once there is
+                        something over there to find, and it is the only cross-reference
+                        on the page - the tab bar is the way to everywhere else. */}
+                    {record.played > 0 && (
                         <section className="order-6">
-                            <SectionHead title="Your results" />
-                            <div className={`${CARD} p-4`}>
-                                <ul>
-                                    {results.map((d) => (
-                                        <DuelLine
-                                            key={d.code}
-                                            row={d}
-                                            watched={watched}
-                                            // NO CODE ON A FINISHED ONE. A code is how you
-                                            // reach a room, and a room that has been played
-                                            // is not going anywhere.
-                                            code={false}
-                                            go={navigate}
-                                        />
-                                    ))}
-                                </ul>
-                                {played.length > RESULTS_SHOWN && !allResults && (
-                                    <button
-                                        type="button"
-                                        className="mt-2.5 text-[12px] font-semibold text-pitch-ink hover:underline"
-                                        onClick={() => setAllResults(true)}
-                                    >
-                                        All {played.length} results
-                                    </button>
-                                )}
-                            </div>
+                            <p className="text-[12px] leading-snug text-muted">
+                                Matches you have played and watched are kept in{' '}
+                                <button
+                                    type="button"
+                                    className="font-semibold text-pitch-ink hover:underline"
+                                    onClick={() => navigate('/records/versus')}
+                                >
+                                    Records
+                                </button>
+                                , with your win and loss record.
+                            </p>
                         </section>
                     )}
                 </div>

@@ -10,8 +10,8 @@ import {
     UserMinus,
     UserPlus,
 } from 'lucide-react';
-import { inviteText, seatCounts } from '../../domain/pvpView';
-import type { MemberView } from '../../domain/pvpWire';
+import { duelAlert, duelLine, duelRules, duelTurn, inviteText, seatCounts } from '../../domain/pvpView';
+import type { DuelRow, MemberView } from '../../domain/pvpWire';
 import { CARD_FLAT, MONO_CAP, Meter, btn } from '../matchUi';
 import type { RefereeMessage } from './refereeMessage';
 
@@ -528,6 +528,77 @@ export function SectionHead({
             {count}
             {end && <div className="ml-auto">{end}</div>}
         </div>
+    );
+}
+
+/**
+ * One duel on a list, wherever that list is.
+ *
+ * THE ACTION IS WHAT THE ROW IS FOR, and there are three of them: a match nobody has
+ * watched is the loudest thing on the versus page, then a team that is not sent, then
+ * everything else, which is a link to look at. `duelAlert` decides the first two and it is
+ * shared with the chrome's strip, so the tab and the page can never disagree about what is
+ * waiting.
+ *
+ * IT LIVES HERE RATHER THAN ON THE VERSUS PAGE because the archive moved to Records
+ * (2026-09-17). The two readers want the identical row and differ only in what they pass:
+ * versus lists the ones you can still act on and keeps their codes, Records lists the
+ * finished ones and drops them.
+ *
+ * `code` is FALSE on a finished one, which is the owner's third correction to the page
+ * rework: a code is how you reach a room, and a room that has been played is not going
+ * anywhere. An open one keeps it, and has to - a challenge nobody has taken up has no other
+ * identity, since the opponent column reads "Nobody yet" until somebody follows the link.
+ */
+export function DuelLine({
+    row,
+    watched,
+    code = true,
+    go,
+}: {
+    row: DuelRow;
+    watched: ReadonlySet<string>;
+    code?: boolean;
+    go: (to: string) => void;
+}) {
+    const alert = duelAlert(row, watched);
+    const turn = duelTurn(row);
+    return (
+        <li className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-hair py-2.5 last:border-b-0">
+            <div className="min-w-0 flex-1">
+                <div className="text-[13.5px] font-bold text-ink">
+                    {row.opponentName || 'Nobody yet'}
+                    {code && (
+                        <span className="ml-2 font-mono text-[11px] font-medium tracking-[0.1em] text-dim">
+                            {row.code}
+                        </span>
+                    )}
+                </div>
+                <div
+                    className={`text-[12px] ${alert ? 'font-semibold text-pitch-ink' : 'text-muted'}`}
+                >
+                    {alert === 'watch' ? 'The match has been played' : duelLine(row)}
+                    {/* What it plays is worth knowing while there is still a team to build
+                        and is noise once there is not: a finished row's own line is the
+                        result, and appending "roll for your XI, one man from each squad" to
+                        it wrapped every alert onto a second line to say nothing. */}
+                    {row.status !== 'ended' && <> &middot; {duelRules(row)}</>}
+                </div>
+            </div>
+            <button
+                type="button"
+                className={`shrink-0 ${btn(alert ? 'primary' : 'secondary', 'compact')}`}
+                onClick={() => go(`/versus/${row.code}`)}
+            >
+                {alert === 'watch'
+                    ? 'Watch it'
+                    : alert === 'your-move'
+                      ? 'Your move'
+                      : turn === 'done'
+                        ? 'See it'
+                        : 'Open'}
+            </button>
+        </li>
     );
 }
 

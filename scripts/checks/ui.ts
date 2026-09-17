@@ -17,7 +17,7 @@
 // have caught white-on-pitch (4.00 light, 3.25 dark) the day the button was written.
 
 import { readdirSync, readFileSync } from 'node:fs';
-import { check } from './harness';
+import { check, codeOnly } from './harness';
 import { BTN_SIZES, BTN_SURFACES, BTN_TONES, DANGER_BTN, PRIMARY_BTN, SECONDARY_BTN, btn } from '../../src/components/matchUi';
 import { STICKER_TIER_ORDER } from '../../src/config';
 import { TIER_META, tierTopStrip } from '../../src/components/stickerTheme';
@@ -82,51 +82,6 @@ function palette(css: string, theme: 'light' | 'dark'): Record<string, string> {
 
 // --- Source reading -------------------------------------------------------
 //
-// Hoisted to module scope when a second sweep wanted it (the scroll lock). It was
-// declared inside the button sweep's own block, which is where it was first needed.
-/** Source with its comments blanked, so prose that quotes a utility is not read as
- *  code. Tracks quotes on the way through, or a `//` inside a string would eat the
- *  rest of the line; block comments are replaced by their own newlines so a reported
- *  line number still points at the right place. */
-function codeOnly(s: string): string {
-  let out = '';
-  let i = 0;
-  let quote: string | null = null;
-  while (i < s.length) {
-    const c = s[i]!;
-    if (quote) {
-      out += c;
-      if (c === '\\') {
-        out += s[i + 1] ?? '';
-        i += 2;
-        continue;
-      }
-      if (c === quote) quote = null;
-      i++;
-      continue;
-    }
-    if (c === "'" || c === '"' || c === '`') {
-      quote = c;
-      out += c;
-      i++;
-      continue;
-    }
-    if (c === '/' && s[i + 1] === '/') {
-      while (i < s.length && s[i] !== '\n') i++;
-      continue;
-    }
-    if (c === '/' && s[i + 1] === '*') {
-      const j = s.indexOf('*/', i + 2);
-      const end = j === -1 ? s.length : j + 2;
-      out += '\n'.repeat((s.slice(i, end).match(/\n/g) ?? []).length);
-      i = end;
-      continue;
-    }
-    out += c;
-    i++;
-  }
-  return out;
-}
 
 export function uiChecks(): void {
   const css = readFileSync('src/index.css', 'utf8');

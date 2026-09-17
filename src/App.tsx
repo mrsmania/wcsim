@@ -33,6 +33,7 @@ const SquadBrowser = lazy(() => import('./components/SquadBrowser'));
 const AlbumScreen = lazy(() => import('./components/AlbumScreen'));
 const ChallengesScreen = lazy(() => import('./components/ChallengesScreen'));
 const CabinetScreen = lazy(() => import('./components/CabinetScreen'));
+const VersusRecords = lazy(() => import('./components/versus/VersusRecords'));
 const CupRunScreen = lazy(() => import('./components/CupRunScreen'));
 const VersusScreen = lazy(() => import('./components/versus/VersusScreen'));
 import RunEndOverlays from './components/RunEndOverlays';
@@ -141,6 +142,7 @@ export default function App({
     const isVersus = screen === 'versus';
     const tabsRecords = isRecords(screen);
     const recordsCabinet = screen === 'cabinet';
+    const recordsVersus = screen === 'records-versus';
 
     // The Ascension picker's props for the complete panel: the tier in force and the
     // highest one currently selectable (unlocked AND level-gated).
@@ -425,7 +427,13 @@ export default function App({
                                               {
                                                   label: 'Challenges',
                                                   to: '/records',
-                                                  active: !recordsCabinet,
+                                                  // THE LEDGER IS THE FALLBACK, so it is
+                                                  // active when NEITHER of the others is,
+                                                  // never merely when the cabinet is not.
+                                                  // `!recordsCabinet` was right while there
+                                                  // were two segments and lit two of them
+                                                  // at once the moment there were three.
+                                                  active: !recordsCabinet && !recordsVersus,
                                               },
                                           ]
                                         : []),
@@ -438,9 +446,32 @@ export default function App({
                                               },
                                           ]
                                         : []),
+                                    // WHAT VERSUS HAS TO SHOW FOR ITSELF (2026-09-17). It
+                                    // needs BOTH an account and a referee, which is one
+                                    // more condition than either segment beside it: those
+                                    // two are derived from the career and the album and so
+                                    // work for a guest, while a room is account-only (P17)
+                                    // and a guest has no record to read. The segment is
+                                    // absent rather than disabled, since a control that
+                                    // cannot be used says less than one that is not there.
+                                    ...(FEATURES.pvp && accountEmail
+                                        ? [
+                                              {
+                                                  label: 'Versus',
+                                                  to: '/records/versus',
+                                                  active: recordsVersus,
+                                              },
+                                          ]
+                                        : []),
                                 ]}
                             />
-                            {recordsCabinet ? (
+                            {/* Signing out while standing on the versus segment drops
+                                back to the ledger rather than to an empty card: the route
+                                survives a sign-out (it is just a URL) and the account it
+                                reads does not. */}
+                            {recordsVersus && accountEmail ? (
+                                <VersusRecords />
+                            ) : recordsCabinet ? (
                                 <CabinetScreen
                                     career={career}
                                     album={stickers.album}

@@ -24,6 +24,7 @@ export type Screen =
     | 'album'
     | 'records'
     | 'cabinet'
+    | 'records-versus'
     | 'squads'
     | 'versus'
     | 'unknown';
@@ -44,6 +45,11 @@ export function screenOf(path: string): Screen {
     if (path === '/cup-run') return 'cup-run';
     if (FEATURES.stickerAlbum && path === '/album') return 'album';
     if (path === '/records/cabinet') return FEATURES.trophyCabinet ? 'cabinet' : 'records';
+    // The versus segment reads the SAME flag the tab does, so a build with no referee has
+    // no such route rather than a third segment that cannot load. It falls back to the
+    // ledger exactly as the cabinet does, and for the reason given above: a segment that
+    // is not there loses an option off the control, it does not redirect you off the page.
+    if (path === '/records/versus') return FEATURES.pvp ? 'records-versus' : 'records';
     if (path === '/records') return 'records';
     if (path === '/') return 'front';
     if (path === '/play') return 'build';
@@ -57,9 +63,11 @@ export function screenOf(path: string): Screen {
     return 'unknown';
 }
 
-/** The two honours screens are segments of ONE destination, which is what keeps the
- *  tab bar at five. */
-export const isRecords = (s: Screen) => s === 'records' || s === 'cabinet';
+/** The honours screens are segments of ONE destination, which is what keeps them off the
+ *  tab bar as entries of their own. Three of them since 2026-09-17: the ledger, the
+ *  cabinet, and what versus has to show for itself. */
+export const isRecords = (s: Screen) =>
+    s === 'records' || s === 'cabinet' || s === 'records-versus';
 
 /** The Play tab covers the cover, the build and the live run: one tab for the one way
  *  the game is played. */

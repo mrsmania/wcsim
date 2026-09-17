@@ -8,7 +8,7 @@
 // so a tie is turned round for the viewer rather than five components being taught that a
 // side is a parameter.
 
-import { check } from './harness';
+import { check, codeOnly } from './harness';
 import { FEATURES } from '../../src/config';
 import { screenOf } from '../../src/state/routes';
 import { ALL_PLAYERS, SQUAD_BY_ID, datasetPlayer } from '../../src/data/squads';
@@ -1921,6 +1921,10 @@ export function pvpViewChecks(): void {
   // is holding. The drawing is docs/redesign-2026/turf-flat/versus-option-2.html.
   {
     const home = readFileSync('src/components/versus/VersusHome.tsx', 'utf8');
+    const vrec = readFileSync('src/components/versus/VersusRecords.tsx', 'utf8');
+    const ui = readFileSync('src/components/versus/versusUi.tsx', 'utf8');
+    const homeCode = codeOnly(home);
+    const vrecCode = codeOnly(vrec);
 
     // (a) ON A PHONE THE LOBBY COMES BEFORE WHAT IS WAITING ON YOU. The owner's correction,
     // against the first sketch, which hoisted the alert to the top below the breakpoint. It
@@ -1940,23 +1944,24 @@ export function pvpViewChecks(): void {
     const join = orderOf('Join with a code');
     const lobby = orderOf('Lobby');
     const waiting = orderOf('Waiting on you');
-    const results = orderOf('Your results');
+    const inPlay = orderOf('On now');
     check(
       'versus page: on a phone it is start, join, lobby, then your own matches',
       () =>
         // Every section was found, which is the vacuity guard: a renamed heading would
-        // otherwise leave this comparing -1 against -1 and passing.
-        [start, join, lobby, waiting, results].every((n) => n > 0) &&
+        // otherwise leave this comparing -1 against -1 and passing. It has earned its keep
+        // twice now, on the lobby's rename and on the archive's move to Records.
+        [start, join, lobby, waiting, inPlay].every((n) => n > 0) &&
         start < join &&
         join < lobby &&
         // The correction itself. The chrome carries a duel strip on every other screen in
         // the game, so somebody with a match waiting has been told before they got here.
         lobby < waiting &&
-        waiting < results &&
+        waiting < inPlay &&
         // And the mechanism that makes any of it mean anything: both column wrappers stop
         // being boxes below the breakpoint, or `order` has nothing to sort.
         (home.match(/contents min-\[860px\]:block/g) ?? []).length === 2,
-      () => `start ${start}, join ${join}, lobby ${lobby}, waiting ${waiting}, results ${results}`,
+      () => `start ${start}, join ${join}, lobby ${lobby}, waiting ${waiting}, onNow ${inPlay}`,
     );
 
     // (b) THE SEATS SIT BETWEEN THE ROOM'S NAME AND THE WAY IN. Leading with them started
@@ -1987,14 +1992,20 @@ export function pvpViewChecks(): void {
     // finished one is not going anywhere. An OPEN one keeps it and has to: until somebody
     // follows the link the opponent column reads "Nobody yet", so the code is the row's
     // only identity.
+    //
+    // THE TWO LISTS ARE ON TWO PAGES SINCE 2026-09-17, which is why this reads both of
+    // them. The rule did not move with the archive and is the easiest thing of all to lose
+    // in a move: the finished list is now the ONLY caller that passes the flag, so a
+    // copy-paste that dropped it would print a dead code beside every result and nothing
+    // else in the suite would notice.
     check(
       'versus page: a finished duel drops its room code, and an open one keeps it',
       () => {
         // Sliced between markers that occur once each: `{played.length >` is not one of
         // them, since the section guards itself on the same expression.
-        const results = home.slice(
-          home.indexOf('{results.map('),
-          home.indexOf('All {played.length} results'),
+        const results = vrec.slice(
+          vrec.indexOf('{played.map('),
+          vrec.indexOf('</ul>', vrec.indexOf('{played.map(')),
         );
         const waitingList = home.slice(
           home.indexOf('{waiting.map('),
@@ -2005,18 +2016,113 @@ export function pvpViewChecks(): void {
           waitingList.length > 20 &&
           results.includes('code={false}') &&
           !waitingList.includes('code={false}') &&
-          // And the row honours it rather than accepting a prop it ignores.
-          home.includes('{code && (') &&
+          // And the row honours it rather than accepting a prop it ignores. It lives in
+          // the shared atoms now, both pages drawing the identical row.
+          ui.includes('{code && (') &&
           // What it PLAYS is gated on the status rather than on the code, which is a
           // different question with the same answer here: it is worth knowing while there
           // is still a team to build, and once there is not the row's own line is the
           // result. Appending it anyway wrapped every alert onto a second line to say
           // nothing, which is the complaint this whole rework is about.
-          home.includes("{row.status !== 'ended' && <> &middot; {duelRules(row)}</>}")
+          ui.includes("{row.status !== 'ended' && <> &middot; {duelRules(row)}</>}")
         );
       },
-      () => 'the results list passes code={false}',
+      () => 'the finished list passes code={false}',
     );
+
+    // (d) THE ARCHIVE IS ON RECORDS, AND ON RECORDS ONLY (2026-09-17).
+    //
+    // A LIST IN TWO PLACES is the failure this guards, and it is the one this codebase
+    // keeps having to delete: the challenge overview that lived on the career hub, the
+    // crumb that restated the tab, the front page's second door into versus. Moving a
+    // section by copying it renders perfectly on both pages and is only wrong when you
+    // notice you are reading the same thing twice.
+    //
+    // The versus page keeps the two lists you can ACT on, and a finished match you have
+    // not watched is one of them: the score is what is being withheld, so watching it is
+    // an action and filing it under a record would give it away in the same breath. What
+    // moved is the watched half, and nothing else.
+    //
+    // IT READS COMMENT-STRIPPED SOURCE, and the first version of it did not and failed on
+    // the paragraph explaining the move. That is the harness's own note about `codeOnly`
+    // reached from a third direction: the better a change is documented, the likelier its
+    // check is to match its own prose.
+    check(
+      'versus page: the played archive is on Records, and is not also on the versus page',
+      () =>
+        // The versus page partitions only into what is waiting and what is live. Nothing
+        // on it may filter for a match that is over and seen.
+        homeCode.includes('const waiting = listed.filter') &&
+        homeCode.includes('const inPlay = listed.filter') &&
+        !homeCode.includes('const played =') &&
+        !homeCode.includes('Your results') &&
+        // And Records holds exactly that half, on both tests. `watched` is the one that
+        // would be quietly dropped, since without it the page looks right and merely
+        // shows results a beat before their owner has seen them.
+        vrecCode.includes("d.status === 'ended'") &&
+        vrecCode.includes('watched.has(d.code)') &&
+        // The pointer that says where it went, which is the only cross-reference on the
+        // versus page: without it a match you watched appears to have been deleted.
+        homeCode.includes("navigate('/records/versus')"),
+      () => 'the versus page still lists finished matches',
+    );
+
+    // (e) THE VERSUS SEGMENT NEEDS AN ACCOUNT AS WELL AS A REFEREE.
+    //
+    // One more condition than either segment beside it, and the asymmetry is the whole
+    // point: the ledger and the cabinet are derived from the career and the album, so they
+    // work for a guest and cannot fail. A room is account-only (P17), so for a guest this
+    // one has no record to read and no duels to list, and it would render two empty cards
+    // that look like a server fault.
+    //
+    // BOTH HALVES ARE INVISIBLE TO EVERYTHING ELSE. A build that showed the segment to a
+    // guest renders a perfectly good page; a build that rendered the screen without
+    // re-testing the account would only break for somebody who signed out while standing
+    // on it, which is not a state any fixture reaches.
+    check(
+      'records: the versus segment needs a referee AND an account, at the tab and at the screen',
+      () => {
+        const app = readFileSync('src/App.tsx', 'utf8');
+        return (
+          // The segment in the control.
+          app.includes('...(FEATURES.pvp && accountEmail') &&
+          app.includes("to: '/records/versus'") &&
+          // And the screen behind it, which is a SEPARATE test rather than the same one
+          // reused: the route survives a sign-out, because it is just a URL.
+          app.includes('{recordsVersus && accountEmail ? (') &&
+          // Vacuity, and it is the load-bearing half: the two segments beside it must NOT
+          // carry the account condition, or this is asserting a rule the whole control
+          // follows rather than one this segment has on its own.
+          app.includes('...(FEATURES.trophyCabinet') &&
+          !app.includes('...(FEATURES.trophyCabinet && accountEmail')
+        );
+      },
+      () => 'the versus segment is not gated on both',
+    );
+
+    // (f) EXACTLY ONE SEGMENT OF RECORDS IS LIT, and this was a real bug caught by opening
+    // the page rather than by anything here.
+    //
+    // The ledger is the FALLBACK of the three, so its active test has to be "neither of the
+    // others", and it read `!recordsCabinet` - which was correct for as long as there were
+    // two segments and lit Challenges AND Versus together the moment there was a third. It
+    // is the shape a fourth segment would break again in exactly the same way, and no
+    // fixture renders a segmented control, so it is read here.
+    check(
+      'records: the ledger segment is active only when neither other segment is',
+      () => {
+        const app = codeOnly(readFileSync('src/App.tsx', 'utf8'));
+        return (
+          app.includes('active: !recordsCabinet && !recordsVersus') &&
+          // The other two are single tests, which is what makes the fallback the only one
+          // that has to name its siblings.
+          app.includes('active: recordsCabinet') &&
+          app.includes('active: recordsVersus')
+        );
+      },
+      () => 'the ledger segment does not exclude every other segment',
+    );
+
 
     // AND THE PAGE HAS VISIBLE HEADINGS AT ALL, which was the fifth criticism. Every part
     // of it used to be marked with a 10px grey caption, so a reader scanning the page had

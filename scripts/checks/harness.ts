@@ -35,6 +35,61 @@ const failures: string[] = [];
  *
  *  `detail` is a thunk too, evaluated only on failure, for the counterexample: a check
  *  over 3,000 iterations used to report a name and nothing else. */
+/**
+ * Source with its comments blanked, so prose that quotes the thing being searched for is
+ * not read as code.
+ *
+ * THIS IS A TRAP THIS REPO HAS FALLEN INTO TWICE, which is why it is here rather than
+ * inside whichever sweep wanted it first. A check that greps source for a class, a
+ * heading or an identifier will also match the paragraph ABOVE the code explaining why
+ * that thing was removed - so the more carefully a change is documented, the more likely
+ * its own check is to fail. The button sweep hit it on its own explanation; the archive
+ * move hit it on a comment naming the heading that had just left the page.
+ *
+ * It tracks quotes on the way through, or a `//` inside a string would eat the rest of the
+ * line; block comments are replaced by their own newlines so a reported line number still
+ * points at the right place.
+ */
+export function codeOnly(s: string): string {
+  let out = '';
+  let i = 0;
+  let quote: string | null = null;
+  while (i < s.length) {
+    const c = s[i]!;
+    if (quote) {
+      out += c;
+      if (c === '\\') {
+        out += s[i + 1] ?? '';
+        i += 2;
+        continue;
+      }
+      if (c === quote) quote = null;
+      i++;
+      continue;
+    }
+    if (c === "'" || c === '"' || c === '`') {
+      quote = c;
+      out += c;
+      i++;
+      continue;
+    }
+    if (c === '/' && s[i + 1] === '/') {
+      while (i < s.length && s[i] !== '\n') i++;
+      continue;
+    }
+    if (c === '/' && s[i + 1] === '*') {
+      const j = s.indexOf('*/', i + 2);
+      const end = j === -1 ? s.length : j + 2;
+      out += '\n'.repeat((s.slice(i, end).match(/\n/g) ?? []).length);
+      i = end;
+      continue;
+    }
+    out += c;
+    i++;
+  }
+  return out;
+}
+
 export function check(name: string, ok: () => boolean, detail?: () => string): void {
   let result: boolean;
   try {

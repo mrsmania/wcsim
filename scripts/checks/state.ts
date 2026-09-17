@@ -105,6 +105,10 @@ export function stateChecks(): void {
       ['/career', 'career'],
       ['/records', 'records'],
       ['/records/cabinet', FEATURES.trophyCabinet ? 'cabinet' : 'records'],
+      // The third segment (2026-09-17), and it falls back the same way the cabinet does
+      // rather than redirecting: with no referee configured there is nothing to show, so
+      // the control loses an option and the page still renders.
+      ['/records/versus', FEATURES.pvp ? 'records-versus' : 'records'],
       ['/album', FEATURES.stickerAlbum ? 'album' : 'unknown'],
       ['/squads', FEATURES.squadBrowser ? 'squads' : 'unknown'],
       ['/squads/by-world-cup/1990', FEATURES.squadBrowser ? 'squads' : 'unknown'],
@@ -134,12 +138,16 @@ export function stateChecks(): void {
       `routes: all ${table.length} paths resolve to the screen they should`,
       () => wrong.length === 0,
     );
-    // The two groupings the tab bar is built from. Records is ONE destination in two
-    // segments, which is what keeps the bar at five; Play covers cover, build and run.
+    // The two groupings the tab bar is built from. Records is ONE destination in three
+    // segments, which is what keeps them off the bar as entries of their own; Play covers
+    // cover, build and run. `records-versus` being in the first grouping is what keeps the
+    // Records TAB lit while you are reading it - leave it out and the tab bar goes dark on
+    // a page you reached from the tab bar, which looks like a navigation fault.
     check(
       'routes: Records is one destination, Play covers the cover, the build and the run',
       () => isRecords('records') &&
         isRecords('cabinet') &&
+        isRecords('records-versus') &&
         !isRecords('career') &&
         isPlayTab('front') &&
         isPlayTab('build') &&

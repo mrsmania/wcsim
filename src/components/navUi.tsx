@@ -194,9 +194,13 @@ export function TabBottomBar({ items, locked }: { items: TabItem[]; locked?: boo
 }
 
 /**
- * A second-level segmented link row, for the one place this concept needs a second
- * level: Records holds Challenges and Cabinet, because both are read-only honours over
- * the same career and neither earns a tab of its own.
+ * A second-level segmented link row, for the one place this concept needs a second level:
+ * Records holds Challenges, Cabinet and Versus, because all three are read-only honours
+ * and none of them earns a tab of its own.
+ *
+ * The third arrived 2026-09-17 and is the only one that is not always there - it needs an
+ * account as well as a referee - which is why the caller builds this list by spreading
+ * conditionals rather than passing a fixed three.
  */
 export function SubTabs({
     items,
