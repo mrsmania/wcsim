@@ -142,7 +142,12 @@ export default function App({
     const isVersus = screen === 'versus';
     const tabsRecords = isRecords(screen);
     const recordsCabinet = screen === 'cabinet';
-    const recordsVersus = screen === 'records-versus';
+    // A MATCH OPENED OUT OF THE ARCHIVE IS STILL THE VERSUS SEGMENT, which is what keeps
+    // the Records tab lit and the Versus segment underlined while you read one. Two
+    // booleans rather than one: the first is which SEGMENT, and every sub-tab reads it, so
+    // it must be true for both; the second is only what that segment renders.
+    const recordsRoom = screen === 'records-room';
+    const recordsVersus = screen === 'records-versus' || recordsRoom;
 
     // The Ascension picker's props for the complete panel: the tier in force and the
     // highest one currently selectable (unlocked AND level-gated).
@@ -470,7 +475,18 @@ export default function App({
                                 survives a sign-out (it is just a URL) and the account it
                                 reads does not. */}
                             {recordsVersus && accountEmail ? (
-                                <VersusRecords />
+                                recordsRoom ? (
+                                    // The SAME room screen the versus tab mounts, at a
+                                    // Records address, with every way out of it pointed
+                                    // back at the archive it was opened from.
+                                    <VersusScreen
+                                        signedIn
+                                        onOpenAccount={() => setAccountOpen(true)}
+                                        backTo="/records/versus"
+                                    />
+                                ) : (
+                                    <VersusRecords />
+                                )
                             ) : recordsCabinet ? (
                                 <CabinetScreen
                                     career={career}

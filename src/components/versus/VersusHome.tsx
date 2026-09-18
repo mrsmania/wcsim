@@ -635,28 +635,6 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                             )}
                         </div>
                     </section>
-
-                    <section className="order-2">
-                        <SectionHead title="Join with a code" />
-                        <form
-                            className={`${CARD} flex flex-wrap items-center gap-3 p-4`}
-                            onSubmit={join}
-                        >
-                            <input
-                                value={code}
-                                onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 8))}
-                                autoCapitalize="characters"
-                                autoComplete="off"
-                                spellCheck={false}
-                                placeholder="ABC234"
-                                aria-label="Room code"
-                                className="min-w-0 flex-1 rounded-[5px] border border-line bg-ground px-3 py-2.5 text-center font-mono text-[18px] font-bold tracking-[0.3em] text-ink outline-none focus:border-pitch"
-                            />
-                            <button className={SECONDARY_BTN} disabled={code.trim().length < 4}>
-                                Go
-                            </button>
-                        </form>
-                    </section>
                 </div>
 
                 <div className="contents min-[860px]:block min-[860px]:space-y-[22px]">
@@ -675,7 +653,7 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                                             key={d.code}
                                             row={d}
                                             watched={watched}
-                                            go={navigate}
+                                            go={(c) => navigate(`/versus/${c}`)}
                                         />
                                     ))}
                                 </ul>
@@ -762,6 +740,28 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                         </div>
                     </section>
 
+                    <section className="order-2">
+                        <SectionHead title="Join with a code" />
+                        <form
+                            className={`${CARD} flex flex-wrap items-center gap-3 p-4`}
+                            onSubmit={join}
+                        >
+                            <input
+                                value={code}
+                                onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 8))}
+                                autoCapitalize="characters"
+                                autoComplete="off"
+                                spellCheck={false}
+                                placeholder="ABC234"
+                                aria-label="Room code"
+                                className="min-w-0 flex-1 rounded-[5px] border border-line bg-ground px-3 py-2.5 text-center font-mono text-[18px] font-bold tracking-[0.3em] text-ink outline-none focus:border-pitch"
+                            />
+                            <button className={SECONDARY_BTN} disabled={code.trim().length < 4}>
+                                Go
+                            </button>
+                        </form>
+                    </section>
+
                     {inPlay.length > 0 && (
                         <section className="order-5">
                             <SectionHead
@@ -775,7 +775,7 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                                             key={d.code}
                                             row={d}
                                             watched={watched}
-                                            go={navigate}
+                                            go={(c) => navigate(`/versus/${c}`)}
                                         />
                                     ))}
                                 </ul>

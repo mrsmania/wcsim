@@ -1843,8 +1843,14 @@ export function pvpViewChecks(): void {
       'pvpView: an invitation says which room it is and signs you in back into it',
       () =>
         // Vacuity: this is the gate a signed-out visitor meets, and the code really does
-        // come off the URL rather than being a prop somebody could stop passing.
-        /const code = inRoom\?\.params\.code/.test(screen) &&
+        // come off the URL rather than being a prop somebody could stop passing. There are
+        // TWO doors into the room screen since 2026-09-18 - the versus page and the Records
+        // archive - so it comes off whichever one matched, and both are asserted: dropping
+        // the archive's would send every match opened out of your own record to the front
+        // page of versus, which renders perfectly and lights the wrong tab.
+        /useMatch\('\/versus\/:code'\)/.test(screen) &&
+        /useMatch\('\/records\/versus\/:code'\)/.test(screen) &&
+        /const code = \(inRoom \?\? inRecordsRoom\)\?\.params\.code/.test(screen) &&
         /if \(!signedIn\) return <SignedOut code=\{code\}/.test(screen) &&
         // An invitation is its OWN screen: it branches on the code and prints it.
         /function SignedOut\(\{ code/.test(screen) &&
@@ -2098,6 +2104,43 @@ export function pvpViewChecks(): void {
         );
       },
       () => 'the versus segment is not gated on both',
+    );
+
+    // (g) OPENING A MATCH OUT OF YOUR OWN RECORD STAYS ON RECORDS (2026-09-18, reported:
+    // "the nav node that is getting highlighted is still versus - but should remain with
+    // records").
+    //
+    // The tab follows the URL, which is the rule `state/routes` exists to keep, so the fix
+    // is the ADDRESS rather than the highlight: the archive opens the same room screen at
+    // its own path. Three halves, and each fails differently - the row has to send you to
+    // the Records door, the segment has to stay the lit one while you are there, and every
+    // way back out of the room has to return to the archive rather than to the versus page.
+    // Nothing behavioural can see any of it: a build with all three wrong renders a
+    // perfectly good match report under a tab the reader did not choose.
+    check(
+      'records: a match opened from the archive keeps a Records address, and comes back to it',
+      () => {
+        const app = codeOnly(readFileSync('src/App.tsx', 'utf8'));
+        const roomScreen = codeOnly(readFileSync('src/components/versus/RoomScreen.tsx', 'utf8'));
+        return (
+          // The archive's rows go to the Records door...
+          vrecCode.includes('navigate(`/records/versus/${c}`)') &&
+          // ...and the versus page's go to the versus one, which is the vacuity guard: a
+          // build that sent BOTH to Records would satisfy a weaker claim and would strand
+          // somebody opening a live duel off the versus page.
+          homeCode.includes('navigate(`/versus/${c}`)') &&
+          // A row says WHICH room and never where, or the two pages cannot differ at all.
+          !ui.includes('go(`/versus/') &&
+          // The segment stays the lit one while a match is open, so the Records tab stays
+          // underlined and the ledger does not steal the highlight.
+          app.includes("const recordsVersus = screen === 'records-versus' || recordsRoom") &&
+          // And the way back lands in the archive rather than on the versus page.
+          app.includes('backTo="/records/versus"') &&
+          roomScreen.includes('navigate(backTo)') &&
+          !roomScreen.includes("navigate('/versus')")
+        );
+      },
+      () => 'a match opened from the archive does not stay under Records',
     );
 
     // (f) EXACTLY ONE SEGMENT OF RECORDS IS LIT, and this was a real bug caught by opening

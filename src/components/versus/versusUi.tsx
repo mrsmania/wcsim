@@ -549,6 +549,11 @@ export function SectionHead({
  * rework: a code is how you reach a room, and a room that has been played is not going
  * anywhere. An open one keeps it, and has to - a challenge nobody has taken up has no other
  * identity, since the opponent column reads "Nobody yet" until somebody follows the link.
+ *
+ * `go` IS HANDED THE CODE AND NOT A URL, because the two pages send a row to two different
+ * addresses: the versus page opens a room at the versus door, and the archive opens one at
+ * its own, so that the Records tab stays lit while you read your own match. A row has no
+ * business knowing which page it is on, so it says WHICH room and the page says where.
  */
 export function DuelLine({
     row,
@@ -559,7 +564,7 @@ export function DuelLine({
     row: DuelRow;
     watched: ReadonlySet<string>;
     code?: boolean;
-    go: (to: string) => void;
+    go: (code: string) => void;
 }) {
     const alert = duelAlert(row, watched);
     const turn = duelTurn(row);
@@ -588,7 +593,7 @@ export function DuelLine({
             <button
                 type="button"
                 className={`shrink-0 ${btn(alert ? 'primary' : 'secondary', 'compact')}`}
-                onClick={() => go(`/versus/${row.code}`)}
+                onClick={() => go(row.code)}
             >
                 {alert === 'watch'
                     ? 'Watch it'

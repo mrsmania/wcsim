@@ -25,6 +25,7 @@ export type Screen =
     | 'records'
     | 'cabinet'
     | 'records-versus'
+    | 'records-room'
     | 'squads'
     | 'versus'
     | 'unknown';
@@ -50,6 +51,13 @@ export function screenOf(path: string): Screen {
     // ledger exactly as the cabinet does, and for the reason given above: a segment that
     // is not there loses an option off the control, it does not redirect you off the page.
     if (path === '/records/versus') return FEATURES.pvp ? 'records-versus' : 'records';
+    // A FINISHED MATCH OPENED FROM THE ARCHIVE STAYS UNDER RECORDS (2026-09-18, reported:
+    // the Versus tab lit up when you opened one from your own record). The tab follows the
+    // URL, which is the one rule this module exists to keep, so the fix is the address
+    // rather than the highlight: the same room screen, reached at a Records path, and
+    // `isRecords` covers it so the tab stays where the reader is. The code shape is the
+    // one `/versus/:code` accepts, or the two doors would disagree about what a code is.
+    if (FEATURES.pvp && /^\/records\/versus\/[A-Za-z0-9]{4,12}$/.test(path)) return 'records-room';
     if (path === '/records') return 'records';
     if (path === '/') return 'front';
     if (path === '/play') return 'build';
@@ -65,9 +73,10 @@ export function screenOf(path: string): Screen {
 
 /** The honours screens are segments of ONE destination, which is what keeps them off the
  *  tab bar as entries of their own. Three of them since 2026-09-17: the ledger, the
- *  cabinet, and what versus has to show for itself. */
+ *  cabinet, and what versus has to show for itself - plus a match opened OUT of that
+ *  archive, which is the same segment showing one row rather than a fourth one. */
 export const isRecords = (s: Screen) =>
-    s === 'records' || s === 'cabinet' || s === 'records-versus';
+    s === 'records' || s === 'cabinet' || s === 'records-versus' || s === 'records-room';
 
 /** The Play tab covers the cover, the build and the live run: one tab for the one way
  *  the game is played. */

@@ -109,6 +109,13 @@ export function stateChecks(): void {
       // rather than redirecting: with no referee configured there is nothing to show, so
       // the control loses an option and the page still renders.
       ['/records/versus', FEATURES.pvp ? 'records-versus' : 'records'],
+      // A MATCH OPENED OUT OF THE ARCHIVE keeps a Records address, which is the whole of
+      // why the Records tab stays lit while you read it: the tab follows the URL. The code
+      // shape is the one `/versus/:code` accepts, so the two doors agree on what a code is.
+      ['/records/versus/RM0001', FEATURES.pvp ? 'records-room' : 'unknown'],
+      ['/records/versus/rm0001', FEATURES.pvp ? 'records-room' : 'unknown'],
+      ['/records/versus/AB', 'unknown'],
+      ['/records/versus/RM0001/extra', 'unknown'],
       ['/album', FEATURES.stickerAlbum ? 'album' : 'unknown'],
       ['/squads', FEATURES.squadBrowser ? 'squads' : 'unknown'],
       ['/squads/by-world-cup/1990', FEATURES.squadBrowser ? 'squads' : 'unknown'],
@@ -148,6 +155,7 @@ export function stateChecks(): void {
       () => isRecords('records') &&
         isRecords('cabinet') &&
         isRecords('records-versus') &&
+        isRecords('records-room') &&
         !isRecords('career') &&
         isPlayTab('front') &&
         isPlayTab('build') &&

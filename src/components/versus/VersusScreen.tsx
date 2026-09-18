@@ -37,15 +37,24 @@ type Gate =
 export default function VersusScreen({
     signedIn,
     onOpenAccount,
+    backTo = '/versus',
 }: {
     signedIn: boolean;
     /** Open the account dialog. An invitation lands on a signed-out screen and the whole of
      *  what to do about it is signing in, so the door has to be ON that screen rather than
      *  pointed at from it. */
     onOpenAccount: () => void;
+    /** Where every way out of a room lands. There are TWO doors into the same room screen:
+     *  the versus page, and the Records archive, which opens a match you have already
+     *  played. The tab follows the URL, so the archive's door is a Records address and the
+     *  crumb has to come back to it - otherwise opening your own record walks you onto
+     *  another tab, which is the bug this exists for. */
+    backTo?: string;
 }) {
+    // BOTH DOORS, and the room-under-Records one is the reason this is not a single match.
     const inRoom = useMatch('/versus/:code');
-    const code = inRoom?.params.code?.toUpperCase() ?? null;
+    const inRecordsRoom = useMatch('/records/versus/:code');
+    const code = (inRoom ?? inRecordsRoom)?.params.code?.toUpperCase() ?? null;
     const [gate, setGate] = useState<Gate>({ kind: 'checking' });
     // Changing the name is a DETOUR rather than a gate: the same panel, reached on purpose
     // from the versus page instead of because there is nothing to be called yet.
@@ -130,7 +139,7 @@ export default function VersusScreen({
     }
 
     return code ? (
-        <RoomScreen code={code} />
+        <RoomScreen code={code} backTo={backTo} />
     ) : (
         <VersusHome name={gate.name} onRename={() => setRenaming(true)} />
     );

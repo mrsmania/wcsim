@@ -89,19 +89,27 @@ export default function VersusRecords() {
             <section>
                 <SectionHead title="Your record" />
                 <div className={`${CARD} p-4`}>
-                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                    {/* MATCHES WON IS NOT ON HERE, and that is the owner's call
+                        (2026-09-18): winning a quarter-final is not an honour, lifting the
+                        cup is, and a board on the honours page should only carry the thing
+                        worth having. Three figures rather than four, and each answers a
+                        different question - how much versus you have played, how often you
+                        went out, and what you actually won.
+
+                        LOST STAYS, and it is not the same kind of number as Won was: this
+                        is a knockout, so a loss is the match that ENDED a tournament for
+                        you, which is a count of how many times you went out rather than a
+                        tally of individual games. `record.won` is still read from the
+                        server and simply not printed - it costs nothing, it is the same one
+                        row, and it is what a ladder reads next. */}
+                    <div className="grid grid-cols-3 gap-2.5">
                         <Figure n={record.played} label="Played" hero />
-                        <Figure n={record.won} label="Won" />
                         <Figure n={record.lost} label="Lost" />
                         <Figure n={record.roomsWon} label="Cups won" />
                     </div>
-                    {/* A room of two is one match, so every win is also the room; a room of
-                        eight is a tournament and only the last round is. Without this the
-                        fourth figure reads as a duplicate of the second in half of all
-                        careers. */}
                     <p className="mt-3 text-[12px] leading-snug text-muted">
-                        Cups won are rooms you took outright. In a room of two that is every
-                        win; in a room of four or eight it is the whole tournament.
+                        A cup is a room you took outright: the whole tournament in a room of
+                        four or eight, and the match itself in a duel.
                     </p>
                 </div>
             </section>
@@ -137,7 +145,11 @@ export default function VersusRecords() {
                                     row={d}
                                     watched={watched}
                                     code={false}
-                                    go={navigate}
+                                    // THE ARCHIVE'S OWN DOOR, which is the whole of the
+                                    // navigation fix: the same room screen at a Records
+                                    // address, so the tab the reader came from stays lit
+                                    // and the crumb comes back here.
+                                    go={(c) => navigate(`/records/versus/${c}`)}
                                 />
                             ))}
                         </ul>

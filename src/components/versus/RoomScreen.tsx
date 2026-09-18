@@ -105,7 +105,7 @@ const LEAVING: Record<ReturnType<typeof leaveKind>, { label: string; note: strin
     },
 };
 
-export default function RoomScreen({ code }: { code: string }) {
+export default function RoomScreen({ code, backTo = '/versus' }: { code: string; backTo?: string }) {
     const navigate = useNavigate();
     const room = useVersusRoom(code, true);
     const view = room.view;
@@ -118,6 +118,12 @@ export default function RoomScreen({ code }: { code: string }) {
     // from one costs nothing, which is the whole mode.
     const navBusy = useLiveMatch();
     const [leaving, setLeaving] = useState(false);
+    // WHERE BACK GOES IS WHERE YOU CAME FROM, and the label has to move with it or the
+    // crumb promises the wrong page. A finished match opened out of the Records archive is
+    // the same screen at a Records address, so every way out of it - the crumb, and the
+    // navigation `leave` makes - has to land back in the archive rather than on the versus
+    // page, which is the bug this prop exists for.
+    const backLabel = backTo.startsWith('/records') ? 'Back to your record' : 'Back to versus';
 
     /**
      * Leave, and MEAN IT.
@@ -146,8 +152,8 @@ export default function RoomScreen({ code }: { code: string }) {
             .catch(() => undefined)
             .finally(duelsChanged);
         holdVersusRoom(null);
-        navigate('/versus');
-    }, [navigate, room]);
+        navigate(backTo);
+    }, [backTo, navigate, room]);
 
     /**
      * TAKE THE SEAT ON ARRIVAL. There is one door into a room now, and this is it.
@@ -328,7 +334,7 @@ export default function RoomScreen({ code }: { code: string }) {
                     // The same crumb the room itself carries, and here it is the only way
                     // out at all: "Taking your seat" has no buttons under it, so a join
                     // that sat there was a screen with nothing on it but the tab bar.
-                    crumb={{ dir: 'back', label: 'Back to versus', to: '/versus' }}
+                    crumb={{ dir: 'back', label: backLabel, to: backTo }}
                 />
                 <div className={`${CARD_FLAT} p-5`}>
                     {wasIn ? (
@@ -418,14 +424,14 @@ export default function RoomScreen({ code }: { code: string }) {
                     view.status === 'ended'
                         ? {
                               dir: 'back',
-                              label: 'Back to versus',
+                              label: backLabel,
                               onClick: leave,
                               disabled: navBusy,
                           }
                         : {
                               dir: 'back',
-                              label: 'Back to versus',
-                              to: '/versus',
+                              label: backLabel,
+                              to: backTo,
                               disabled: navBusy,
                           }
                 }
