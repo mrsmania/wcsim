@@ -4391,6 +4391,12 @@ owner's three corrections, in `versus-option-2.html`. What shipped:
   ordering - the duel lists live in the other column, so however long they grow they cannot
   push the form down by a pixel, and both columns start at the same height so the lobby is on
   screen from the first paint whether or not you have ever played one.
+  **JOIN WITH A CODE MOVED TO THE RIGHT COLUMN ON 2026-09-18** (owner's call), under the
+  lobby, which costs that rule a little and is the trade: joining by code and joining off
+  the list are the same act, so they read better as a pair than as one of each. **The phone
+  order is deliberately untouched** - start, join, lobby - since there the two actions are
+  already adjacent, and it is the `order-N` classes rather than the DOM that decide it,
+  which is exactly what that mechanism is for.
 - **SEVEN CHIP ROWS BECOME TWO BIG CHOICES AND THREE FOLDED SETTINGS, and the fold is only an
   improvement because each one SHOWS ITS OWN ANSWER.** The form was twenty chips and seven
   explaining paragraphs to open a room whose defaults are already right; folding that alone
@@ -4449,6 +4455,31 @@ owner's three corrections, in `versus-option-2.html`. What shipped:
     the finished list is now the ONLY caller that passes it, so `npm run checks` reads both
     pages for that rule: a move that dropped it would print a dead room code beside every
     result and nothing else would notice.
+  - **A ROW HANDS BACK THE CODE, NEVER A URL** (2026-09-18), because the two pages send a row
+    to two different DOORS - see the next entry. A row has no business knowing which page it
+    is on, so it says WHICH room and the page says where.
+- **AND OPENING ONE KEEPS YOU ON RECORDS** (2026-09-18, reported: *"the nav node that is
+  getting highlighted is still versus - but should remain with records"*). It did, because
+  the archive sent every row to `/versus/:code` and **the tab follows the URL** - which is
+  the rule `state/routes.ts` exists to keep, so the fix is the ADDRESS rather than the
+  highlight. `/records/versus/:code` renders the identical room screen at a Records path,
+  `isRecords` covers it, and the Versus SEGMENT stays the lit one while you read a match
+  (`recordsVersus` is true for both screens, or the ledger steals the highlight - the same
+  bug the three-segment control already had once). Two things to keep:
+  - **EVERY WAY BACK OUT HAS TO MOVE WITH IT**, or the complaint just travels one screen
+    along. `RoomScreen` had "Back to versus" hard-wired in three crumbs and a fourth in the
+    navigation `leave` makes, so it takes a `backTo` (defaulting to `/versus`) and reads
+    "Back to your record" when it is a Records address.
+  - **The check's vacuity guard is the OTHER door**: the versus page must still send its
+    rows to `/versus/:code`, since a build that sent both to Records satisfies a weaker
+    claim and strands anybody opening a live duel off the versus page. Six mutations red.
+- **THE RECORD STRIP DOES NOT PRINT MATCHES WON** (2026-09-18, owner's call: *"I don't care
+  if I won a round of 8 in a tournament, I only want to know if I lifted the cup in the
+  end"*). Three figures, each a different question: Played, Lost, Cups won. **Lost is not
+  the same kind of number as Won was** - this is a knockout, so a loss is the match that
+  ENDED a tournament for you rather than one game among many. `record.won` is still read
+  from the server and simply not printed: it is the same one view read either way, and it
+  is what a ladder reads next.
 - **The hundred-word introduction is shown to somebody who has never played one and to
   nobody else.** Fourteen paragraphs of copy became four. **One of them is first-visit
   only** - a single line at the head of "Start a match" - and this entry said three until
