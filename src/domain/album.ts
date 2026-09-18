@@ -148,23 +148,12 @@ export function collectiblesByTier(allPlayers: Player[]): Record<StickerTier, Pl
     return groups;
 }
 
-/** How many cards the front page's showcase shows at once, and how many of them are lit
- *  rather than greyed. The lit count is drawn per turn so the row is not the same shape
- *  every time; one or two of five is enough to read as "these are the ones you have"
- *  without the greyed majority losing the contrast that makes the point. */
+/** How many cards the front page's showcase shows at once. */
 export const SHOWCASE_COUNT = 5;
-const SHOWCASE_LIT = [1, 2] as const;
-
-/** One turn of that showcase: the cards in the order they are drawn in, and which of them
- *  to show in colour. */
-export interface ShowcaseSet {
-    cards: CollectibleCard[];
-    /** Indexes into `cards`. */
-    lit: number[];
-}
 
 /** Draw a showcase turn: `count` collectibles in a RANDOM order, with **at least one of
- *  every tier the pool can supply**, plus the one or two to light up.
+ *  every tier the pool can supply**. Which of them the player owns is `showcaseLit`'s
+ *  question, and it is deliberately not asked here (see that function).
  *
  *  THE TIER GUARANTEE IS "EVERY TIER THE POOL HAS", NOT "ALL THREE", AND THAT IS NOT
  *  PEDANTRY. The pool handed in is the player's SELECTED World Cups (`poolYears`), which
@@ -181,7 +170,7 @@ export interface ShowcaseSet {
  *  The shuffle at the end is what makes the row read as a handful rather than as a ranking:
  *  drawn tier by tier it would come out gold, amber, green, and then the two fillers, in
  *  that order every single turn. */
-export function showcaseSet(allPlayers: Player[], count = SHOWCASE_COUNT): ShowcaseSet {
+export function showcaseSet(allPlayers: Player[], count = SHOWCASE_COUNT): CollectibleCard[] {
     const byTier = collectiblesByTier(allPlayers);
     const taken = new Set<string>();
     const chosen: CollectibleCard[] = [];
@@ -200,9 +189,37 @@ export function showcaseSet(allPlayers: Player[], count = SHOWCASE_COUNT): Showc
         chosen.push(card);
     }
 
-    const cards = shuffled(chosen);
-    const lit = shuffled(cards.map((_, i) => i)).slice(0, Math.min(cards.length, pick(SHOWCASE_LIT)));
-    return { cards, lit };
+    return shuffled(chosen);
+}
+
+/** Which of a showcase row's cards to show in colour: **exactly the ones this player has
+ *  actually collected**, by index into `cards`.
+ *
+ *  IT IS A SEPARATE FUNCTION FROM THE DRAW BECAUSE IT DEPENDS ON A DIFFERENT THING, and
+ *  keeping the two apart is what stops the row re-dealing itself. The cards are a fact
+ *  about the POOL (the player's selected World Cups), the lighting is a fact about the
+ *  ALBUM, and folding the album into `showcaseSet` would deal a whole new row every time
+ *  a sticker was banked - five cards changing because you collected one is a worse
+ *  reading of "you collected one" than the card simply gaining its colour.
+ *
+ *  IT USED TO BE ONE OR TWO AT RANDOM, which was decoration wearing the clothes of a
+ *  fact: the row said "these are the ones you have" to somebody who had none, and it said
+ *  it about a different two every nine seconds. So an empty album now lights nothing -
+ *  which is what a new player's shelf actually looks like - and a full one lights all
+ *  five. Between those the row is the album's own completion, drawn five cards at a time.
+ *
+ *  Keyed on PLAYER id and never `personId`, like every other owned-sticker read in the
+ *  game: a sticker is per version of a person, so Ronaldo 2014 can be lit beside a greyed
+ *  Ronaldo 2018. */
+export function showcaseLit(
+    cards: readonly CollectibleCard[],
+    collected: ReadonlySet<string>,
+): number[] {
+    const lit: number[] = [];
+    cards.forEach((card, i) => {
+        if (collected.has(card.player.id)) lit.push(i);
+    });
+    return lit;
 }
 
 /** What a cup win may pick from, best tier first then rating-desc (album spec FR-3 / D-1).

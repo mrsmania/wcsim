@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import type { Player } from '../data/types';
 import { FEATURES } from '../config';
-import { showcaseSet, type ShowcaseSet } from '../domain/album';
+import { showcaseLit, showcaseSet } from '../domain/album';
+import type { CollectibleCard } from '../domain/album';
 import StickerCard from './StickerCard';
 import { stickerArtSrc } from './stickerTheme';
 import { prefersReducedMotion } from '../hooks/motion';
@@ -89,6 +90,11 @@ interface Props {
     buildTo: string;
     /** The active squad pool, for the rarest-stickers showcase. */
     allPlayers: Player[];
+    /** Every sticker this player holds, by player id: the account's album when signed in
+     *  and the browser's when not, since both arrive through the one store seam. It is
+     *  what decides which of the showcase's five are in colour, so a new player's row is
+     *  five ghosts. */
+    ownedStickerIds: ReadonlySet<string>;
 }
 
 /** The line under a section heading, shared by both sections so they cannot drift.
@@ -224,16 +230,17 @@ const SHOWCASE_FADE_MS = 320;
  *  The draw lives in `domain/album.ts` rather than here because the tier guarantee has a
  *  real edge case in it (see `showcaseSet`), and it is the state ITSELF rather than a memo,
  *  or every unrelated render would deal a new row. */
-function useShowcase(allPlayers: Player[]): ShowcaseSet & { shown: boolean } {
+function useShowcase(allPlayers: Player[]): { cards: CollectibleCard[]; shown: boolean } {
     const enabled = FEATURES.stickerAlbum;
-    const [turn, setTurn] = useState<ShowcaseSet>(() =>
-        enabled ? showcaseSet(allPlayers) : { cards: [], lit: [] },
+    const [cards, setCards] = useState<CollectibleCard[]>(() =>
+        enabled ? showcaseSet(allPlayers) : [],
     );
     const [shown, setShown] = useState(true);
 
     // A narrowed year pool changes who is collectible at all, so a fresh draw is owed.
+    // The ALBUM is deliberately not a reason to re-deal - see `showcaseLit`.
     useEffect(() => {
-        if (enabled) setTurn(showcaseSet(allPlayers));
+        if (enabled) setCards(showcaseSet(allPlayers));
     }, [enabled, allPlayers]);
 
     useEffect(() => {
@@ -241,13 +248,13 @@ function useShowcase(allPlayers: Player[]): ShowcaseSet & { shown: boolean } {
         let swap: ReturnType<typeof setTimeout> | undefined;
         const tick = setInterval(() => {
             const next = showcaseSet(allPlayers);
-            for (const { player } of next.cards) {
+            for (const { player } of next) {
                 const img = new Image();
                 img.src = stickerArtSrc(player.id);
             }
             setShown(false);
             swap = setTimeout(() => {
-                setTurn(next);
+                setCards(next);
                 setShown(true);
             }, SHOWCASE_FADE_MS);
         }, SHOWCASE_MS);
@@ -257,11 +264,12 @@ function useShowcase(allPlayers: Player[]): ShowcaseSet & { shown: boolean } {
         };
     }, [enabled, allPlayers]);
 
-    return { ...turn, shown };
+    return { cards, shown };
 }
 
-export default function ModeSelect({ buildTo, allPlayers }: Props) {
+export default function ModeSelect({ buildTo, allPlayers, ownedStickerIds }: Props) {
     const legends = useShowcase(allPlayers);
+    const lit = showcaseLit(legends.cards, ownedStickerIds);
 
     return (
         <div className={PAGE_TOP}>
@@ -522,15 +530,25 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                             // country code where the album has a flag - so the thing being promised
                             // did not look like the thing you get.
                             //
-                            // GREY IS "NOT YOURS YET" AND LIT IS "COLLECTED", which is what the one
-                            // or two lit cards per turn are for: a row where every card looks the
-                            // same is a catalogue, and a row with two in colour among three ghosts
-                            // is the album halfway filled. On a TOUCH screen there is no grey at
-                            // all - it was always gated on hover existing - so there the lift is
-                            // the whole of the distinction, which is correct rather than a
-                            // shortfall: a phone reader is never going to see a hover state, so
-                            // showing the cards in colour is the honest default and the lit ones
-                            // are the ones standing proud.
+                            // GREY IS "NOT YOURS YET" AND LIT IS "IN YOUR ALBUM", AND SINCE
+                            // 2026-09-18 IT IS THE ACTUAL ALBUM THAT SAYS SO (asked for). It was
+                            // one or two of the five at random, redrawn every nine seconds - which
+                            // is decoration wearing the clothes of a fact: the row told a player
+                            // with an empty album that two of these were theirs, and told them it
+                            // about a different two each turn. `showcaseLit` reads the collection
+                            // the rest of the game reads (the account's when signed in, the
+                            // browser's when not, both through the one store seam), so a new
+                            // player's row is five ghosts and a finished album's is five in colour.
+                            //
+                            // THE GREY IS NO LONGER GATED ON HOVER EXISTING, and that gating going
+                            // is the same change reaching the phone rather than a second decision.
+                            // It was `[@media(hover:hover)]:grayscale` because grey used to mean
+                            // "hover me" - and there is nothing to hover on a touch screen, so
+                            // colour was the honest default there. Grey means "not in your album"
+                            // now, which is a fact about the player and not an affordance, so a
+                            // phone that showed all five in colour would be the one screen where
+                            // the row still said everything was yours. The `hover:grayscale-0`
+                            // stays as a peek for whoever has a pointer.
                             //
                             // A LIT CARD OMITS `grayscale` RATHER THAN OVERRIDING IT WITH
                             // `grayscale-0`. Two conflicting utilities of equal specificity are
@@ -538,6 +556,13 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                             // they are written in the class string - the exact trap the boost
                             // pick's `bg-panel` beside `bg-pitch-dark` fell into. So the class is
                             // present or absent, never fought.
+                            //
+                            // `collected` on the card itself stays TRUE for every one of the five,
+                            // greyed or not, and that is the album grid's rule read correctly
+                            // rather than an oversight: the withheld picture and the `??` rating
+                            // belong to the shelf, where an empty slot is a gap in something you
+                            // own. This row is a shop window, so a card nobody holds still has to
+                            // show the face and the figure it is promising.
                             <div
                                 key={p.id}
                                 // `grid` rather than a plain block: the card is the one child, so it
@@ -545,9 +570,7 @@ export default function ModeSelect({ buildTo, allPlayers }: Props) {
                                 // grid cell, and a name that wraps to two lines does not leave the
                                 // four beside it short.
                                 className={`grid transition duration-300 hover:-translate-y-[3px] hover:grayscale-0 ${
-                                    legends.lit.includes(i)
-                                        ? '-translate-y-[3px]'
-                                        : '[@media(hover:hover)]:grayscale'
+                                    lit.includes(i) ? '-translate-y-[3px]' : 'grayscale'
                                 }`}
                             >
                                 <StickerCard player={p} tier={tier} collected />

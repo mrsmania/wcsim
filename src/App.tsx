@@ -486,7 +486,11 @@ export default function App({
                             )}
                         </>
                     ) : isLauncher ? (
-                        <ModeSelect buildTo="/play" allPlayers={poolPlayers} />
+                        <ModeSelect
+                            buildTo="/play"
+                            allPlayers={poolPlayers}
+                            ownedStickerIds={ownedStickerIds}
+                        />
                     ) : isVersus ? (
                         <VersusScreen
                             signedIn={!!accountEmail}

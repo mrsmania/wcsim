@@ -4,12 +4,13 @@
 // one 3,900-line file whose blocks shared nothing but the assertion helper, and whose
 // summary ran last only because it happened to sit at the bottom.
 
-import { check } from './harness';
+import { check, codeOnly } from './harness';
 import { readFileSync, readdirSync } from 'node:fs';
 import { ALL_PLAYERS, SQUAD_BY_ID, squadsInPool } from '../../src/data/squads';
 import {
   SHOWCASE_COUNT,
   collectiblePlayers,
+  showcaseLit,
   showcaseSet,
   tierOf,
 } from '../../src/domain/album';
@@ -327,17 +328,17 @@ export function assetsChecks(): void {
       () =>
         spreads.length === 400 &&
         spreads.every(
-          (s) =>
-            s.cards.length === SHOWCASE_COUNT &&
-            new Set(s.cards.map((c) => c.player.id)).size === SHOWCASE_COUNT,
+          (cards) =>
+            cards.length === SHOWCASE_COUNT &&
+            new Set(cards.map((c) => c.player.id)).size === SHOWCASE_COUNT,
         ),
     );
     check(
       'showcase: every draw over the whole dataset carries all three tiers',
-      () => spreads.every((s) => new Set(s.cards.map((c) => c.tier)).size === 3),
+      () => spreads.every((cards) => new Set(cards.map((c) => c.tier)).size === 3),
       () => {
-        const bad = spreads.find((s) => new Set(s.cards.map((c) => c.tier)).size !== 3);
-        return bad ? bad.cards.map((c) => `${c.player.name} (${c.tier})`).join(', ') : '';
+        const bad = spreads.find((cards) => new Set(cards.map((c) => c.tier)).size !== 3);
+        return bad ? bad.map((c) => `${c.player.name} (${c.tier})`).join(', ') : '';
       },
     );
     // The vacuity guard, and it is doing real work rather than ticking a box: measured
@@ -369,20 +370,87 @@ export function assetsChecks(): void {
       () =>
         narrowCards.length > 0 &&
         narrowCards.length < SHOWCASE_COUNT &&
-        drawn.cards.length === narrowCards.length &&
-        new Set(drawn.cards.map((c) => c.tier)).size === 1,
-      () => `${narrowCards.length} collectible(s) in 1978, drew ${drawn.cards.length}`,
+        drawn.length === narrowCards.length &&
+        new Set(drawn.map((c) => c.tier)).size === 1,
+      () => `${narrowCards.length} collectible(s) in 1978, drew ${drawn.length}`,
+    );
+    // --- and which of the five are lit is the player's OWN album -----------------
+    // The row used to light one or two at random, which told a player who had collected
+    // nothing that two of these were theirs, and told them it about a different two every
+    // nine seconds. `showcaseLit` is the fix and all three of its ends are asserted here:
+    // an empty album, a full one, and a real partial one. Nothing on the screen can say
+    // which reading it is using - a random two and a true two look identical in a
+    // screenshot - so the three cases are what stand for it.
+    const rows = spreads.slice(0, 40);
+    check(
+      'showcase: an empty album lights nothing at all',
+      () => rows.length === 40 && rows.every((cards) => showcaseLit(cards, new Set()).length === 0),
     );
     check(
-      'showcase: one or two of every draw are lit, and they index real cards',
+      'showcase: an album holding every collectible lights all five',
+      () => {
+        const all = new Set(collectiblePlayers(ALL_PLAYERS).map((p) => p.id));
+        return rows.every((cards) => showcaseLit(cards, all).length === cards.length);
+      },
+    );
+    // The partial case, and the one that would catch a lit list that merely counted
+    // right: it must name the collected cards THEMSELVES, by index, in order. Half of
+    // each row is collected, chosen off the draw so the sample can never be all or
+    // nothing - which is what makes this a third case rather than the first two again.
+    const partial = rows.map((cards) => {
+      const owned = new Set(cards.filter((_, i) => i % 2 === 0).map((c) => c.player.id));
+      return { cards, owned, lit: showcaseLit(cards, owned) };
+    });
+    check(
+      'showcase: a half-filled album lights exactly the cards it holds',
       () =>
-        spreads.every(
-          (s) =>
-            (s.lit.length === 1 || s.lit.length === 2) &&
-            new Set(s.lit).size === s.lit.length &&
-            s.lit.every((i) => i >= 0 && i < s.cards.length),
+        partial.every(
+          ({ cards, owned, lit }) =>
+            lit.every((i) => i >= 0 && i < cards.length) &&
+            lit.join() ===
+              cards
+                .map((c, i) => (owned.has(c.player.id) ? i : -1))
+                .filter((i) => i >= 0)
+                .join(),
         ),
     );
+    // The vacuity guard on that middle case: it is only worth anything if the sample
+    // holds rows where SOME cards are out, which a row of five owned cards would not.
+    check(
+      'showcase: that sample really does leave cards unlit',
+      () => partial.every(({ cards, lit }) => lit.length > 0 && lit.length < cards.length),
+      () => {
+        const bad = partial.find(({ cards, lit }) => lit.length === 0 || lit.length === cards.length);
+        return bad ? `${bad.lit.length} of ${bad.cards.length} lit` : '';
+      },
+    );
+    // AND THE FRONT PAGE HAS TO ASK IT. Nothing behavioural can see a component that
+    // went back to lighting two at random or simply stopped calling this, and both
+    // render a perfectly good row - so the screen is read for the call and for the
+    // album reaching it, with the prop's presence in App as the other half.
+    {
+      // COMMENTS STRIPPED FIRST, and this one earned it on its first run: the paragraph
+      // in `ModeSelect` explaining why the grey is no longer gated on a pointer quotes
+      // the very class it says is gone, so the check failed on its own explanation. Same
+      // trap the button sweep hit, which is why `codeOnly` is the harness's rather than
+      // any one sweep's.
+      const page = codeOnly(readFileSync('src/components/ModeSelect.tsx', 'utf8'));
+      const app = codeOnly(readFileSync('src/App.tsx', 'utf8'));
+      check(
+        "showcase: the front page lights its row off the player's album",
+        () =>
+          /showcaseLit\(/.test(page) &&
+          /ownedStickerIds/.test(page) &&
+          /<ModeSelect[\s\S]{0,240}?ownedStickerIds=\{ownedStickerIds\}/.test(app),
+      );
+      // Grey means "not in your album" rather than "hover me", so it cannot be gated on
+      // a pointer existing - that gating left the phone showing every card in colour,
+      // which is the one screen where the row would still claim everything was yours.
+      check(
+        'showcase: the grey is not gated on hover existing',
+        () => !/hover:hover\)\]:grayscale/.test(page) && /'grayscale'/.test(page),
+      );
+    }
   }
 
 }

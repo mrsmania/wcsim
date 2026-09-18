@@ -1827,10 +1827,36 @@ Spec: `docs/sticker-album-spec.html`; design: `docs/sticker-album-design.md`; co
   rarest cards were a promise about a shelf that looks like something else. It is the
   album's card now, in a wrapper that carries the grayscale (`grid`, so the card
   stretches to the row exactly as it does in the album's own grid, and a name that wraps
-  to two lines does not leave the four beside it short). The **grayscale is gated on
-  `[@media(hover:hover)]`** and always was: b/w until hovered is a desktop reading, and
-  on a touch screen there is nothing to hover, so the cards are in colour from the start
-  rather than permanently grey. **The background is transparent on purpose**: the card's own
+  to two lines does not leave the four beside it short).
+  **WHICH OF THE FIVE ARE IN COLOUR IS THE PLAYER'S OWN ALBUM SINCE 2026-09-18** (asked
+  for), where it was one or two of them at RANDOM, redrawn every nine seconds. That was
+  decoration wearing the clothes of a fact: the row said "these are the ones you have" to
+  somebody who had collected nothing, and said it about a different two each turn. So a new
+  player's row is five ghosts and a finished album's is five in colour, with the collection
+  read the way every other owned-sticker surface reads it - `ownedStickerIds` in `App`, off
+  the one store seam, so an account's album comes from the server and a guest's from the
+  browser with nothing here knowing the difference. Three things about it:
+  - **The draw and the lighting are two functions on purpose** (`showcaseSet` and
+    `showcaseLit` in `domain/album.ts`). The cards are a fact about the POOL and the
+    lighting a fact about the ALBUM, so folding the album into the draw would deal a whole
+    new row every time a sticker was banked - five cards changing because you collected
+    one is a worse reading of "you collected one" than the card simply gaining its colour.
+  - **The grayscale is NO LONGER gated on `[@media(hover:hover)]`**, and that gating going
+    is the same change reaching the phone rather than a second decision. It was gated
+    because grey used to mean "hover me", and there is nothing to hover on a touch screen;
+    grey means "not in your album" now, which is a fact about the player rather than an
+    affordance, so a phone showing all five in colour would be the one screen still
+    claiming everything was yours. `hover:grayscale-0` stays as a peek for a pointer.
+  - **`collected` on the card stays true for all five**, greyed or not. The withheld
+    picture and the `??` rating are the album GRID's rule (see below) - an empty slot is a
+    gap in something you own - and this row is a shop window, so a card nobody holds still
+    has to show the face and the figure it is promising.
+  `npm run checks` holds it at both ends: an empty, a full and a half-filled album against
+  `showcaseLit`, plus a source read of the screen, since a random two and a true two look
+  identical in a screenshot. That source read **failed on its own explanation** the first
+  time, the paragraph above quoting the very class it says is gone, so it strips comments
+  with the harness's `codeOnly` - the button sweep's lesson, met again.
+  **The background is transparent on purpose**: the card's own
   surface shows through, which is what lets one fixed silhouette work in both themes.
   `npm run checks` does not fail on a missing file - the silhouette is a correct rendering,
   not a hole - it reports the count and `npm run ratings:sync` names the new ones, which is
