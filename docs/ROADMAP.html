@@ -359,6 +359,57 @@
 
 <details class="item">
   <summary>
+    <span class="num">67</span>
+    <span class="title">A live room you are in should reach the versus page from any device
+      <span class="sub">The half of the 2026-09-18 merge that the browser cannot do on its own. The versus page's "Open rooms" now carries the cup you are in as well as your challenges, but it reads that cup off <code>sessionStorage</code>, so it is right in the tab you opened the room in and blank everywhere else. Closing it is a referee route and a rebuild. <b>Small, and it needs the home machine.</b></span>
+    </span>
+    <span class="tag">Versus</span>
+    <span class="chev">&#9656;</span>
+  </summary>
+  <div class="detail">
+    <p><strong>What was reported, and what was done about it.</strong> The versus page had
+    two answers to "what have I got on" and neither was complete: the list was fed by
+    <code>GET /v1/duels</code>, whose query is <code>pace = 'async'</code>, so a cup the
+    player opened themselves was on it nowhere; and above both columns a card read "You are
+    in a room", fed by the chrome's own pointer, which holds exactly one room. Both were
+    merged into one list on 2026-09-18, with each row labelled Cup or Challenge.</p>
+
+    <p><strong>What is left is the SOURCE of the cup row.</strong> It is
+    <code>nav/versusRoom.ts</code>, which is <code>sessionStorage</code>: per tab, gone when
+    the tab closes, and never on the other device. So somebody who opens a room of eight on
+    a laptop and then picks up a phone is shown nothing, and the only way back in is the
+    six-character code. That is the same reach the deleted card had, so nothing regressed,
+    but it is the half a server knows and a browser cannot.</p>
+
+    <p><strong>The server already knows the answer and has no way to say it.</strong>
+    <code>activeRoomOf(userId)</code> in <code>referee/src/pgStore.ts</code> returns exactly
+    "the live room this account is in", and it is only ever read in order to REFUSE a second
+    one (P39). So the work is a read route over a query that exists.</p>
+
+    <p><strong>How to do it, and the one decision in it.</strong> Either widen
+    <code>GET /v1/duels</code> to answer live rooms too, or add a route beside it. A live
+    room's row is NOT a <code>DuelRow</code> and should not be squeezed into one: there is no
+    single opponent to name in a room of eight, and <code>yourPicks</code> against
+    <code>theirPicks</code> means nothing there. What the row wants is the code, the status,
+    the size, how many are seated and what it plays, which is close to
+    <code>LobbyRoom</code>. Prefer a separate <code>rooms</code> array in the same answer over
+    a second round trip.</p>
+
+    <p><strong>It degrades on its own, in the safe direction.</strong> An older referee sends
+    no such array and the page falls back to the pointer, which is exactly what it does
+    today. So the client half may ship first, and <b>P39 means the array is never longer than
+    one</b>, which is also what makes the dedupe against the duels list enough.</p>
+
+    <p><strong>How to know it worked.</strong> Open a room of four in one browser, close the
+    tab without leaving the room, open the versus page in a second browser signed in to the
+    same account: the cup is on "Open rooms" with its seats and status, labelled Cup, and
+    tapping it goes back in. <code>npm run checks</code> should gain the row-shape assertion;
+    the merge's own source check is already there and holds the labelling and the dedupe.</p>
+  </div>
+</details>
+
+<details class="item">
+  <summary>
     <span class="num">64</span>
     <span class="title">Update Docker containers
       <span class="sub">What item 62's update habit turned up the first time it was exercised (2026-09-08). <b>The gateway was the urgent one and is already done</b>, so nothing here is reachable-critical. What is left is <b>the database</b>, which carries roughly 41 upstream CVEs and a trap that makes the obvious upgrade path a no-op, plus realtime, PostgREST and the auth server. <b>Deferred by the owner, deliberately.</b> An afternoon for three of them; the database is a planned job.</span>

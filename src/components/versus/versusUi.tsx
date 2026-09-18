@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { duelAlert, duelLine, duelRules, duelTurn, inviteText, seatCounts } from '../../domain/pvpView';
 import type { DuelRow, MemberView } from '../../domain/pvpWire';
+import type { HeldRoom } from '../../nav/versusRoom';
 import { CARD_FLAT, MONO_CAP, Meter, btn } from '../matchUi';
 import type { RefereeMessage } from './refereeMessage';
 
@@ -559,49 +560,148 @@ export function DuelLine({
     row,
     watched,
     code = true,
+    kind,
     go,
 }: {
     row: DuelRow;
     watched: ReadonlySet<string>;
     code?: boolean;
+    kind?: string;
     go: (code: string) => void;
 }) {
     const alert = duelAlert(row, watched);
     const turn = duelTurn(row);
     return (
-        <li className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-hair py-2.5 last:border-b-0">
-            <div className="min-w-0 flex-1">
-                <div className="text-[13.5px] font-bold text-ink">
-                    {row.opponentName || 'Nobody yet'}
-                    {code && (
-                        <span className="ml-2 font-mono text-[11px] font-medium tracking-[0.1em] text-dim">
-                            {row.code}
-                        </span>
-                    )}
-                </div>
-                <div
-                    className={`text-[12px] ${alert ? 'font-semibold text-pitch-ink' : 'text-muted'}`}
-                >
+        <MatchLine
+            kind={kind}
+            title={row.opponentName || 'Nobody yet'}
+            code={code ? row.code : undefined}
+            line={
+                <>
                     {alert === 'watch' ? 'The match has been played' : duelLine(row)}
                     {/* What it plays is worth knowing while there is still a team to build
                         and is noise once there is not: a finished row's own line is the
                         result, and appending "roll for your XI, one man from each squad" to
                         it wrapped every alert onto a second line to say nothing. */}
                     {row.status !== 'ended' && <> &middot; {duelRules(row)}</>}
-                </div>
-            </div>
-            <button
-                type="button"
-                className={`shrink-0 ${btn(alert ? 'primary' : 'secondary', 'compact')}`}
-                onClick={() => go(row.code)}
-            >
-                {alert === 'watch'
+                </>
+            }
+            loud={!!alert}
+            action={
+                alert === 'watch'
                     ? 'Watch it'
                     : alert === 'your-move'
                       ? 'Your move'
                       : turn === 'done'
                         ? 'See it'
-                        : 'Open'}
+                        : 'Open'
+            }
+            onGo={() => go(row.code)}
+        />
+    );
+}
+
+/**
+ * The live room you are in, as one more row of the same list (2026-09-18).
+ *
+ * IT REPLACES A CARD OF ITS OWN, and that is the whole reason it exists. The versus page
+ * carried a full-width "You are in a room" strip above both columns, because the chrome's
+ * own strip is hidden on this one page and it was the only pointer back. Reported as
+ * confusing, and it was, for two reasons that are really one: it sat beside a list of
+ * matches in progress without being on that list, and it holds ONE room - whichever you
+ * last opened - so a reader met the same challenge twice in two shapes, or met a cup in the
+ * strip and looked for it in vain on the list under it.
+ *
+ * SO THE LIST CARRIES BOTH KINDS AND EACH ROW SAYS WHICH. The duels come off the referee
+ * and travel between devices; a live room comes off this browser's own pointer, which is
+ * what the strip was reading anyway, so nothing is lost by folding it in. What folding it
+ * in does NOT fix is that pointer's reach: it is per tab, so a cup opened on another device
+ * is still on no list here. That needs the referee to answer "which live room am I in",
+ * which it has no route for, and it is its own piece of work rather than this one.
+ *
+ * P39 IS WHY ONE ROW IS ENOUGH: an account may hold exactly one live room at a time, so
+ * there is never a second cup for the pointer to be wrong about.
+ */
+export function RoomLine({
+    room,
+    kind,
+    go,
+}: {
+    room: HeldRoom;
+    kind?: string;
+    go: (code: string) => void;
+}) {
+    return (
+        <MatchLine
+            kind={kind}
+            // THE CODE IS THE TITLE, since a room of eight has no one opponent to name and
+            // "Your room" would be a word standing where a fact could. It is what you read
+            // out to somebody anyway.
+            title={<span className="font-mono tracking-[0.1em]">{room.code}</span>}
+            line={room.line}
+            action="Back to it"
+            onGo={() => go(room.code)}
+        />
+    );
+}
+
+/**
+ * One row of a list of matches, whichever kind it is.
+ *
+ * Extracted when the held room joined the list, so the two share a shell rather than two
+ * copies of the same six class strings - and so the tag, the name and the button line up
+ * down the column whatever is in the row.
+ *
+ * `kind` IS THE LABEL THAT TELLS THE TWO APART, and it is a prop rather than a constant
+ * because it is only worth printing where a list can hold both. The archive on Records is
+ * finished duels and nothing else, so it passes none: a word repeated down every row of an
+ * unmixed list is the field of colour this app keeps deleting, one level quieter.
+ */
+function MatchLine({
+    kind,
+    title,
+    code,
+    line,
+    loud,
+    action,
+    onGo,
+}: {
+    kind?: string;
+    title: ReactNode;
+    code?: string;
+    line: ReactNode;
+    loud?: boolean;
+    action: string;
+    onGo: () => void;
+}) {
+    return (
+        <li className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-hair py-2.5 last:border-b-0">
+            <div className="min-w-0 flex-1">
+                <div className="text-[13.5px] font-bold text-ink">
+                    {kind && (
+                        <span className="mr-2 rounded-[4px] border border-line bg-chalk px-1.5 py-[3px] align-[1px] font-mono text-[10px] font-bold text-muted">
+                            {kind}
+                        </span>
+                    )}
+                    {title}
+                    {code && (
+                        <span className="ml-2 font-mono text-[11px] font-medium tracking-[0.1em] text-dim">
+                            {code}
+                        </span>
+                    )}
+                </div>
+                <div
+                    className={`text-[12px] ${loud ? 'font-semibold text-pitch-ink' : 'text-muted'}`}
+                >
+                    {line}
+                </div>
+            </div>
+            <button
+                type="button"
+                className={`shrink-0 ${btn(loud ? 'primary' : 'secondary', 'compact')}`}
+                onClick={onGo}
+            >
+                {action}
             </button>
         </li>
     );

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { answerIsFresh, roomLine } from '../domain/pvpView';
+import { answerIsFresh, isDuel, roomLine } from '../domain/pvpView';
 import type { RoomView } from '../domain/pvpWire';
 import { holdLiveMatch } from '../nav/liveMatch';
 import { holdVersusRoom } from '../nav/versusRoom';
@@ -187,7 +187,15 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         // lobby stays readable to everybody signed in, so the strip would go on offering
         // the room across every screen in the game, for a room that will never take the
         // player back.
-        if (next.you) holdVersusRoom({ code: next.code, status: next.status, line: roomLine(next) });
+        if (next.you)
+            holdVersusRoom({
+                code: next.code,
+                status: next.status,
+                line: roomLine(next),
+                // Which kind it is, for the versus page's own list. Through `isDuel` and
+                // never off the field, because an absent `pace` means live.
+                duel: isDuel(next),
+            });
     }, []);
 
     /** Run a call, recording what it cost so the lock lead is a measurement. */

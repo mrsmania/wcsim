@@ -4360,7 +4360,8 @@ the referee already sent the room's code as its `detail`, so `refereeMessage` na
 **AND NOT WAITING FOR THE ANSWER MEANS THE DUELS LIST HAS TO BE TOLD WHEN IT LANDS**
 (2026-09-01, reported from the game: *"when I withdraw from a versus match, I still see the
 match as open - only after a refresh the match is moved to PLAYED as a loss"*). Withdrawing
-from a duel is a FORFEIT, so the row leaves "On now" for a loss under "Played" - and the
+from a duel is a FORFEIT, so the row leaves the versus page's open list for a loss on the
+Records tab (it read "On now" and "Played", one page, on the day of the report) - and the
 versus page reads its list on mount, which is the same instant the leave request goes out.
 So the page **loses a race it did not know it was in**: the referee answers that read
 honestly, with the room as it still is, and the answer is stale by the time it is drawn.
@@ -4425,13 +4426,52 @@ owner's three corrections, in `versus-option-2.html`. What shipped:
   room and a finished one is not going anywhere. An OPEN one keeps it and has to, since until
   somebody follows the link the opponent column reads "Nobody yet".
 - **THE LISTS SPLIT BY WHAT THE READER CAN DO rather than by whether the game is over**:
-  "Waiting on you" is the to-do list and "On now" is where the next move is somebody else's.
+  "Waiting on you" is the to-do list and "Open rooms" is everything of yours still running.
   The old page had both under one heading, so the only urgent thing on it sat in a list of
   things that are not. Each is absent when empty, which is also what keeps a first visit to
   two sections. **A finished match nobody has watched is WAITING, not a result** - the score
   is the thing being withheld, so filing it under a record would give it away in the same
-  breath. There were **three** lists until 2026-09-17; see the next entry for where the
-  third went.
+  breath. There were **three** lists until 2026-09-17; see the entry after next for where
+  the third went.
+- **ONE LIST CARRIES BOTH KINDS OF ROOM, AND THE STRIP ABOVE IT IS GONE** (2026-09-18,
+  reported as confusing, and it was). There were **two** answers on that page to "what have
+  I got on" and neither was complete. The list (then called "On now") is fed by
+  `GET /v1/duels`, whose query is `pace = 'async'`, so **a cup you opened yourself was on it
+  nowhere**; and above both columns sat a full-width card reading "You are in a room", fed by
+  the chrome's own pointer (`nav/versusRoom.ts`), which holds **one** room, whichever you last
+  opened - so it either restated a row of the list directly below it or advertised a room that
+  list could never hold. The card is deleted, the list is **"Open rooms"**, and it carries the
+  held live room as one more row. Five things about it:
+  - **A ROW SAYS WHICH KIND IT IS**, "Cup" or "Challenge", as a mono tag before the name.
+    That is the whole reason the merge reads: the two are played over completely different
+    time scales (an evening against a week), so a mixed list with nothing to separate them
+    would be worse than the two shapes it replaces. It is a PROP rather than a constant on
+    the row, so the archive on Records - finished duels and nothing else - passes none: a
+    word repeated down every row of an unmixed list is the field of colour this app keeps
+    deleting, one level quieter.
+  - **THE PER-TAB POINTER IS THE LIVE ROOM'S ONLY SOURCE, AND THAT IS THE RESIDUAL LIMIT.**
+    It is what the strip was reading, so folding it into the list loses nothing - but it is
+    `sessionStorage`, so **a cup opened on another device, or before this tab was opened, is
+    on no list here.** Closing that needs the referee to answer "which live room am I in",
+    which it has no route for (`activeRoomOf` exists and is only ever read to REFUSE a second
+    room, P39). That is a server change and a rebuild, not part of this one.
+  - **P39 IS WHY ONE ROW IS ENOUGH.** An account holds at most one live room at a time, so
+    there is never a second cup for the pointer to be wrong about.
+  - **THE POINTER RECORDS WHICH KIND IT IS** (`HeldRoom.duel`, written through `isDuel`), and
+    the page ALSO drops it when its code is already on the duels list. Two guards for one
+    failure because they cover different halves: the flag labels the row correctly before the
+    duels list has even answered, and the dedupe is what stops a held duel appearing twice.
+    An absent flag reads as live, the same reading `isDuel` takes of a room view.
+  - **The lobby's empty line had to move out of the way**: it read "No open rooms right now"
+    under a heading that now means something else, and says "Nobody has a room open right
+    now" instead.
+- **TWO EXPLAINING LINES WENT WITH IT** (same request). "This list refreshes itself every 10
+  seconds" described the machinery rather than the rooms, on the one section whose job is to
+  be scanned; and "Matches you have played and watched are kept in Records, with your win and
+  loss record" is a fact about another tab, which is two inches up with its own segment named
+  Versus. `npm run checks` asserts the second one's **absence** rather than having dropped the
+  assertion, so re-adding it is a decision somebody takes rather than a paragraph that creeps
+  back.
 - **THE ARCHIVE IS ON RECORDS, AND ON RECORDS ONLY** (2026-09-17, asked for). Finished
   matches you have watched, and the win/loss record beside them, are the third segment of
   `/records`. Three things about it:
@@ -5164,7 +5204,8 @@ no room, P17, so there is nothing there to import).
 **AND THE DUELS LIST IS HOW EVERY DUEL REACHES ANYBODY, because nothing in this game sends a
 message.** No mail, no push. `GET /v1/duels` answers the duels you are IN, newest activity
 first - membership is the whole of "this one is mine" now that nothing is addressed - and the
-versus page leads with them, split into "On now" and "Played". `duelTurn` is what each row
+versus page leads with them, split into "Waiting on you" and "Open rooms", the latter
+carrying the live room you hold as well. `duelTurn` is what each row
 leads with (`yours` / `theirs` / `sent` / `done`), because the question somebody opens that
 page with is "is there anything for me to do", never "what is the score"; **eleven picked is
 not eleven sent**, so the row carries `yourDone` / `theirDone` and a `seated` count rather

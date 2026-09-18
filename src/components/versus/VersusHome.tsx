@@ -31,7 +31,6 @@ import {
     CARD,
     CHIP_OFF,
     CHIP_ON,
-    MONO_CAP,
     PRIMARY_BTN,
     SECONDARY_BTN,
     StageHeader,
@@ -44,6 +43,7 @@ import {
     HeadCount,
     RefereeProblem,
     RefreshButton,
+    RoomLine,
     RoomNote,
     SeatPips,
     SectionHead,
@@ -76,7 +76,7 @@ import {
 // without opening anything. Which three you get is the field dependency doing the work: a
 // challenge has nobody to wait for and no clock, so it gets two.
 //
-// ON A PHONE IT IS ONE COLUMN IN THE ORDER start, join, lobby, waiting, on now.
+// ON A PHONE IT IS ONE COLUMN IN THE ORDER start, join, lobby, waiting, open rooms.
 // The obvious alternative - hoist whatever is waiting on you to the top - was drawn and
 // rejected by the owner, and the reason it costs nothing is that the chrome already carries
 // a duel strip on every other screen in the game (`useDuelAlert`): somebody with a match
@@ -85,9 +85,19 @@ import {
 // moves between sections - there is one of each in the DOM at every width.
 //
 // THREE SECTIONS ON THE RIGHT AND EACH IS ABSENT WHEN EMPTY. "Waiting on you" and the lobby
-// are things to act on now; "On now" is the one to look at. An empty "Waiting on you" would
-// be a promise of noise, so it is not rendered at all rather than rendered empty - which is
-// also what keeps a first visit down to two sections.
+// are things to act on now; "Open rooms" is everything of yours still running. An empty
+// "Waiting on you" would be a promise of noise, so it is not rendered at all rather than
+// rendered empty - which is also what keeps a first visit down to two sections.
+//
+// ONE LIST FOR BOTH KINDS, AND NO STRIP ABOVE IT (2026-09-18, reported as confusing).
+// There were two answers to "what have I got on" sitting next to each other and neither was
+// complete. "On now" was fed by the referee's duels list, which is `pace = 'async'`, so a
+// cup you opened yourself was on it nowhere; and above both columns a full-width card said
+// "You are in a room", which holds ONE room - whichever you last opened - so it showed a
+// duel that was already on the list below it, or a cup that was on no list at all. The card
+// is gone, the list is called "Open rooms" and carries both, and each row says which it is.
+// What it cannot yet do is find a cup opened on another device: the pointer is per tab, and
+// the referee has no route that answers "which live room am I in".
 //
 // THE ARCHIVE IS NOT HERE ANY MORE (2026-09-17). Finished matches you have watched are the
 // third segment of Records, beside the honours ledger and the trophy cabinet, because this
@@ -371,6 +381,20 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
     const waiting = listed.filter((d) => duelAlert(d, watched));
     const inPlay = listed.filter((d) => !duelAlert(d, watched) && d.status !== 'ended');
 
+    // AND THE LIVE ROOM YOU HOLD IS ON THAT LIST TOO (2026-09-18, reported as confusing and
+    // it was). "On now" was duels and nothing else, because `myDuels` is `pace = 'async'`,
+    // so a cup you opened yourself appeared nowhere on it - and the answer to that used to
+    // be a card of its own above both columns saying "You are in a room", which is a second
+    // shape for a thing the list beside it is already for. One list, both kinds, each row
+    // labelled.
+    //
+    // DROPPED WHEN THE DUELS LIST ALREADY HAS IT, which is the only way this can produce a
+    // row twice: the pointer follows whichever room you last opened, duel or cup alike. The
+    // kind it records is belt to those braces, and it is what labels the row.
+    const heldCup =
+        held && !held.duel && !listed.some((d) => d.code === held.code) ? held : null;
+    const openCount = inPlay.length + (heldCup ? 1 : 0);
+
     // NOTHING AT ALL YET, which is the only state the long explanation is for. It used to
     // sit above the controls on every visit, a hundred words nobody reads twice; here it is
     // shown to the one reader who has never seen a versus match and to nobody else.
@@ -424,26 +448,6 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                     </div>
                 }
             />
-
-            {/* THE ROOM YOU ARE IN, ABOVE EVERYTHING AND FULL WIDTH. The chrome's own room
-                strip is shown on every screen in the game EXCEPT this one, so this card is
-                the only pointer back, and it outranks both columns at every width. */}
-            {held && (
-                <div className={`${CARD} mb-[22px] flex flex-wrap items-center gap-3 p-4`}>
-                    <div className="min-w-0 flex-1">
-                        <div className={MONO_CAP}>You are in a room</div>
-                        <RoomNote>
-                            {held.code} &middot; {held.line}
-                        </RoomNote>
-                    </div>
-                    <button
-                        className={PRIMARY_BTN}
-                        onClick={() => navigate(`/versus/${held.code}`)}
-                    >
-                        Back to it
-                    </button>
-                </div>
-            )}
 
             {/* THE TWO COLUMNS. Below 860px both wrappers are `display: contents`, so the
                 six sections become grid items of this one grid and the `order` on each puts
@@ -652,6 +656,7 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                                         <DuelLine
                                             key={d.code}
                                             row={d}
+                                            kind="Challenge"
                                             watched={watched}
                                             go={(c) => navigate(`/versus/${c}`)}
                                         />
@@ -672,7 +677,7 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                                 // an empty list says so in the room's own voice, rather than
                                 // rendering an empty table and leaving the reader to wonder
                                 // whether it loaded.
-                                <RoomNote>No open rooms right now.</RoomNote>
+                                <RoomNote>Nobody has a room open right now.</RoomNote>
                             ) : (
                                 <ul>
                                     {lobby.map((r) => {
@@ -723,20 +728,11 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                                     })}
                                 </ul>
                             )}
-                            {lobby !== null && lobby.length > 0 && (
-                                // UNDER THE LIST, because it describes the list rather than
-                                // the control above it: what Refresh is FOR, given that the
-                                // list already keeps itself up to date.
-                                //
-                                // It says the interval rather than when it last looked, and
-                                // that is a correction rather than a shortening: an age
-                                // between two stamps taken in the same breath is always
-                                // "just now", so the line would have been decoration that
-                                // could never be wrong and could never be useful either.
-                                <p className="mt-2.5 text-[12px] text-dim">
-                                    This list refreshes itself every 10 seconds.
-                                </p>
-                            )}
+                            {/* NO LINE UNDER THE LIST saying how often it refreshes
+                                (2026-09-18, owner's call). It described the machinery rather
+                                than the rooms, on the one section whose job is to be
+                                scanned, and Refresh sitting on the heading is the only thing
+                                anybody needs to know about it. */}
                         </div>
                     </section>
 
@@ -762,18 +758,29 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                         </form>
                     </section>
 
-                    {inPlay.length > 0 && (
+                    {openCount > 0 && (
                         <section className="order-5">
                             <SectionHead
-                                title="On now"
-                                count={<HeadCount>{inPlay.length}</HeadCount>}
+                                title="Open rooms"
+                                count={<HeadCount>{openCount}</HeadCount>}
                             />
                             <div className={`${CARD} p-4`}>
                                 <ul>
+                                    {/* THE CUP FIRST, because it is the one with a clock in
+                                        it: a live room is being played by people who are
+                                        sitting there now, where a challenge waits for days. */}
+                                    {heldCup && (
+                                        <RoomLine
+                                            room={heldCup}
+                                            kind="Cup"
+                                            go={(c) => navigate(`/versus/${c}`)}
+                                        />
+                                    )}
                                     {inPlay.map((d) => (
                                         <DuelLine
                                             key={d.code}
                                             row={d}
+                                            kind="Challenge"
                                             watched={watched}
                                             go={(c) => navigate(`/versus/${c}`)}
                                         />
@@ -783,27 +790,10 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                         </section>
                     )}
 
-                    {/* WHERE THE ARCHIVE WENT. One quiet line, and it earns its place
-                        rather than being a second navigation: the results used to be at
-                        the foot of this column, so without it a match you watched simply
-                        appears to have been deleted. It is shown only once there is
-                        something over there to find, and it is the only cross-reference
-                        on the page - the tab bar is the way to everywhere else. */}
-                    {record.played > 0 && (
-                        <section className="order-6">
-                            <p className="text-[12px] leading-snug text-muted">
-                                Matches you have played and watched are kept in{' '}
-                                <button
-                                    type="button"
-                                    className="font-semibold text-pitch-ink hover:underline"
-                                    onClick={() => navigate('/records/versus')}
-                                >
-                                    Records
-                                </button>
-                                , with your win and loss record.
-                            </p>
-                        </section>
-                    )}
+                    {/* AND NO LINE POINTING AT THE ARCHIVE (2026-09-18, owner's call). It
+                        said where a watched match goes, which is a fact about the other tab
+                        rather than about anything on this page; the Records tab is two
+                        inches up and its own segment control names Versus. */}
                 </div>
             </div>
         </>

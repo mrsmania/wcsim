@@ -31,6 +31,17 @@ export interface HeldRoom {
      *  quarter-final. Holding the line rather than the ingredients means the room's own
      *  vocabulary reaches the chrome unchanged. */
     line: string;
+    /**
+     * Which of the two kinds it is, so the versus page can label the row it draws for it
+     * (2026-09-18). A duel is already on that page's own list, off the referee; a live
+     * room is on no list at all, and this pointer is the only thing that knows about it.
+     *
+     * ABSENT MEANS LIVE, which is the same reading `isDuel` takes of a room view and for
+     * the same reason: a pointer written by an older build carries no such field. It is
+     * belt to the braces rather than the whole guard - the page also drops a pointer whose
+     * code is already on the duels list - so a stale shape cannot produce a duplicate row.
+     */
+    duel?: boolean;
 }
 
 function read(): HeldRoom | null {
@@ -39,7 +50,7 @@ function read(): HeldRoom | null {
         if (!raw) return null;
         const v = JSON.parse(raw) as Partial<HeldRoom>;
         return typeof v?.code === 'string' && typeof v.status === 'string'
-            ? { code: v.code, status: v.status, line: v.line ?? 'in progress' }
+            ? { code: v.code, status: v.status, line: v.line ?? 'in progress', duel: v.duel === true }
             : null;
     } catch {
         // A private window, storage turned off, or a shape from an older build. Losing
@@ -61,7 +72,10 @@ export function holdVersusRoom(room: HeldRoom | null): void {
     // be offered as "carry on".
     const next = room && room.status !== 'ended' ? room : null;
     const same =
-        next?.code === held?.code && next?.status === held?.status && next?.line === held?.line;
+        next?.code === held?.code &&
+        next?.status === held?.status &&
+        next?.line === held?.line &&
+        next?.duel === held?.duel;
     if (same) return;
     held = next;
     try {

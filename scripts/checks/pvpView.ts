@@ -1616,10 +1616,10 @@ export function pvpViewChecks(): void {
         /'removed-from-room'\) holdVersusRoom\(null\)/.test(screen) &&
         // Which needs the hold itself to be seat-conditional, or a PUBLIC lobby stays
         // readable to them and the very next poll puts the pointer straight back.
-        /if \(next\.you\) holdVersusRoom\(/.test(hook),
+        /if \(next\.you\)\s*\n?\s*holdVersusRoom\(/.test(hook),
       () =>
         `lobby ${/isHost && !m\.bot/.test(lobby)}, retry ${/\{problem && !thrownOut &&/.test(screen)}, ` +
-        `hold ${/if \(next\.you\) holdVersusRoom\(/.test(hook)}`,
+        `hold ${/if \(next\.you\)\s*\n?\s*holdVersusRoom\(/.test(hook)}`,
     );
   }
 
@@ -1950,7 +1950,7 @@ export function pvpViewChecks(): void {
     const join = orderOf('Join with a code');
     const lobby = orderOf('Lobby');
     const waiting = orderOf('Waiting on you');
-    const inPlay = orderOf('On now');
+    const inPlay = orderOf('Open rooms');
     check(
       'versus page: on a phone it is start, join, lobby, then your own matches',
       () =>
@@ -1974,7 +1974,10 @@ export function pvpViewChecks(): void {
     // every row of the list with a different shape, which is the noise the owner named.
     // Source order in one <li> is the only place that lives.
     {
-      const row = home.slice(home.indexOf('{lobby.map('), home.indexOf('{looked !== null'));
+      const row = home.slice(
+        home.indexOf('{lobby.map('),
+        home.indexOf('</ul>', home.indexOf('{lobby.map(')),
+      );
       const pips = row.indexOf('<SeatPips');
       const name = row.indexOf('{r.hostName');
       const seat = row.indexOf("'Take a seat'");
@@ -2067,10 +2070,57 @@ export function pvpViewChecks(): void {
         // shows results a beat before their owner has seen them.
         vrecCode.includes("d.status === 'ended'") &&
         vrecCode.includes('watched.has(d.code)') &&
-        // The pointer that says where it went, which is the only cross-reference on the
-        // versus page: without it a match you watched appears to have been deleted.
-        homeCode.includes("navigate('/records/versus')"),
-      () => 'the versus page still lists finished matches',
+        // AND NO POINTER BACK TO IT, which is the owner's call of 2026-09-18 and reverses
+        // what this line used to assert. It said where a watched match goes, which is a
+        // fact about the other tab rather than about anything on this page, and the
+        // Records tab is two inches up with its own segment named Versus. Asserted in the
+        // negative rather than deleted, so re-adding it is a decision somebody takes here
+        // rather than a paragraph that creeps back.
+        !homeCode.includes("navigate('/records/versus')"),
+      () => 'the versus page still lists finished matches, or still points at the archive',
+    );
+
+    // (f) ONE LIST FOR BOTH KINDS OF ROOM, AND NO STRIP ABOVE IT (2026-09-18).
+    //
+    // TWO ANSWERS TO "WHAT HAVE I GOT ON" is what this guards, and it is what was reported:
+    // the list was fed by `myDuels`, which is `pace = 'async'`, so a cup the reader opened
+    // themselves was on it nowhere - and a full-width card above both columns said "You are
+    // in a room" about ONE room, whichever was last opened, so it either restated a row of
+    // the list below it or advertised a room that list could never hold.
+    //
+    // NOTHING BEHAVIOURAL CAN SEE ANY OF IT. A build that kept the card renders perfectly
+    // and simply says the same thing twice; a build that dropped the dedupe draws the held
+    // duel as a second row labelled "Cup", which is only wrong to somebody reading it. So
+    // this is source, comment-stripped, with the card's own words as the vacuity guard in
+    // the negative and the list's two rows as the guard in the positive.
+    check(
+      'versus page: one list carries both kinds of room, labelled, and the strip is gone',
+      () => {
+        const open = homeCode.slice(
+          homeCode.indexOf('{openCount > 0 &&'),
+          homeCode.indexOf('</section>', homeCode.indexOf('{openCount > 0 &&')),
+        );
+        return (
+          // The card, in the words that were on it. Not a substring of anything else here.
+          !homeCode.includes('You are in a room') &&
+          // Both kinds are in the one list, each with its label. The section really was
+          // found, which is what stops the two `includes` below passing on an empty slice.
+          open.length > 200 &&
+          open.includes('<RoomLine') &&
+          open.includes('<DuelLine') &&
+          open.includes('kind="Cup"') &&
+          open.includes('kind="Challenge"') &&
+          // THE DEDUPE, which is the only way one room can appear twice: the pointer
+          // follows whichever room was last opened, and a duel is already on the list.
+          /!listed\.some\(\(d\) => d\.code === held\.code\)/.test(homeCode) &&
+          // And the kind is read off the pointer rather than guessed, which is what makes
+          // the label right before the duels list has even answered.
+          /!held\.duel/.test(homeCode) &&
+          // The row honours the label rather than taking a prop it ignores.
+          ui.includes('{kind && (')
+        );
+      },
+      () => 'the versus page still carries a room strip beside its list',
     );
 
     // (e) THE VERSUS SEGMENT NEEDS AN ACCOUNT AS WELL AS A REFEREE.
