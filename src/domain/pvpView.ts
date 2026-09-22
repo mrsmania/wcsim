@@ -359,6 +359,50 @@ export function duelRules(row: Pick<DuelRow, 'method' | 'budget'>): string {
         : 'Roll for your XI, one man from each squad';
 }
 
+/** A duel is two chairs, always: `readCreate` forces the size at the edge whatever a client
+ *  asks for, so the row carries no size of its own to read. */
+const DUEL_SEATS = 2;
+
+/**
+ * A duel's chairs, so its row can draw the bubbles a lobby row draws.
+ *
+ * `seated` IS READ THE WAY `duelTurn` READS IT, which is the whole reason this is a
+ * function rather than two literals at the call site: a referee that predates the field
+ * sends none, and both places have to take that as a duel with both seats filled, or a
+ * challenge somebody is already building would show an empty chair beside it.
+ *
+ * It is what tells "nobody has followed the link yet" apart from "they are in": one solid
+ * dot and one hollow, against two solid. That distinction used to be carried by the row's
+ * sentence and is carried here now, which is what lets the sentence say what the room
+ * PLAYS instead (`duelOpenLine`).
+ */
+export function duelSeats(row: Pick<DuelRow, 'seated'>): { size: number; seated: number } {
+    return { size: DUEL_SEATS, seated: row.seated ?? DUEL_SEATS };
+}
+
+/**
+ * An open challenge, on the list of rooms you have on.
+ *
+ * "WAITING." AND WHAT IT PLAYS, and nothing about how far anybody has got (2026-09-22,
+ * owner's call). Every challenge on that list is by construction waiting on somebody who
+ * is not the reader - the ones waiting on THEM are the section above it - so four
+ * sentences that all mean "not your move" were four ways of saying one thing, in the
+ * longest of them ("Sent. Waiting for somebody to take it up") twice over.
+ *
+ * WHAT IT PLAYS IS THE SAME SENTENCE THE LOBBY ROW GETS (`lobbyLine`), which is the point
+ * of the rework: one list of rooms, each row saying what kind it is, what it plays and
+ * how many chairs are taken, whether it is a cup somebody is sitting in or a challenge
+ * spread over a week. It is shorter than the lobby's by what a duel does not have - no
+ * clock (P51), and the row carries no re-roll count, since `myDuels` does not send one.
+ *
+ * WHAT IT GIVES UP is the difference between a challenge nobody has opened and one they
+ * are building, and it gives it up to the seat bubbles rather than losing it: an
+ * untaken challenge is one dot short (`duelSeats`).
+ */
+export function duelOpenLine(row: Pick<DuelRow, 'method' | 'budget'>): string {
+    return `Waiting. ${duelRules(row)}`;
+}
+
 /**
  * What a duel's sending window has left, for whichever half of it the reader is on.
  *

@@ -4465,6 +4465,41 @@ owner's three corrections, in `versus-option-2.html`. What shipped:
   - **The lobby's empty line had to move out of the way**: it read "No open rooms right now"
     under a heading that now means something else, and says "Nobody has a room open right
     now" instead.
+- **AN OPEN ROOM'S ROW IS THE LOBBY ROW: WHAT IT PLAYS, AND ITS CHAIRS DRAWN** (2026-09-22,
+  asked for). With both kinds on one list, the two rows had to read the same way, and a
+  challenge did not: it printed how far each side had got, in four sentences that all mean
+  the same thing. **Every row on that list is waiting on somebody who is not the reader** -
+  anything waiting on YOU is the section above it - so "Sent. Waiting for somebody to take
+  it up", "They took it up. Ready when you both are", "They are building, 4 of 11 picked"
+  and "The match is being played" were four ways of saying "not your move", the longest of
+  them twice over. It is **"Waiting." plus what the room plays** now (`duelOpenLine`), which
+  is the lobby row's own sentence (`duelRules`, the same opening words as `lobbyLine`),
+  shorter by what a duel has not got: no clock (P51), and no re-roll count, since
+  `GET /v1/duels` does not send one. Three things about it:
+  - **WHAT IT GIVES UP GOES TO THE SEAT BUBBLES rather than being lost.** The one
+    distinction of the four a reader can act on is "nobody has followed the link yet", and
+    the chairs say it better than a sentence: a challenge is two seats (`duelSeats`, with
+    `seated` read the way `duelTurn` reads it, so a referee that predates the field still
+    means both taken), so an untaken one is one solid dot and one hollow.
+  - **THE CUP ON THAT LIST DRAWS THEM TOO, off the pointer** (`HeldRoom.seats`), which is
+    the only thing on this side that knows about a live room at all. Counted in
+    `useVersusRoom` where the members are, and **the pointer's own no-op test had to grow
+    them**: a chair taken moves neither the status nor the sentence, so without those three
+    lines the dots would have been written once and never again. Absent from a pointer
+    written by an older build, where the row simply has no dots.
+  - **WHICH SENTENCE A ROW GETS IS A FACT ABOUT THE ROW**, not about which list it is on, so
+    the shared row takes no prop for it and the partition is exactly the one the two pages
+    already make: something waiting on you leads with that, an open room says what it plays,
+    a finished one is the result.
+- **AND A CUP DEFAULTS TO FOUR PEOPLE, OPEN TO ANYBODY** (2026-09-22, asked for). Both are
+  about what "Create a cup" is FOR. A room of two nobody can find is the challenge with a
+  clock bolted on, and the challenge has its own door directly above it; four is a semi and a
+  final, the smallest thing that is actually a tournament. And **the lobby list is the only
+  way somebody who was not sent a code ever finds a room**, so a private default left the
+  public list empty by default - the half of this feature that depends on other people,
+  starved by its own form. Neither default reaches a duel, which is two and private whatever
+  the form holds (`readCreate` forces both at the edge). Checked, because **nothing
+  behavioural can see a default**: every value the form can hold is a legal room.
 - **TWO EXPLAINING LINES WENT WITH IT** (same request). "This list refreshes itself every 10
   seconds" described the machinery rather than the rooms, on the one section whose job is to
   be scanned; and "Matches you have played and watched are kept in Records, with your win and

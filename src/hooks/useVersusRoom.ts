@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { answerIsFresh, isDuel, roomLine } from '../domain/pvpView';
+import { answerIsFresh, botsIn, isDuel, peopleIn, roomLine } from '../domain/pvpView';
 import type { RoomView } from '../domain/pvpWire';
 import { holdLiveMatch } from '../nav/liveMatch';
 import { holdVersusRoom } from '../nav/versusRoom';
@@ -195,6 +195,15 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
                 // Which kind it is, for the versus page's own list. Through `isDuel` and
                 // never off the field, because an absent `pace` means live.
                 duel: isDuel(next),
+                // And its chairs, so that list can draw the same bubbles the lobby draws.
+                // Counted here because this is where the members are: the pointer is per
+                // tab and holds no room view, and the page that reads it has no way to ask
+                // the referee "which live room am I in" at all.
+                seats: {
+                    size: next.size,
+                    seated: peopleIn(next).length,
+                    bots: botsIn(next).length,
+                },
             });
     }, []);
 

@@ -42,6 +42,28 @@ export interface HeldRoom {
      * code is already on the duels list - so a stale shape cannot produce a duplicate row.
      */
     duel?: boolean;
+    /**
+     * The room's chairs, so the versus page's list can draw the same bubbles a lobby row
+     * draws (2026-09-22). `seated` is PEOPLE, as it is on the wire: a chair a practice
+     * opponent is holding is neither a person nor free, and it still yields to anybody who
+     * turns up.
+     *
+     * ABSENT MEANS NO DOTS, which is what a pointer written by an older build has and what
+     * a room read before the count is known would have. A row without them is the row as it
+     * was, so nothing has to be migrated and nothing can be drawn wrong.
+     */
+    seats?: { size: number; seated: number; bots: number };
+}
+
+/** The seats off a stored pointer, or nothing. Three numbers or none: a half-read pair
+ *  would draw a room with more people in it than chairs. */
+function seatsOf(v: unknown): HeldRoom['seats'] {
+    const s = v as Partial<{ size: number; seated: number; bots: number }> | undefined;
+    return typeof s?.size === 'number' &&
+        typeof s.seated === 'number' &&
+        typeof s.bots === 'number'
+        ? { size: s.size, seated: s.seated, bots: s.bots }
+        : undefined;
 }
 
 function read(): HeldRoom | null {
@@ -50,7 +72,13 @@ function read(): HeldRoom | null {
         if (!raw) return null;
         const v = JSON.parse(raw) as Partial<HeldRoom>;
         return typeof v?.code === 'string' && typeof v.status === 'string'
-            ? { code: v.code, status: v.status, line: v.line ?? 'in progress', duel: v.duel === true }
+            ? {
+                  code: v.code,
+                  status: v.status,
+                  line: v.line ?? 'in progress',
+                  duel: v.duel === true,
+                  seats: seatsOf(v.seats),
+              }
             : null;
     } catch {
         // A private window, storage turned off, or a shape from an older build. Losing
@@ -75,7 +103,13 @@ export function holdVersusRoom(room: HeldRoom | null): void {
         next?.code === held?.code &&
         next?.status === held?.status &&
         next?.line === held?.line &&
-        next?.duel === held?.duel;
+        next?.duel === held?.duel &&
+        // The seats have to be in the comparison or a chair taken while the strip is up
+        // would never reach it: this is the one field that moves without the status or the
+        // sentence moving with it.
+        next?.seats?.size === held?.seats?.size &&
+        next?.seats?.seated === held?.seats?.seated &&
+        next?.seats?.bots === held?.seats?.bots;
     if (same) return;
     held = next;
     try {

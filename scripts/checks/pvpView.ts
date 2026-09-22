@@ -36,7 +36,9 @@ import {
   duelDowngraded,
   duelLine,
   duelListed,
+  duelOpenLine,
   duelRules,
+  duelSeats,
   duelToOpen,
   duelTurn,
   everybodyReady,
@@ -2028,12 +2030,13 @@ export function pvpViewChecks(): void {
           // And the row honours it rather than accepting a prop it ignores. It lives in
           // the shared atoms now, both pages drawing the identical row.
           ui.includes('{code && (') &&
-          // What it PLAYS is gated on the status rather than on the code, which is a
-          // different question with the same answer here: it is worth knowing while there
-          // is still a team to build, and once there is not the row's own line is the
-          // result. Appending it anyway wrapped every alert onto a second line to say
-          // nothing, which is the complaint this whole rework is about.
-          ui.includes("{row.status !== 'ended' && <> &middot; {duelRules(row)}</>}")
+          // What it PLAYS rides with an ALERT and nowhere else now (2026-09-22): a row
+          // waiting on the reader leads with that and says what it plays after it, an
+          // open one says only what it plays (`duelOpenLine`), and a result is the
+          // result. Appending it to a finished row wrapped every alert onto a second
+          // line to say nothing, which is the complaint this whole rework is about.
+          ui.includes('{duelLine(row)} &middot; {duelRules(row)}') &&
+          !ui.includes("{row.status !== 'ended' && <> &middot; {duelRules(row)}</>}")
         );
       },
       () => 'the finished list passes code={false}',
@@ -2121,6 +2124,119 @@ export function pvpViewChecks(): void {
         );
       },
       () => 'the versus page still carries a room strip beside its list',
+    );
+
+    // (g) AN OPEN ROOM SAYS WHAT IT PLAYS AND DRAWS ITS CHAIRS (2026-09-22, owner's call).
+    //
+    // The list carries both kinds of room, so both rows have to read the same way: a tag
+    // saying which it is, a name, what it PLAYS, the chairs, and the way in. A challenge was
+    // instead saying how far each side had got - four sentences, every one of them meaning
+    // "not your move", since a row with anything waiting on the reader is in the section
+    // above this one.
+    //
+    // WHAT IT GIVES UP GOES TO THE BUBBLES rather than being lost: an untaken challenge is
+    // one dot short of a taken one, which is the only distinction of the four that a reader
+    // can do anything about (send the link to somebody else).
+    {
+      const roll = { method: 'roll' as const, budget: 0 };
+      const buy = { method: 'budget' as const, budget: 110 };
+      // A lobby row of each kind, to read the challenge's sentence against: "structured the
+      // same way as the lobby section" is the request, and the two are written by two
+      // different functions, so nothing but a comparison holds them together.
+      const listed: LobbyRoom = {
+        code: 'AB12CD',
+        size: 4,
+        seated: 2,
+        method: 'roll',
+        budget: 110,
+        pickSeconds: 20,
+        draftSeconds: 300,
+        rerolls: 3,
+        showRatings: true,
+        hostName: 'Ada',
+        openedAt: 1_000_000,
+      };
+      const open = homeCode.slice(
+        homeCode.indexOf('{openCount > 0 &&'),
+        homeCode.indexOf('</section>', homeCode.indexOf('{openCount > 0 &&')),
+      );
+      check(
+        'versus page: an open challenge says Waiting, then what it plays, in the lobby row voice',
+        () =>
+          duelOpenLine(roll) === 'Waiting. Roll for your XI, one man from each squad' &&
+          duelOpenLine(buy) === 'Waiting. Buy an XI with $110' &&
+          // STRUCTURED AS THE LOBBY ROW IS, which is the whole of the request: the same
+          // sentence, opening on the same words, shorter by what a duel has not got - no
+          // clock (P51), and no re-roll count, since `myDuels` does not send one.
+          duelOpenLine(roll).endsWith(duelRules(roll)) &&
+          lobbyLine(listed).startsWith('Roll for your XI,') &&
+          duelRules(roll).startsWith('Roll for your XI,') &&
+          lobbyLine({ ...listed, method: 'budget' }).startsWith('Buy an XI with $110') &&
+          duelRules(buy).startsWith('Buy an XI with $110') &&
+          // THE CHAIRS. Two, always, and `seated` read the way `duelTurn` reads it: a
+          // referee that predates the field means both taken, or a challenge somebody is
+          // already building would show an empty chair.
+          seatCounts({ ...duelSeats({ seated: 1 }), bots: 0 }).free === 1 &&
+          seatCounts({ ...duelSeats({ seated: 2 }), bots: 0 }).free === 0 &&
+          seatCounts({ ...duelSeats({}), bots: 0 }).free === 0 &&
+          // And the screens: the row prints it, on an open room and nowhere else, and the
+          // live cup beside it draws the same bubbles off the pointer.
+          ui.includes('duelOpenLine(row)') &&
+          ui.includes('<SeatPips {...duelSeats(row)} />') &&
+          /!alert && row\.status !== 'ended'/.test(ui) &&
+          ui.includes('seats={room.seats ? <SeatPips {...room.seats} /> : undefined}') &&
+          // Vacuity: the section really was found, and it is the one that draws both rows.
+          open.length > 200 &&
+          open.includes('<RoomLine') &&
+          open.includes('<DuelLine'),
+        () => `${duelOpenLine(roll)} / ${duelOpenLine(buy)}`,
+      );
+
+      // AND THE LIVE CUP'S CHAIRS COME OFF THE POINTER, which is the only thing on this
+      // side that knows about that room at all: the duels list is `pace = 'async'`, and
+      // the referee has no route answering "which live room am I in". So the count is
+      // taken where the members are, and the pointer's own no-op test has to include it -
+      // a chair taken while the strip is up moves neither the status nor the sentence, so
+      // without those three lines the dots would be written once and never again.
+      const nav = codeOnly(readFileSync('src/nav/versusRoom.ts', 'utf8'));
+      const hook = codeOnly(readFileSync('src/hooks/useVersusRoom.ts', 'utf8'));
+      check(
+        'versus page: a live room records its chairs, and a chair taken reaches the pointer',
+        () =>
+          /seated: peopleIn\(next\)\.length/.test(hook) &&
+          /bots: botsIn\(next\)\.length/.test(hook) &&
+          /size: next\.size/.test(hook) &&
+          /next\?\.seats\?\.seated === held\?\.seats\?\.seated/.test(nav) &&
+          /next\?\.seats\?\.bots === held\?\.seats\?\.bots/.test(nav) &&
+          /next\?\.seats\?\.size === held\?\.seats\?\.size/.test(nav) &&
+          // Three numbers or none, so a half-read pointer cannot draw a room with more
+          // people in it than chairs.
+          nav.includes("typeof s?.size === 'number'") &&
+          // Vacuity: both files really are the ones that write and hold the pointer.
+          hook.includes('holdVersusRoom({') &&
+          nav.includes('export function holdVersusRoom'),
+        () => 'the live room no longer records its chairs, or the pointer ignores a change',
+      );
+    }
+
+    // (h) FOUR PEOPLE AND ANYBODY, for a cup (2026-09-22, owner's call).
+    //
+    // NOTHING BEHAVIOURAL CAN SEE A DEFAULT: every value the form can hold is a legal room,
+    // so a build that opened two-player private rooms for ever works perfectly and simply
+    // starves the half of the feature that depends on other people - the public list is the
+    // only way somebody who was not sent a code ever finds a room.
+    check(
+      'versus page: a cup defaults to four people and to anybody',
+      () =>
+        /useState<'private' \| 'public'>\('public'\)/.test(homeCode) &&
+        /const \[size, setSize\] = useState\(4\)/.test(homeCode) &&
+        // The default has to be one of the chips, or none is lit at all.
+        home.includes("{ value: 4, label: 'Four' }") &&
+        // And neither reaches a duel, which is two and private whatever they say - the
+        // form hides both chips for one and sends the forced values.
+        /size: duel \? 2 : size/.test(homeCode) &&
+        /visibility: duel \? 'private' : visibility/.test(homeCode),
+      () => 'the create form no longer defaults a cup to four people, listed publicly',
     );
 
     // (e) THE VERSUS SEGMENT NEEDS AN ACCOUNT AS WELL AS A REFEREE.

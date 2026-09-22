@@ -237,8 +237,18 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
     // did not choose, one man from it, and the same eleven decisions for everybody. Buying
     // is the variant where knowing the price list is the skill, and it is one tap away.
     const [method, setMethod] = useState<'budget' | 'roll'>('roll');
-    const [visibility, setVisibility] = useState<'private' | 'public'>('private');
-    const [size, setSize] = useState(2);
+    // FOUR PEOPLE AND ANYBODY ARE THE CUP'S DEFAULTS (2026-09-22, owner's call), and both
+    // are about what "Create a cup" is FOR. A room of two nobody can find is the challenge
+    // with a clock bolted on, and the challenge has its own door directly above this one;
+    // four is a semi-final and a final, which is the smallest thing that is actually a
+    // tournament. And the lobby list is the ONLY way somebody who was not sent a code ever
+    // finds a room, so a private default means the public list is empty by default too -
+    // the half of this feature that depends on other people, starved by its own form.
+    //
+    // Neither reaches a duel, which is two and private whatever these say: the form hides
+    // both chips for a challenge and `readCreate` forces them at the edge anyway.
+    const [visibility, setVisibility] = useState<'private' | 'public'>('public');
+    const [size, setSize] = useState(4);
     const [budget, setBudget] = useState<RoomBudget>(DEFAULT_ROOM_BUDGET);
     const [rerolls, setRerolls] = useState(3);
     const [pickSeconds, setPickSeconds] = useState<PickSeconds>(20);

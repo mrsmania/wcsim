@@ -10,7 +10,16 @@ import {
     UserMinus,
     UserPlus,
 } from 'lucide-react';
-import { duelAlert, duelLine, duelRules, duelTurn, inviteText, seatCounts } from '../../domain/pvpView';
+import {
+    duelAlert,
+    duelLine,
+    duelOpenLine,
+    duelRules,
+    duelSeats,
+    duelTurn,
+    inviteText,
+    seatCounts,
+} from '../../domain/pvpView';
 import type { DuelRow, MemberView } from '../../domain/pvpWire';
 import type { HeldRoom } from '../../nav/versusRoom';
 import { CARD_FLAT, MONO_CAP, Meter, btn } from '../matchUi';
@@ -576,15 +585,37 @@ export function DuelLine({
             kind={kind}
             title={row.opponentName || 'Nobody yet'}
             code={code ? row.code : undefined}
+            /* THREE SENTENCES, AND WHICH ONE IS A FACT ABOUT THE ROW rather than about
+               which list it is on - which is what lets this take no prop for it, and what
+               makes the partition exactly the one the two pages already make.
+
+               A row with something WAITING on the reader leads with that, and says what it
+               plays after it while there is still a team to build. A row with nothing
+               waiting and no result yet is an open room, and says only what it plays
+               (`duelOpenLine`): every one of those is waiting on somebody else, so four
+               different ways of saying "not your move" were four ways of saying one thing,
+               and the seat bubbles carry the one distinction worth keeping. A row with a
+               result is the result, and appending "roll for your XI, one man from each
+               squad" to it wrapped every alert onto a second line to say nothing. */
             line={
-                <>
-                    {alert === 'watch' ? 'The match has been played' : duelLine(row)}
-                    {/* What it plays is worth knowing while there is still a team to build
-                        and is noise once there is not: a finished row's own line is the
-                        result, and appending "roll for your XI, one man from each squad" to
-                        it wrapped every alert onto a second line to say nothing. */}
-                    {row.status !== 'ended' && <> &middot; {duelRules(row)}</>}
-                </>
+                alert === 'watch' ? (
+                    'The match has been played'
+                ) : alert ? (
+                    <>
+                        {duelLine(row)} &middot; {duelRules(row)}
+                    </>
+                ) : row.status !== 'ended' ? (
+                    duelOpenLine(row)
+                ) : (
+                    duelLine(row)
+                )
+            }
+            /* THE CHAIRS, on an open room and nowhere else. On a row that is waiting on the
+               reader both seats are taken by definition, and on a finished one they are a
+               fact about a room nobody is going back to, so in both places two solid dots
+               would be furniture. */
+            seats={
+                !alert && row.status !== 'ended' ? <SeatPips {...duelSeats(row)} /> : undefined
             }
             loud={!!alert}
             action={
@@ -639,6 +670,12 @@ export function RoomLine({
             // out to somebody anyway.
             title={<span className="font-mono tracking-[0.1em]">{room.code}</span>}
             line={room.line}
+            // THE SAME BUBBLES THE LOBBY DRAWS, which is most of why a live room belongs on
+            // this list rather than in a strip of its own: a cup waiting on two more people
+            // says so in the shape the reader already learned one section up. Absent from a
+            // pointer written by an older build, where the row simply has no dots - the
+            // seats are the room's and this is a per-tab copy of them.
+            seats={room.seats ? <SeatPips {...room.seats} /> : undefined}
             action="Back to it"
             onGo={() => go(room.code)}
         />
@@ -662,6 +699,7 @@ function MatchLine({
     title,
     code,
     line,
+    seats,
     loud,
     action,
     onGo,
@@ -670,6 +708,10 @@ function MatchLine({
     title: ReactNode;
     code?: string;
     line: ReactNode;
+    /** The room's chairs, drawn, for a row that has some to show. It sits between the name
+     *  and the way in, exactly as it does on a lobby row, so the two lists put their button
+     *  at the same x and read down rather than along. */
+    seats?: ReactNode;
     loud?: boolean;
     action: string;
     onGo: () => void;
@@ -696,6 +738,7 @@ function MatchLine({
                     {line}
                 </div>
             </div>
+            {seats}
             <button
                 type="button"
                 className={`shrink-0 ${btn(loud ? 'primary' : 'secondary', 'compact')}`}
