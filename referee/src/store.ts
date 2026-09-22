@@ -14,7 +14,7 @@
 // to forget; handing them `read` and `save` makes it impossible to see.
 
 import type { DraftSeconds, PvpRoom, RoomPace } from '../../src/domain/pvpRoom';
-import type { DuelRow, InviteRoom, LobbyRoom } from '../../src/domain/pvpWire';
+import type { DuelRow, InviteRoom, LobbyRoom, MyRoom } from '../../src/domain/pvpWire';
 
 /** One line of the lobby list, as the store hands it over. The wire shape is shared with
  *  the client (`src/domain/pvpWire.ts`), so the two sides cannot describe it differently. */
@@ -22,6 +22,10 @@ export type LobbyRow = LobbyRoom;
 
 /** One line of the duels list, same arrangement and for the same reason. */
 export type DuelListRow = DuelRow;
+
+/** One LIVE room the caller is in, for the versus page's own list. Same arrangement again;
+ *  see `MyRoom` for why it is neither of the two shapes above. */
+export type MyRoomRow = MyRoom;
 
 /** What an invitation says about a room to somebody with no account, same arrangement
  *  again. See `InviteRoom` for what it deliberately leaves out. */
@@ -106,6 +110,20 @@ export interface RoomStore {
    *  the lobby listing it answers off the rooms and a count, never the whole room: what a
    *  list needs is the other person's name and whose move it is. */
   myDuels(userId: string, limit: number): Promise<DuelListRow[]>;
+
+  /**
+   * The LIVE rooms this account is in and has not finished, newest activity first.
+   *
+   * IT IS `activeRoomOf` ASKED IN ORDER TO ANSWER rather than in order to refuse. That one
+   * has existed since wave 1 and is read only by P39, to turn away a second room; this one
+   * is the same question put to the same rows so the versus page can SAY which cup you are
+   * in - which the browser could not, holding that fact in `sessionStorage` (roadmap 67).
+   *
+   * AN ARRAY, THOUGH P39 MEANS AT MOST ONE. The rule is enforced at join and at create and
+   * nothing in the schema holds it, so a caller that assumed a single row would be assuming
+   * an invariant rather than reading one - and a list renders however many arrive.
+   */
+  myLiveRooms(userId: string, limit: number): Promise<MyRoomRow[]>;
 
   /**
    * The room an invitation points at, as much of it as a stranger may be told (`InviteRow`).

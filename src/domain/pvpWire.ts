@@ -197,6 +197,46 @@ export interface DuelRow {
   touchedAt: number;
 }
 
+/**
+ * A LIVE room you are in, for the versus page's own list (2026-09-22, roadmap item 67).
+ *
+ * IT EXISTS BECAUSE THE BROWSER CANNOT ANSWER THE QUESTION. The versus page lists what you
+ * have on, and until now the duels half came off `myDuels` (which is `pace = 'async'`) while
+ * the live half came off `nav/versusRoom.ts` - a pointer in `sessionStorage`, so a cup opened
+ * on a phone was on no list on a laptop, and one opened in a tab you have since closed was on
+ * no list at all. The server has always known: `activeRoomOf` is this same question, asked
+ * only in order to REFUSE a second room (P39). This is it asked in order to answer.
+ *
+ * IT IS NOT A `LobbyRoom` AND NOT A `RoomView`, and the two exclusions are different. A
+ * `LobbyRoom` is read by somebody NOT in the room, so it carries no state at all - it could
+ * not say "drafting, 4 of 11 picked", which is the whole of what this row is for. A
+ * `RoomView` is the room itself, members and XIs and all, which is a listing carrying eleven
+ * other people's teams. So this is the third shape: counts, and the one count that is yours.
+ *
+ * NEVER `ended`, which is what makes the list "Open rooms". A live room that finished was
+ * watched as it happened (P30's reveal window is the server's), so unlike a duel there is no
+ * result sitting unseen, and the chrome's pointer drops an ended room for the same reason.
+ */
+export interface MyRoom {
+  code: string;
+  /** Never `ended`; the type is shared so `roomLineOf` can take either source. */
+  status: RoomStatusWire;
+  size: number;
+  /** PEOPLE seated, counted apart from the practice opponents exactly as `LobbyRoom` does
+   *  and for the same reason: a bot yields its chair to anybody who turns up. */
+  seated: number;
+  bots: number;
+  /** How many of the people have pressed Ready. A lobby's whole line is the three counts. */
+  ready: number;
+  /** How many of the eleven YOU have placed. The one figure here that is about the caller
+   *  rather than about the room, and what a draft's line reads. */
+  yourPicks: number;
+  /** Which knockout round it is playing, for the round's own name. */
+  round: number;
+  /** When anything last happened, which is what the list sorts on. */
+  touchedAt: number;
+}
+
 export interface RoomView {
   code: string;
   visibility: 'public' | 'private';

@@ -9,6 +9,7 @@ import {
     duelListed,
     lobbyJoinable,
     lobbyLine,
+    myRoomLine,
     offersRatingSwitch,
 } from '../../domain/pvpView';
 import {
@@ -21,7 +22,7 @@ import {
     type PickSeconds,
     type RoomBudget,
 } from '../../domain/pvpRoom';
-import type { DuelRow, LobbyRoom } from '../../domain/pvpWire';
+import type { DuelRow, LobbyRoom, MyRoom } from '../../domain/pvpWire';
 import { useHeldVersusRoom } from '../../nav/versusRoom';
 import { RefereeError, createRoom, leaveRoom, readDuels, readLobby } from '../../state/pvp/referee';
 import { onDuelsChanged } from '../../state/pvp/duels';
@@ -230,6 +231,14 @@ function Chips<T extends number | string>({
     );
 }
 
+/** One live room on the list, however it was answered: off the referee, or off the per-tab
+ *  pointer when the referee is too old to say. */
+interface OpenRoom {
+    code: string;
+    line: string;
+    seats?: { size: number; seated: number; bots?: number };
+}
+
 export default function VersusHome({ name, onRename }: { name: string; onRename: () => void }) {
     const navigate = useNavigate();
     const held = useHeldVersusRoom();
@@ -319,6 +328,14 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
     // introduction.
     const [lobby, setLobby] = useState<LobbyRoom[] | null>(null);
     const [duels, setDuels] = useState<DuelRow[]>([]);
+    // THE LIVE ROOMS YOU ARE IN, off the same answer (2026-09-22, roadmap item 67).
+    //
+    // UNDEFINED AND EMPTY MEAN DIFFERENT THINGS, which is the whole mechanism: a referee
+    // that predates the field sends no `rooms` key, and that is "this server cannot say",
+    // so the page falls back to the per-tab pointer it used before. `[]` is the server
+    // saying you are in no live room, which it may be believed about. Starting at undefined
+    // therefore also covers the moment before the first answer lands.
+    const [myRooms, setMyRooms] = useState<MyRoom[] | undefined>(undefined);
     // Whether this server does duels at all, probed off the list below rather than
     // announced: `PVP_PROTOCOL` was deliberately not bumped for an additive change, so the
     // handshake cannot tell an old container from a new one. It is a HINT and not a gate -
@@ -343,10 +360,15 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
         void readDuels()
             .then((r) => {
                 setDuels(r.duels);
+                setMyRooms(r.rooms);
                 setDuelsRoute(true);
             })
             .catch((err: unknown) => {
                 setDuels([]);
+                // NOT `undefined`, which would read as "this server cannot say" and put the
+                // pointer back. A failed read says nothing about the server's age, and the
+                // last good answer is the better thing to keep than a fallback chosen by a
+                // dropped packet - so the rooms are simply left as they were.
                 // ONLY this one refusal means "this server has no duels". A timeout, a 500
                 // or a signed-out session all land here too and mean nothing of the sort,
                 // and treating them the same would hide the feature over a dropped packet.
@@ -391,19 +413,41 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
     const waiting = listed.filter((d) => duelAlert(d, watched));
     const inPlay = listed.filter((d) => !duelAlert(d, watched) && d.status !== 'ended');
 
-    // AND THE LIVE ROOM YOU HOLD IS ON THAT LIST TOO (2026-09-18, reported as confusing and
-    // it was). "On now" was duels and nothing else, because `myDuels` is `pace = 'async'`,
-    // so a cup you opened yourself appeared nowhere on it - and the answer to that used to
-    // be a card of its own above both columns saying "You are in a room", which is a second
-    // shape for a thing the list beside it is already for. One list, both kinds, each row
-    // labelled.
+    // AND THE LIVE ROOMS YOU ARE IN ARE ON THAT LIST TOO (2026-09-18, reported as
+    // confusing and it was). "On now" was duels and nothing else, because `myDuels` is
+    // `pace = 'async'`, so a cup you opened yourself appeared nowhere on it - and the answer
+    // to that used to be a card of its own above both columns saying "You are in a room",
+    // which is a second shape for a thing the list beside it is already for. One list, both
+    // kinds, each row labelled.
     //
-    // DROPPED WHEN THE DUELS LIST ALREADY HAS IT, which is the only way this can produce a
-    // row twice: the pointer follows whichever room you last opened, duel or cup alike. The
-    // kind it records is belt to those braces, and it is what labels the row.
-    const heldCup =
-        held && !held.duel && !listed.some((d) => d.code === held.code) ? held : null;
-    const openCount = inPlay.length + (heldCup ? 1 : 0);
+    // THE SERVER ANSWERS IT SINCE 2026-09-22 (roadmap item 67), which is what makes a cup
+    // opened on another device show up here at all: the first version of this read the
+    // chrome's own pointer, and that is `sessionStorage` - right in the tab that opened the
+    // room and blank everywhere else.
+    //
+    // THE POINTER IS THE FALLBACK AND NOTHING MORE. When the server HAS spoken it wins
+    // outright, even saying "no rooms": it can see every device and the pointer can see one
+    // tab, so preferring the pointer anywhere would mean a room you have just left going on
+    // being advertised. `rooms === undefined` is the one case it is read, and that is a
+    // referee too old to have the field rather than a referee with nothing to report.
+    // THE CHAIRS COME WITH IT from whichever source answered, which is what keeps the two
+    // rows of this list reading alike: a cup waiting on two more people says so in the same
+    // bubbles the lobby draws one section up. The server row carries the three counts
+    // directly; the pointer carries a per-tab copy of them, absent from one an older build
+    // wrote, where the row simply has no dots.
+    const openRooms: OpenRoom[] = myRooms
+        ? myRooms.map((r) => ({
+              code: r.code,
+              line: myRoomLine(r),
+              seats: { size: r.size, seated: r.seated, bots: r.bots },
+          }))
+        : // DROPPED WHEN THE DUELS LIST ALREADY HAS IT, which is the only way the pointer
+          // can produce a row twice: it follows whichever room you last opened, duel or cup
+          // alike. The kind it records is belt to those braces, and it is what labels the row.
+          held && !held.duel && !listed.some((d) => d.code === held.code)
+          ? [{ code: held.code, line: held.line, seats: held.seats }]
+          : [];
+    const openCount = inPlay.length + openRooms.length;
 
     // NOTHING AT ALL YET, which is the only state the long explanation is for. It used to
     // sit above the controls on every visit, a hundred words nobody reads twice; here it is
@@ -776,16 +820,20 @@ export default function VersusHome({ name, onRename }: { name: string; onRename:
                             />
                             <div className={`${CARD} p-4`}>
                                 <ul>
-                                    {/* THE CUP FIRST, because it is the one with a clock in
-                                        it: a live room is being played by people who are
-                                        sitting there now, where a challenge waits for days. */}
-                                    {heldCup && (
+                                    {/* THE CUPS FIRST, because they are the ones with a
+                                        clock in them: a live room is being played by people
+                                        who are sitting there now, where a challenge waits
+                                        for days. */}
+                                    {openRooms.map((r) => (
                                         <RoomLine
-                                            room={heldCup}
+                                            key={r.code}
+                                            code={r.code}
+                                            line={r.line}
+                                            seats={r.seats}
                                             kind="Cup"
                                             go={(c) => navigate(`/versus/${c}`)}
                                         />
-                                    )}
+                                    ))}
                                     {inPlay.map((d) => (
                                         <DuelLine
                                             key={d.code}

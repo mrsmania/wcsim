@@ -214,6 +214,11 @@ const LOBBY_LIMIT = 30;
  *  a thing you scan and this is a thing you keep, and a duel a week old still resolves. */
 const DUEL_LIMIT = 50;
 
+/** How many live rooms of your own the list may carry. P39 allows exactly one, so this is
+ *  a bound on a bug rather than on a feature: it stops a broken invariant turning into an
+ *  unbounded answer, and a reader never sees it. */
+const ROOM_LIMIT = 5;
+
 export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiResponse> {
   const now = deps.now();
   const path = req.path.replace(/\/+$/, '') || '/';
@@ -277,8 +282,23 @@ export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiRespons
   // It is the only way an unanswered challenge is ever seen - there is no mail and no push
   // notification in this game - so it is the feature's front door rather than a listing
   // beside it.
+  //
+  // AND THE LIVE ROOMS YOU ARE IN, IN THE SAME ANSWER (2026-09-22, roadmap item 67). The
+  // versus page draws one list of everything you have on, and it had two sources: this
+  // route for the duels and `sessionStorage` for the live room, so a cup opened on another
+  // device was on no list. Both halves of that list now come from here.
+  //
+  // THE ROUTE KEEPS ITS NAME THOUGH ITS ANSWER IS WIDER, and that is the trade rather than
+  // an oversight: it is read every ten seconds by the page and every thirty by the chrome,
+  // so a second endpoint would double a poll that already runs for at most one extra row.
+  // Adding a key is invisible to an older client, which is what makes the two halves of
+  // this change deployable in either order.
   if (req.method === 'GET' && path === '/referee/v1/duels') {
-    return ok({ duels: await deps.store.myDuels(userId, DUEL_LIMIT) });
+    const [duels, rooms] = await Promise.all([
+      deps.store.myDuels(userId, DUEL_LIMIT),
+      deps.store.myLiveRooms(userId, ROOM_LIMIT),
+    ]);
+    return ok({ duels, rooms });
   }
 
   const m = ROOM_PATH.exec(path);

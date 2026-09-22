@@ -24,7 +24,16 @@ import type { Formation } from './formations';
 import type { KoDecided } from './knockout';
 import { xiStrength } from './match';
 import type { MatchEvent, ShootoutResult, Strength } from './match';
-import type { DuelRow, InviteRoom, LobbyRoom, MemberView, RoomView, TieView } from './pvpWire';
+import type {
+    DuelRow,
+    InviteRoom,
+    LobbyRoom,
+    MemberView,
+    MyRoom,
+    RoomStatusWire,
+    RoomView,
+    TieView,
+} from './pvpWire';
 
 /** How long after the server stamped a reveal a client will still start playing it from
  *  the beginning. Past that it has missed too much, and the settled card is the honest
@@ -667,30 +676,81 @@ export function xiStrengthFrom(formation: Formation, ids: Record<string, string>
  *  needs to decide whether to go back. */
 export function roomLine(view: RoomView): string {
     const me = meIn(view);
-    switch (view.status) {
-        case 'lobby': {
-            const ready = view.members.filter((m) => m.ready).length;
-            return `waiting, ${view.members.length} of ${view.size} in, ${ready} ready`;
-        }
+    return roomLineOf({
+        status: view.status,
+        size: view.size,
+        seated: view.members.length,
+        ready: view.members.filter((m) => m.ready).length,
+        yourPicks: me?.picked ?? 0,
+        round: view.round,
+        duel: isDuel(view),
+        // A room that CLOSED (nobody there, or nobody touching it) is not a room that
+        // finished, and the strip is the one place a player might be told either.
+        won: view.championId === me?.userId,
+        closed: roomClosed(view),
+    });
+}
+
+/**
+ * The same sentence about a room you are in, from a LIST row rather than from the room.
+ *
+ * IT SHARES A CORE WITH `roomLine` RATHER THAN RESTATING IT (2026-09-22, roadmap item 67).
+ * The versus page draws one row per open room and the two sources feed it from opposite
+ * ends: a `RoomView` while this tab holds the room, and a `MyRoom` off the referee for a room
+ * opened on another device. Two functions writing "drafting, 4 of 11 picked" is two places
+ * for it to drift, and the drift would be invisible - each source renders a perfectly good
+ * row, and they simply disagree about the same room depending on where you are reading it.
+ *
+ * AN ENDED ROOM IS NOT ON THE LIST, so the two fields that only an ended room needs are
+ * optional here and a `MyRoom` never carries them. `roomLineOf` still answers for one,
+ * because the CHROME's strip is a `RoomView` and P31 can end a room under somebody.
+ */
+export function myRoomLine(room: MyRoom): string {
+    return roomLineOf({
+        status: room.status,
+        size: room.size,
+        seated: room.seated,
+        ready: room.ready,
+        yourPicks: room.yourPicks,
+        round: room.round,
+        // A live room and never a duel: `myLiveRooms` filters on the pace, and a duel of
+        // yours is on the same list already, as a duel, with its own line.
+        duel: false,
+    });
+}
+
+/** The counts a room's one-line description is written from, which is all either source has
+ *  in common: a `RoomView` holds members and XIs, a `MyRoom` holds totals. */
+interface RoomFacts {
+    status: RoomStatusWire;
+    size: number;
+    seated: number;
+    ready: number;
+    yourPicks: number;
+    round: number;
+    duel: boolean;
+    /** Ended rooms only; see `myRoomLine`. */
+    won?: boolean;
+    closed?: boolean;
+}
+
+function roomLineOf(f: RoomFacts): string {
+    switch (f.status) {
+        case 'lobby':
+            return `waiting, ${f.seated} of ${f.size} in, ${f.ready} ready`;
         case 'drafting':
             // A duel that nobody has taken up is DRAFTING with one player in it, which is
             // its ordinary early state rather than a half-started room. Saying "drafting,
             // 11 of 11 picked" there would read as a room about to play a match.
-            return isDuel(view) && view.members.length < view.size
+            return f.duel && f.seated < f.size
                 ? 'waiting for somebody to take it up'
-                : `drafting, ${me?.picked ?? 0} of 11 picked`;
+                : `drafting, ${f.yourPicks} of 11 picked`;
         case 'round':
             // Named rather than "match on": in a room of eight the round is half of what
             // a player wants to know from the strip, and the label is derivable.
-            return `${roundLabel(view.size, view.round).toLowerCase()} on`;
+            return `${roundLabel(f.size, f.round).toLowerCase()} on`;
         case 'ended':
-            // A room that CLOSED (nobody there, or nobody touching it) is not a room that
-            // finished, and the strip is the one place a player might be told either.
-            return view.championId === me?.userId
-                ? 'you won'
-                : roomClosed(view)
-                  ? 'closed'
-                  : 'finished';
+            return f.won ? 'you won' : f.closed ? 'closed' : 'finished';
     }
 }
 

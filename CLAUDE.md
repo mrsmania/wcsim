@@ -4030,7 +4030,13 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** **The referee was rebuilt on 2026-09-15**
+**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** **The referee was rebuilt on 2026-09-22**
+from `<COMMIT>`, so `GET /v1/duels` answers the live rooms you are in beside your duels
+(roadmap item 67, above). **No migration and no schema change**: `myLiveRooms` reads columns
+that have existed since 0016, so the schema stayed at 0026 and the order did not matter in
+either direction - the client half shipped first deliberately, an older container simply
+sending no `rooms` key, which the page reads as "this server cannot say" and answers by
+falling back to the per-tab pointer it used before. **The referee was rebuilt on 2026-09-15**
 from `877da71`, so the public lobby row carries the whole draft's clock (`draft_seconds`) and
 stops advertising a per-pick window to a room that opens none. **No migration and no schema
 change**: the column has existed since 0021 and nothing the referee WRITES moved, so the
@@ -4449,12 +4455,41 @@ owner's three corrections, in `versus-option-2.html`. What shipped:
     the row, so the archive on Records - finished duels and nothing else - passes none: a
     word repeated down every row of an unmixed list is the field of colour this app keeps
     deleting, one level quieter.
-  - **THE PER-TAB POINTER IS THE LIVE ROOM'S ONLY SOURCE, AND THAT IS THE RESIDUAL LIMIT.**
-    It is what the strip was reading, so folding it into the list loses nothing - but it is
-    `sessionStorage`, so **a cup opened on another device, or before this tab was opened, is
-    on no list here.** Closing that needs the referee to answer "which live room am I in",
-    which it has no route for (`activeRoomOf` exists and is only ever read to REFUSE a second
-    room, P39). That is a server change and a rebuild, not part of this one.
+  - **THE REFEREE ANSWERS IT SINCE 2026-09-22** (roadmap item 67, and it closed the one
+    thing the merge could not do on its own). The live half used to come off the chrome's
+    pointer, which is `sessionStorage` - so **a cup opened on another device, or before this
+    tab was opened, was on no list.** `GET /v1/duels` answers `{ duels, rooms }` now, the
+    second half being `myLiveRooms`, which is **`activeRoomOf` asked in order to ANSWER
+    rather than in order to refuse** (that one has existed since wave 1 and is read only by
+    P39, to turn away a second room). Six things about it:
+    - **IT RIDES ON `/v1/duels` RATHER THAN ON A ROUTE OF ITS OWN**, so the route's name is
+      narrower than its answer. That is the trade and it is deliberate: the page polls it
+      every ten seconds and the chrome every thirty, so a second endpoint would double a
+      poll for at most one extra row.
+    - **`rooms` ABSENT AND `rooms: []` MEAN DIFFERENT THINGS, and that distinction is the
+      whole deployment story.** Absent is a referee that predates the field, so the page
+      falls back to the pointer exactly as before; `[]` is the server saying you are in no
+      live room, which it may be believed about. So the two halves ship in either order and
+      the client half is harmless ahead of the container.
+    - **WHEN THE SERVER HAS SPOKEN IT WINS OUTRIGHT**, including when it says nothing is on.
+      It can see every device and the pointer can see one tab, so preferring the pointer
+      anywhere would have a room you just left going on being advertised.
+    - **IT IS A THIRD WIRE SHAPE (`MyRoom`) AND HAD TO BE.** A `LobbyRoom` is read by
+      somebody NOT in the room and carries no state at all, so it could not say "drafting, 4
+      of 11 picked"; a `RoomView` is the room itself, members and XIs and all, which is a
+      listing carrying other people's teams. So `MyRoom` is counts, plus the one count that
+      is yours (`yourPicks`).
+    - **THE SENTENCE IS THE SAME SENTENCE**, because `roomLine` (a `RoomView`, for the
+      chrome's strip) and `myRoomLine` (a list row) both fold into `roomLineOf`. Two
+      functions writing "drafting, 4 of 11 picked" is two places for it to drift, and the
+      drift would be invisible - each renders a perfectly good row and they simply disagree
+      about the same room depending where you read it. **The checks assert both against
+      LITERALS rather than against each other**, or the comparison would be tautological.
+    - **NEVER `ended`**, which is what makes the list "Open rooms": a live room's result was
+      watched as it happened (P30's reveal window is the server's), so unlike a duel there
+      is nothing unseen to announce.
+    - **NO MIGRATION.** Every column the query reads has existed since 0016; it is three
+      sub-selects over tables the room already owns.
   - **P39 IS WHY ONE ROW IS ENOUGH.** An account holds at most one live room at a time, so
     there is never a second cup for the pointer to be wrong about.
   - **THE POINTER RECORDS WHICH KIND IT IS** (`HeldRoom.duel`, written through `isDuel`), and

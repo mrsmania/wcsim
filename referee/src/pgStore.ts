@@ -44,6 +44,7 @@ import type {
   LobbyRow,
   Mutation,
   MutateContext,
+  MyRoomRow,
   RoomStore,
 } from './store';
 
@@ -474,6 +475,52 @@ export function pgStore(pool: Pool): RoomStore {
         [userId],
       );
       return res.rows[0]?.code ?? null;
+    },
+
+    async myLiveRooms(userId: string, limit: number): Promise<MyRoomRow[]> {
+      // COUNTS AND NOTHING ELSE, which is what keeps a listing from carrying eleven other
+      // people's teams: three sub-selects over the tables the room already owns, and the
+      // only one that is about the caller is their own pick total. `ready` is counted here
+      // rather than derived from a member list for exactly the same reason.
+      //
+      // `status <> 'ended'` is the same predicate `activeRoomOf` uses, and it is what makes
+      // this the OPEN rooms: a live room that finished was watched as it happened (P30), so
+      // there is no unseen result to announce the way a duel has.
+      const res = await pool.query<{
+        code: string;
+        status: 'lobby' | 'drafting' | 'round';
+        size: number;
+        seated: string;
+        bots: string;
+        ready: string;
+        your_picks: string;
+        round: number;
+        touched_at: Date | string;
+      }>(
+        `select r.code, r.status, r.size, r.round, r.touched_at,
+                (select count(*) from pvp_members m2 where m2.room_id = r.id) as seated,
+                (select count(*) from pvp_bots b where b.room_id = r.id) as bots,
+                (select count(*) from pvp_members m3
+                  where m3.room_id = r.id and m3.ready) as ready,
+                (select count(*) from pvp_picks p
+                  where p.room_id = r.id and p.user_id = $1) as your_picks
+           from pvp_members m join pvp_rooms r on r.id = m.room_id
+          where m.user_id = $1 and r.status <> 'ended' and r.pace = 'live'
+          order by r.touched_at desc
+          limit $2`,
+        [userId, limit],
+      );
+      return res.rows.map((x) => ({
+        code: x.code,
+        status: x.status,
+        size: x.size,
+        seated: Number(x.seated),
+        bots: Number(x.bots),
+        ready: Number(x.ready),
+        yourPicks: Number(x.your_picks),
+        round: x.round,
+        touchedAt: msOf(x.touched_at),
+      }));
     },
 
     async myDuels(userId: string, limit: number): Promise<DuelListRow[]> {

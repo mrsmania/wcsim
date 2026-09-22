@@ -67,6 +67,7 @@ import type {
   LobbyRow,
   Mutation,
   MutateContext,
+  MyRoomRow,
   RoomStore,
 } from '../../referee/src/store';
 import type { RoomView } from '../../referee/src/view';
@@ -176,6 +177,35 @@ class MemStore implements RoomStore {
       if (rows.members.some((m) => m.user_id === userId)) return rows.room.code;
     }
     return null;
+  }
+
+  async myLiveRooms(userId: string, limit: number): Promise<MyRoomRow[]> {
+    return [...this.rows.values()]
+      .filter(
+        (r) =>
+          r.room.status !== 'ended' &&
+          // Live rooms only, exactly as `pgStore` filters and `activeRoomOf` before it: a
+          // duel of yours is already on the other half of the same answer.
+          (r.room.pace ?? 'live') === 'live' &&
+          r.members.some((m) => m.user_id === userId),
+      )
+      .sort((a, b) => msOf(b.room.touched_at) - msOf(a.room.touched_at))
+      .slice(0, limit)
+      .map((r) => ({
+        code: r.room.code,
+        // Never `ended`, by the filter above; the wire shares the status type so one
+        // sentence can be written from either source.
+        status: r.room.status as 'lobby' | 'drafting' | 'round',
+        size: r.room.size,
+        // People, and the practice opponents counted apart - the same split `LobbyRoom`
+        // makes, because a bot yields its chair to anybody who turns up.
+        seated: r.members.length,
+        bots: r.bots.length,
+        ready: r.members.filter((m) => m.ready).length,
+        yourPicks: r.picks.filter((p) => p.user_id === userId).length,
+        round: r.room.round,
+        touchedAt: msOf(r.room.touched_at),
+      }));
   }
 
   async myDuels(userId: string, limit: number): Promise<DuelListRow[]> {
@@ -2152,6 +2182,187 @@ export async function refereeChecks(): Promise<void> {
     // the WRITE, the conversion threw from inside the save, so the sweeper rolled back
     // every room it touched, once a second, for ever.
     //
+    // --- THE LIVE ROOMS YOU ARE IN, ON THE SAME ANSWER (roadmap item 67) ---------------
+    //
+    // The versus page lists everything you have on, and the live half of that list used to
+    // come from `sessionStorage` - so a cup opened on a phone was on no list on a laptop.
+    // `myLiveRooms` is `activeRoomOf` asked in order to ANSWER rather than in order to
+    // refuse, and it rides on `/v1/duels` so the ten-second poll stays one round trip.
+    //
+    // DRIVEN THROUGH THE REAL HANDLER, because the interesting parts are all in what the
+    // query is asked for: a duel of yours is on the other half of the same answer and must
+    // not be on this one, an ended room is on neither, and the counts are what the row's
+    // whole sentence is written from.
+    {
+      const clock = { now: T0 };
+      const store = new MemStore();
+      store.names = { u1: 'Ada', u2: 'Bruno', u3: 'Cleo' };
+      const deps = depsFor(store, clock);
+
+      const open = async (over: Record<string, unknown>): Promise<string> => {
+        const made = await post(deps, '/referee/v1/rooms', longSession('u1'), {
+          visibility: 'private',
+          size: 2,
+          method: 'roll',
+          budget: 0,
+          pickSeconds: 20,
+          years: [],
+          ...over,
+        });
+        return (made.body as RoomView).code;
+      };
+      const roomsFor = async (who: string): Promise<MyRoomRow[]> => {
+        const res = await get(deps, '/referee/v1/duels', longSession(who));
+        return (res.body as { rooms: MyRoomRow[] }).rooms;
+      };
+
+      // A live room of four with two people in it, one of them ready. Nothing is dealt.
+      const cup = await open({ size: 4 });
+      await post(deps, `/referee/v1/rooms/${cup}/join`, longSession('u2'));
+      await post(deps, `/referee/v1/rooms/${cup}/lineup`, longSession('u1'), {
+        formationName: '4-3-3',
+        style: 'bal',
+        ready: true,
+      });
+      // And a duel of the same account's, which belongs to the OTHER half of the answer.
+      const duel = await open({ pace: 'async' });
+
+      const lobby = await roomsFor('u1');
+      const mine = lobby.find((r) => r.code === cup);
+      const listed = await get(deps, '/referee/v1/duels', longSession('u1'));
+      const duels = (listed.body as { duels: DuelListRow[] }).duels;
+      const stranger = await roomsFor('u3');
+
+      check(
+        'referee: the duels answer carries the live rooms you are in, and not your duels',
+        () =>
+          // One row, and every count the row's sentence is written from.
+          lobby.length === 1 &&
+          !!mine &&
+          mine.status === 'lobby' &&
+          mine.size === 4 &&
+          mine.seated === 2 &&
+          mine.bots === 0 &&
+          mine.ready === 1 &&
+          mine.yourPicks === 0 &&
+          mine.round === 0 &&
+          mine.touchedAt > 0 &&
+          // The duel is on the answer, on the other key. Both halves in one trip is the
+          // whole reason this rides on `/v1/duels` rather than on a route of its own.
+          duels.some((d) => d.code === duel) &&
+          // Somebody else's account sees neither of them, which is the guard that this is
+          // answering about the CALLER rather than about every open room.
+          stranger.length === 0,
+        () => `${lobby.length} rooms, ${duels.length} duels, ${JSON.stringify(mine)}`,
+      );
+
+      // The draft starts and a pick lands. `yourPicks` is the one figure on the row that is
+      // about the caller, and it is what "drafting, 1 of 11 picked" reads. The room plays
+      // it smaller first (P7), since a draft opens only on a FULL room and two of the four
+      // chairs are empty.
+      await post(deps, `/referee/v1/rooms/${cup}/size`, longSession('u1'), { size: 2 });
+      await post(deps, `/referee/v1/rooms/${cup}/lineup`, longSession('u2'), {
+        formationName: '4-3-3',
+        style: 'bal',
+        ready: true,
+      });
+      await post(deps, `/referee/v1/rooms/${cup}/start`, longSession('u1'));
+      // A legal man out of the squad that was DEALT, exactly as the pick checks resolve
+      // one: a roll room refuses anybody off the wider dataset.
+      const pickFor = async (who: string): Promise<boolean> => {
+        const room = (await store.read(cup))!;
+        const players = SQUADS.find((sq) => sq.id === room.deals[who]!.at(-1))!.players;
+        const slot = formationOf(room.members.find((m) => m.userId === who)!).slots.find(
+          (sl) =>
+            !room.xi[who]?.[sl.id] && players.some((pl) => pl.positions.includes(sl.position)),
+        );
+        const man = players.find((pl) => slot && pl.positions.includes(slot.position));
+        if (!slot || !man) return false;
+        const res = await post(deps, `/referee/v1/rooms/${cup}/pick`, longSession(who), {
+          ordinal: room.windows[who]?.ordinal ?? 1,
+          slotId: slot.id,
+          playerId: man.id,
+        });
+        return res.status === 200;
+      };
+      // ONE PICK EACH, and the second is what makes this check able to see the difference:
+      // with only one pick in the room, a row that counted EVERYBODY's would read 1 as
+      // well and agree for the wrong reason.
+      const mine1 = await pickFor('u1');
+      const theirs1 = await pickFor('u2');
+      const mid = (await roomsFor('u1')).find((r) => r.code === cup);
+      const roomPicks = Object.values((await store.read(cup))!.picks).reduce(
+        (n, bySlot) => n + Object.keys(bySlot).length,
+        0,
+      );
+
+      // And an ended room is on no list: a live room's result was watched as it happened,
+      // so unlike a duel there is nothing unseen to announce.
+      //
+      // ENDED BY BEING PLAYED OUT rather than by anybody leaving, because past the start
+      // there is no leaving (P15, P24): the clock runs on, the sweeper force-completes both
+      // drafts and plays the tie, and the room ends with a champion the ordinary way.
+      for (let pass = 0; pass < 20; pass++) {
+        clock.now += 60_000;
+        await sweepOnce(store, clock.now, SWEEP_MS);
+      }
+      const played = (await store.read(cup))!;
+      const afterwards = await roomsFor('u1');
+
+      check(
+        'referee: a live room reports YOUR pick count and not the room\'s, and an ended one leaves the list',
+        () =>
+          // Vacuity for the picks: both of them really landed, or `yourPicks` would read 0
+          // for the honest reason and this would pass on nothing.
+          mine1 &&
+          theirs1 &&
+          !!mid &&
+          mid.status === 'drafting' &&
+          // ONE, against the TWO the room holds. That gap is the whole assertion: the row
+          // reports the caller's own progress, not the room's.
+          mid.yourPicks === 1 &&
+          roomPicks === 2 &&
+          // Vacuity: the room really did finish, so the empty list below is the status
+          // filter working rather than the fixture never having got anywhere.
+          played.status === 'ended' &&
+          afterwards.length === 0,
+        () =>
+          `${JSON.stringify(mid)} of ${roomPicks} in the room, ` +
+          `${played.status}, afterwards ${afterwards.length}`,
+      );
+    }
+
+    // --- AND THE COLUMNS THAT QUERY READS ARE NAMED IN IT --------------------------------
+    //
+    // The same failure the block below exists for, one query further on: `myLiveRooms` keeps
+    // its row type inline rather than in `rows.ts`, so the scan down there cannot reach it.
+    // It counts, so an unnamed column is `Number(undefined)` and the row says "waiting, NaN
+    // of 4 in" - which is not a crash, and is the kind of thing nothing behavioural can see
+    // because the offline store answers from objects rather than from SQL.
+    {
+      const store = readFileSync('referee/src/pgStore.ts', 'utf8');
+      const at = store.indexOf('async myLiveRooms(');
+      const body = at < 0 ? '' : store.slice(at, store.indexOf('async myDuels(', at));
+      const list = body.slice(body.indexOf('`select'), body.indexOf('limit $2'));
+      // What the MAPPER reads, taken from the mapper rather than from the type: `x.code`,
+      // `x.your_picks` and the rest, which is the list that has to be selected.
+      const read = [...new Set([...body.matchAll(/\bx\.([a-z_]+)/g)].map((m) => m[1]!))];
+      const names = (column: string): boolean =>
+        new RegExp(`(^|[\\s,.(])${column}(?![A-Za-z0-9_])`).test(list);
+      const missing = read.filter((c) => !names(c));
+      check(
+        `referee: all ${read.length} columns myLiveRooms reads are named in its select`,
+        () =>
+          // Vacuity three ways, exactly as the scan below: it found the function, it read a
+          // plausible number of columns, and a column that is not there is reported.
+          read.length >= 7 &&
+          list.length > 40 &&
+          !names('no_such_column') &&
+          missing.length === 0,
+        () => (missing.length ? `not selected: ${missing.join(', ')}` : `read ${read.length}`),
+      );
+    }
+
     // THE ROUND-TRIP CHECK CANNOT SEE THIS, and that is why it needs its own check rather
     // than a better fixture. The offline store keeps rooms as rows built by `rowsFromRoom`,
     // which by construction fills every field of every interface - so the mapping was

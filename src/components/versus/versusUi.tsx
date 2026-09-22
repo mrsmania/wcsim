@@ -21,7 +21,6 @@ import {
     seatCounts,
 } from '../../domain/pvpView';
 import type { DuelRow, MemberView } from '../../domain/pvpWire';
-import type { HeldRoom } from '../../nav/versusRoom';
 import { CARD_FLAT, MONO_CAP, Meter, btn } from '../matchUi';
 import type { RefereeMessage } from './refereeMessage';
 
@@ -633,7 +632,7 @@ export function DuelLine({
 }
 
 /**
- * The live room you are in, as one more row of the same list (2026-09-18).
+ * A live room you are in, as one more row of the same list (2026-09-18).
  *
  * IT REPLACES A CARD OF ITS OWN, and that is the whole reason it exists. The versus page
  * carried a full-width "You are in a room" strip above both columns, because the chrome's
@@ -643,22 +642,29 @@ export function DuelLine({
  * last opened - so a reader met the same challenge twice in two shapes, or met a cup in the
  * strip and looked for it in vain on the list under it.
  *
- * SO THE LIST CARRIES BOTH KINDS AND EACH ROW SAYS WHICH. The duels come off the referee
- * and travel between devices; a live room comes off this browser's own pointer, which is
- * what the strip was reading anyway, so nothing is lost by folding it in. What folding it
- * in does NOT fix is that pointer's reach: it is per tab, so a cup opened on another device
- * is still on no list here. That needs the referee to answer "which live room am I in",
- * which it has no route for, and it is its own piece of work rather than this one.
+ * SO THE LIST CARRIES BOTH KINDS AND EACH ROW SAYS WHICH, and since 2026-09-22 both halves
+ * come off the referee: `readDuels` answers the duels and the live rooms together, so a cup
+ * opened on a phone is on the list on a laptop. It is still drawn from the per-tab pointer
+ * when the server says nothing about rooms at all, which is a referee that predates the
+ * field rather than a referee with nothing to report.
  *
- * P39 IS WHY ONE ROW IS ENOUGH: an account may hold exactly one live room at a time, so
- * there is never a second cup for the pointer to be wrong about.
+ * IT TAKES A CODE, A SENTENCE AND THE CHAIRS, not either source's own shape, because there
+ * are two sources and the row has no business knowing which it is looking at. The sentence
+ * is written by `roomLineOf` either way (`domain/pvpView.ts`), so the two cannot word it
+ * differently, and the chairs are the same three counts `SeatPips` takes anywhere else.
  */
 export function RoomLine({
-    room,
+    code,
+    line,
+    seats,
     kind,
     go,
 }: {
-    room: HeldRoom;
+    code: string;
+    line: string;
+    /** The room's chairs, when the source knows them. Absent from a pointer written by an
+     *  older build, where the row simply has no dots. */
+    seats?: { size: number; seated: number; bots?: number };
     kind?: string;
     go: (code: string) => void;
 }) {
@@ -668,16 +674,14 @@ export function RoomLine({
             // THE CODE IS THE TITLE, since a room of eight has no one opponent to name and
             // "Your room" would be a word standing where a fact could. It is what you read
             // out to somebody anyway.
-            title={<span className="font-mono tracking-[0.1em]">{room.code}</span>}
-            line={room.line}
+            title={<span className="font-mono tracking-[0.1em]">{code}</span>}
+            line={line}
             // THE SAME BUBBLES THE LOBBY DRAWS, which is most of why a live room belongs on
             // this list rather than in a strip of its own: a cup waiting on two more people
-            // says so in the shape the reader already learned one section up. Absent from a
-            // pointer written by an older build, where the row simply has no dots - the
-            // seats are the room's and this is a per-tab copy of them.
-            seats={room.seats ? <SeatPips {...room.seats} /> : undefined}
+            // says so in the shape the reader already learned one section up.
+            seats={seats ? <SeatPips {...seats} /> : undefined}
             action="Back to it"
-            onGo={() => go(room.code)}
+            onGo={() => go(code)}
         />
     );
 }

@@ -59,6 +59,7 @@ import {
   meIn,
   playersOf,
   roomBracket,
+  myRoomLine,
   roomLine,
   roundLabel,
   roundsFor,
@@ -70,7 +71,14 @@ import {
   xiFrom,
   xiStrengthFrom,
 } from '../../src/domain/pvpView';
-import type { DuelRow, InviteRoom, LobbyRoom, RoomView, TieView } from '../../src/domain/pvpWire';
+import type {
+  DuelRow,
+  InviteRoom,
+  LobbyRoom,
+  MyRoom,
+  RoomView,
+  TieView,
+} from '../../src/domain/pvpWire';
 import { readFileSync, readdirSync } from 'node:fs';
 import { STRENGTH_BANDS } from '../../src/domain/draft';
 import { offersRatingSwitch, ratingBand, roomDisplay } from '../../src/domain/pvpView';
@@ -2184,7 +2192,13 @@ export function pvpViewChecks(): void {
           ui.includes('duelOpenLine(row)') &&
           ui.includes('<SeatPips {...duelSeats(row)} />') &&
           /!alert && row\.status !== 'ended'/.test(ui) &&
-          ui.includes('seats={room.seats ? <SeatPips {...room.seats} /> : undefined}') &&
+          // The cup row takes the chairs as three counts rather than as the pointer's own
+          // shape, because since 2026-09-22 there are two sources for them: the referee's
+          // answer, and the pointer when the referee is too old to give one.
+          ui.includes('seats={seats ? <SeatPips {...seats} /> : undefined}') &&
+          /seats: { size: r\.size, seated: r\.seated, bots: r\.bots }/.test(homeCode) &&
+          homeCode.includes('seats: held.seats') &&
+          open.includes('seats={r.seats}') &&
           // Vacuity: the section really was found, and it is the one that draws both rows.
           open.length > 200 &&
           open.includes('<RoomLine') &&
@@ -2237,6 +2251,104 @@ export function pvpViewChecks(): void {
         /size: duel \? 2 : size/.test(homeCode) &&
         /visibility: duel \? 'private' : visibility/.test(homeCode),
       () => 'the create form no longer defaults a cup to four people, listed publicly',
+    );
+
+    // (h) A LIVE ROOM YOU ARE IN COMES OFF THE REFEREE (2026-09-22, roadmap item 67).
+    //
+    // The versus page's "Open rooms" carries both kinds, and until now the live half was
+    // read from `sessionStorage` - right in the tab that opened the room and blank on every
+    // other device. `readDuels` answers it now, so this holds the two halves of that: the
+    // SENTENCE, which is written from a list row by the same core the chrome's strip uses,
+    // and the WIRING, which is the rule about when the old pointer is still read.
+    //
+    // THE SENTENCES ARE ASSERTED AGAINST LITERALS, NOT AGAINST EACH OTHER. `myRoomLine` and
+    // `roomLine` share `roomLineOf` now, so comparing the two would be tautological - the
+    // trap this repo already met when three readings of a run's history were folded into
+    // one. Both are measured against the words a reader actually sees instead, which is the
+    // independent walk.
+    {
+      const row = (over: Partial<MyRoom> = {}): MyRoom => ({
+        code: 'RM0001',
+        status: 'lobby',
+        size: 4,
+        seated: 2,
+        bots: 1,
+        ready: 1,
+        yourPicks: 0,
+        round: 0,
+        touchedAt: 1_000_000,
+        ...over,
+      });
+      const lines = {
+        lobby: myRoomLine(row()),
+        drafting: myRoomLine(row({ status: 'drafting', yourPicks: 4 })),
+        quarter: myRoomLine(row({ status: 'round', size: 8, round: 1 })),
+        semi: myRoomLine(row({ status: 'round', size: 8, round: 2 })),
+        final: myRoomLine(row({ status: 'round', size: 2, round: 1 })),
+      };
+      // The same words from the OTHER source, which is what the chrome's strip prints while
+      // this tab holds the room. A reader meeting the same room twice has to meet the same
+      // sentence.
+      const view = fixtureRoom({
+        status: 'drafting',
+        size: 4,
+        members: [
+          { userId: HOME, seat: 0, name: 'Alpha', ready: true, outIn: null, picked: 4, formationName: '4-3-3', style: 'bal' },
+          { userId: AWAY, seat: 1, name: 'Bravo', ready: false, outIn: null, picked: 0, formationName: '4-3-3', style: 'bal' },
+        ],
+      });
+      check(
+        'pvpView: a live room on the list reads the same sentence as the room itself',
+        () =>
+          lines.lobby === 'waiting, 2 of 4 in, 1 ready' &&
+          lines.drafting === 'drafting, 4 of 11 picked' &&
+          // The round is NAMED, which is half of what a room of eight wants from the line.
+          lines.quarter === 'quarter-final on' &&
+          lines.semi === 'semi-final on' &&
+          lines.final === 'final on' &&
+          // The view path, against the identical literal rather than against the row.
+          roomLine(view) === 'drafting, 4 of 11 picked' &&
+          roomLine({ ...view, status: 'lobby' }) === 'waiting, 2 of 4 in, 1 ready' &&
+          // AND THE ROUND NUMBER MEANS THE SAME THING ON BOTH, which is the one figure
+          // that could drift silently: `viewOf` passes `room.round` straight through and
+          // so does the list row, so a row that read some other field would name the wrong
+          // round on one screen and the right one on the next.
+          roomLine({ ...view, status: 'round', size: 8, round: 2 }) === 'semi-final on' &&
+          // A LIST ROW IS NEVER A DUEL, so the "nobody has taken it up" branch that a
+          // half-empty duel takes must not reach a half-empty room: a cup of four with two
+          // people in it is drafting, not waiting for somebody.
+          myRoomLine(row({ status: 'drafting', seated: 2, size: 4, yourPicks: 0 })) ===
+            'drafting, 0 of 11 picked',
+        () => JSON.stringify(lines),
+      );
+    }
+
+    // AND WHEN THE PER-TAB POINTER IS STILL READ, which is the one thing nothing
+    // behavioural can see: a build that preferred the pointer renders a perfectly good row
+    // and is simply wrong on every device but the one that opened the room, and a build
+    // that dropped the fallback renders nothing at all against a referee that has not been
+    // rebuilt. Both are source reads, comment-stripped.
+    check(
+      'versus page: the live rooms come off the referee, and the pointer is only the fallback',
+      () => {
+        const ref = codeOnly(readFileSync('src/state/pvp/referee.ts', 'utf8'));
+        return (
+          // The answer carries them, and the key is OPTIONAL: absent is "this server
+          // cannot say", which is what the fallback below is for, and `[]` is "you are in
+          // no live room", which the page may believe.
+          /rooms\?: MyRoom\[\]/.test(ref) &&
+          homeCode.includes('setMyRooms(r.rooms)') &&
+          // The server wins whenever it has spoken, including when it says nothing is on.
+          /myRooms\s*\n?\s*\? myRooms\.map/.test(homeCode) &&
+          // And the pointer is reached for only on the other branch of that same ternary.
+          /:\s*held && !held\.duel/.test(homeCode) &&
+          // Vacuity: the page still holds a pointer at all, since a check that the pointer
+          // is not preferred is trivially true of a build that dropped it - and that would
+          // be the worse bug for everybody until the container is rebuilt.
+          homeCode.includes('useHeldVersusRoom()')
+        );
+      },
+      () => 'the versus page reads the pointer ahead of the referee, or has lost one of them',
     );
 
     // (e) THE VERSUS SEGMENT NEEDS AN ACCOUNT AS WELL AS A REFEREE.

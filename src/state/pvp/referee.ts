@@ -1,5 +1,5 @@
 import { REFEREE } from '../../config';
-import type { DuelRow, InviteRoom, LobbyRoom, RoomView } from '../../domain/pvpWire';
+import type { DuelRow, InviteRoom, LobbyRoom, MyRoom, RoomView } from '../../domain/pvpWire';
 import { localVersion, versionMismatch, type PvpVersion, type VersionMismatch } from '../../domain/pvpVersion';
 import { nameKeyOf, normalizeName } from '../../domain/displayName';
 
@@ -235,15 +235,22 @@ export const readRoom = (code: string): Promise<RoomView> =>
 export const readLobby = (): Promise<{ rooms: LobbyRoom[] }> => call('GET', '/v1/lobby');
 
 /**
- * Your duels: every one you are in, open and finished (P51).
+ * Everything you have on: your duels, and the live rooms you are in.
  *
- * IT IS THE ONLY WAY A DUEL EVER REACHES ANYBODY. This game sends no mail and no push
- * notification, so a challenge arrives by the link its sender pastes into a message, and
- * everything after that - your move, their move, the result of a match played while you
- * were asleep - arrives by being on this list. Hence the Versus tab, and hence the strip
- * in the chrome, which is this list read down to its most urgent row.
+ * THE DUELS ARE THE ONLY WAY A DUEL EVER REACHES ANYBODY (P51). This game sends no mail and
+ * no push notification, so a challenge arrives by the link its sender pastes into a message,
+ * and everything after that - your move, their move, the result of a match played while you
+ * were asleep - arrives by being on this list. Hence the Versus tab, and hence the strip in
+ * the chrome, which is this list read down to its most urgent row.
+ *
+ * `rooms` IS OPTIONAL AND THE ABSENCE IS THE POINT (2026-09-22, roadmap item 67). A referee
+ * that predates it sends no such key at all, which is a different thing from sending an
+ * empty one: absent means "this server cannot say", so the versus page falls back to the
+ * per-tab pointer it used before, and `[]` means "you are in no live room", which it may
+ * believe. That distinction is what lets this client ship ahead of the container.
  */
-export const readDuels = (): Promise<{ duels: DuelRow[] }> => call('GET', '/v1/duels');
+export const readDuels = (): Promise<{ duels: DuelRow[]; rooms?: MyRoom[] }> =>
+    call('GET', '/v1/duels');
 
 export const joinRoom = (code: string): Promise<RoomView> =>
     call('POST', `/v1/rooms/${code}/join`);
