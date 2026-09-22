@@ -1192,9 +1192,14 @@
     the room and it is still there. A room that finishes leaves the list, which is what keeps
     the heading honest.</p>
 
-    <p><strong>Deployed 2026-09-22</strong> from <code>&lt;COMMIT&gt;</code>, no migration.
-    All seven <code>--verify</code> steps green, plus the thing they cannot see: the route's
-    new half read back off the running container.</p>
+    <p><strong>Deployed 2026-09-22</strong> from <code>d5c75f3</code>, no migration.
+    All seven <code>--verify</code> steps green, plus the thing they cannot see, since that
+    suite never calls this route at all: the list was read off the running container before
+    a room existed (empty), with a cup of four open (one row, one chair taken of four), and
+    again after pressing Ready, which moved the ready count from nought to one. That last
+    step is the one that matters - a value that changes under a real action cannot be a
+    column default. The test room was deleted afterwards and the list went back to
+    empty.</p>
   </div>
 </details>
     <h3>Closed 2026-09-13</h3>

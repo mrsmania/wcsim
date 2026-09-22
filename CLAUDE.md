@@ -4031,7 +4031,7 @@ all about whether the screens say what the rules do. Treat a versus screen as un
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
 **NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** **The referee was rebuilt on 2026-09-22**
-from `<COMMIT>`, so `GET /v1/duels` answers the live rooms you are in beside your duels
+from `d5c75f3`, so `GET /v1/duels` answers the live rooms you are in beside your duels
 (roadmap item 67, above). **No migration and no schema change**: `myLiveRooms` reads columns
 that have existed since 0016, so the schema stayed at 0026 and the order did not matter in
 either direction - the client half shipped first deliberately, an older container simply
