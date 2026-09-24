@@ -753,8 +753,13 @@ function MatchLine({
                         </span>
                     )}
                 </div>
+                {/* A LINE OF AIR UNDER THE TITLE (2026-09-24, asked for). The two lines
+                    sat on their own leading, which is right for two runs of text and too
+                    tight under a row carrying the Cup / Challenge chip: a chip is a box
+                    with its own border and padding, so its ink reaches lower than a
+                    letter's and the sentence beneath it reads as crowded. */}
                 <div
-                    className={`text-[12px] ${loud ? 'font-semibold text-pitch-ink' : 'text-muted'}`}
+                    className={`mt-1 text-[12px] ${loud ? 'font-semibold text-pitch-ink' : 'text-muted'}`}
                 >
                     {line}
                 </div>
