@@ -4030,19 +4030,29 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** **The referee was rebuilt on 2026-09-24**
-from `ab20d1c`, so a challenge row on the versus page carries the two house rules a duel has
-(the re-roll count and the ratings switch) and reads as a lobby row does. **No migration and
+**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** **The referee was rebuilt TWICE on
+2026-09-24**, the second time from `9e829a9`, so a LIVE room's row carries what it plays
+(`MyRoom.plays`) and reads as a challenge row does: where it has got to, then what it is.
+**No migration and no schema change** - six columns on a row the query already joined, there
+since 0016 and 0021 - and the client half was safe first again, since an older container
+sends no `plays` and the row is then its state alone. Verified past `--verify`, which never
+reads that list: a cup opened at **eight seats, $160 and an eight-minute draft** came back
+with all three on the row, none of them a column's default. **The first rebuild was from
+`ab20d1c`**, so a challenge row carries the two house rules a duel has (the re-roll count
+and the ratings switch) and reads as a lobby row does. **No migration and
 no schema change**: `pvp_rooms.rerolls` and `show_ratings` have existed since 0016 and the
 duel list simply never selected them, so the order did not matter in either direction and the
 client half went out first - an older container sends neither field, and the row then names
-its method and stops. All seven `--verify` steps green, and then the thing `--verify` cannot
+its method and stops. All seven `--verify` steps green on both, and then the thing `--verify` cannot
 see, since it neither opens a duel nor reads that list: a challenge opened at **6 re-rolls
 with the ratings hidden**, read back off `GET /v1/duels`, which answered `"rerolls": 6,
 "showRatings": false`, and then deleted. **Both figures are ones the columns' own defaults
 could not have produced** (3 and true), which is the same rule the `draft_seconds` rebuild
 arrived at: when a rebuild adds a field whose test value could be a default, pick a value
-that cannot be. **The referee was rebuilt on 2026-09-22**
+that cannot be. **And one value that LOOKS like a failed probe is the design**: a budget
+room comes back `showRatings: true` whatever was asked for, because P5 forces it at the edge
+(a price computed from a rating hides nothing), so a budget room is the wrong room to probe
+that field with. The money, the seats and the clocks carried it instead. **The referee was rebuilt on 2026-09-22**
 from `d5c75f3`, so `GET /v1/duels` answers the live rooms you are in beside your duels
 (roadmap item 67, above). **No migration and no schema change**: `myLiveRooms` reads columns
 that have existed since 0016, so the schema stayed at 0026 and the order did not matter in
