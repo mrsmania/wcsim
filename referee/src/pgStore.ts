@@ -537,6 +537,8 @@ export function pgStore(pool: Pool): RoomStore {
         status: 'lobby' | 'drafting' | 'round' | 'ended';
         method: 'roll' | 'budget';
         budget: number;
+        rerolls: number;
+        show_ratings: boolean;
         host_id: string;
         opponent_name: string | null;
         seated: string;
@@ -563,6 +565,10 @@ export function pgStore(pool: Pool): RoomStore {
                            where m.room_id = r.id and m.user_id = $1)
          )
          select r.code, r.status, r.method, r.budget, r.host_id, r.created_at, r.touched_at,
+                -- The two house rules a duel has, so its row on the versus page reads as
+                -- a lobby row does. Both are columns the room has carried since 0016;
+                -- nothing was added for this.
+                r.rerolls, r.show_ratings,
                 (select count(*) from pvp_members m where m.room_id = r.id) as seated,
                 (select count(*) from pvp_picks p
                   where p.room_id = r.id and p.user_id = $1) as your_picks,
@@ -604,6 +610,8 @@ export function pgStore(pool: Pool): RoomStore {
         seated: Number(x.seated),
         method: x.method,
         budget: x.budget,
+        rerolls: x.rerolls,
+        showRatings: x.show_ratings,
         yourPicks: Number(x.your_picks),
         theirPicks: Number(x.their_picks),
         yourDone: x.your_done,

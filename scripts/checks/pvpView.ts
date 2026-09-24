@@ -291,9 +291,9 @@ export function pvpViewChecks(): void {
         meIn(room)?.name === 'Alpha' &&
         tieOf(room, 1, AWAY)?.homeId === HOME &&
         tieOf(room, 2, HOME) === null &&
-        roomLine({ ...room, status: 'drafting' }) === 'drafting, 11 of 11 picked' &&
-        roomLine({ ...room, status: 'lobby' }) === 'waiting, 2 of 2 in, 2 ready' &&
-        roomLine({ ...room, status: 'ended', championId: HOME }) === 'you won',
+        roomLine({ ...room, status: 'drafting' }) === 'Drafting, 11 of 11 picked' &&
+        roomLine({ ...room, status: 'lobby' }) === 'Waiting, 2 of 2 in, 2 ready' &&
+        roomLine({ ...room, status: 'ended', championId: HOME }) === 'You won',
       () => roomLine(room),
     );
   }
@@ -860,11 +860,11 @@ export function pvpViewChecks(): void {
     check(
       'pvpView: the room strip names the round it is playing, and a room of two still reads as its final',
       () =>
-        roomLine(eight) === 'quarter-final on' &&
-        roomLine({ ...eight, round: 3 }) === 'final on' &&
-        roomLine({ ...eight, size: 2, round: 1 }) === 'final on' &&
+        roomLine(eight) === 'Quarter-final on' &&
+        roomLine({ ...eight, round: 3 }) === 'Final on' &&
+        roomLine({ ...eight, size: 2, round: 1 }) === 'Final on' &&
         roomLine({ ...eight, status: 'lobby', members: eight.members.slice(0, 2) }) ===
-          'waiting, 2 of 8 in, 2 ready',
+          'Waiting, 2 of 8 in, 2 ready',
       () => roomLine(eight),
     );
   }
@@ -1014,8 +1014,19 @@ export function pvpViewChecks(): void {
         // A DUEL DOES NOT, and this is the trap the pace guards: a duel stores a
         // `pickSeconds` it never reads (`tickDuel`), so `lobbyLine` would tell a stranger
         // about a twenty-second window that does not exist in the mode they are joining.
-        inviteRules(duel) === 'Roll for your XI, one man from each squad' &&
+        //
+        // IT SAYS EVERYTHING ELSE THE LOBBY ROW SAYS (2026-09-24): the same opening words
+        // and the same re-roll count, since those are real in a duel - it is the clock and
+        // the practice opponents that are not. It used to read "one man from each squad",
+        // which named the method in words the public list does not use and then stopped.
+        inviteRules(duel) === 'Roll for your XI, 3 re-rolls' &&
+        inviteRules({ ...duel, showRatings: false }) === 'Roll for your XI, 3 re-rolls, ratings hidden' &&
+        inviteRules({ ...duel, method: 'budget' }) === 'Buy an XI with $110' &&
         !inviteRules(duel).includes('pick') &&
+        // And it is the LOBBY's own sentence minus those two, rather than a second one
+        // that happens to agree today: the live room with the same settings differs by
+        // exactly the clock.
+        lobbyLine({ ...live, method: 'roll' }) === `${inviteRules(duel)}, 20s a pick` &&
         // Vacuity: the two really are different sentences for the same room settings.
         inviteRules({ ...live, method: 'roll' }) !== inviteRules({ ...duel, method: 'roll' }),
       () => `${inviteRules(live)} | ${inviteRules(duel)}`,
@@ -1087,11 +1098,11 @@ export function pvpViewChecks(): void {
     check(
       'pvpView: the strip tells a closed room from a finished one, and from a won one',
       () =>
-        roomLine(room) === 'closed' &&
+        roomLine(room) === 'Closed' &&
         // Vacuity both ways: with a champion it reads as a result, and with the viewer as
         // the champion it reads as a win.
-        roomLine({ ...room, championId: AWAY }) === 'finished' &&
-        roomLine({ ...room, championId: HOME }) === 'you won',
+        roomLine({ ...room, championId: AWAY }) === 'Finished' &&
+        roomLine({ ...room, championId: HOME }) === 'You won',
       () => roomLine(room),
     );
   }
@@ -1478,7 +1489,7 @@ export function pvpViewChecks(): void {
         duelToOpen([theirs], none) === null &&
         // And the sentence names the thing rather than the state.
         duelAlertLine(finished, 'watch').includes('Bravo') &&
-        duelAlertLine(row({ yourPicks: 11 }), 'your-move') === 'your XI is ready to send',
+        duelAlertLine(row({ yourPicks: 11 }), 'your-move') === 'Your XI is ready to send',
       () => `${duelAlert(finished, none)} / ${duelAlert(mine, none)}`,
     );
 
@@ -1495,11 +1506,11 @@ export function pvpViewChecks(): void {
     check(
       'pvpView: the chrome strip says a duel wants you and does not count the picks',
       () =>
-        duelAlertLine(mine, 'your-move') === 'your move, pick your XI' &&
+        duelAlertLine(mine, 'your-move') === 'Your move, pick your XI' &&
         !/[0-9]/.test(duelAlertLine(mine, 'your-move')) &&
         // Built but not sent is a different instruction and is still said. It splits on the
         // count without printing it, so a stale reading falls back to the safer sentence.
-        duelAlertLine(row({ yourPicks: 11 }), 'your-move') === 'your XI is ready to send' &&
+        duelAlertLine(row({ yourPicks: 11 }), 'your-move') === 'Your XI is ready to send' &&
         duelLine(mine).includes('4 of 11'),
       () => `${duelAlertLine(mine, 'your-move')} / ${duelLine(mine)}`,
     );
@@ -1939,6 +1950,7 @@ export function pvpViewChecks(): void {
     const home = readFileSync('src/components/versus/VersusHome.tsx', 'utf8');
     const vrec = readFileSync('src/components/versus/VersusRecords.tsx', 'utf8');
     const ui = readFileSync('src/components/versus/versusUi.tsx', 'utf8');
+    const uiCode = codeOnly(ui);
     const homeCode = codeOnly(home);
     const vrecCode = codeOnly(vrec);
 
@@ -2146,8 +2158,12 @@ export function pvpViewChecks(): void {
     // one dot short of a taken one, which is the only distinction of the four that a reader
     // can do anything about (send the link to somebody else).
     {
-      const roll = { method: 'roll' as const, budget: 0 };
-      const buy = { method: 'budget' as const, budget: 110 };
+      // A challenge as the referee now sends one: the two house rules it really has, and
+      // no clock of either kind.
+      const roll = { method: 'roll' as const, budget: 0, rerolls: 3, showRatings: true };
+      const buy = { method: 'budget' as const, budget: 110, rerolls: 3, showRatings: true };
+      // And one from a referee that predates them, which must say less rather than guess.
+      const older = { method: 'roll' as const, budget: 0 };
       // A lobby row of each kind, to read the challenge's sentence against: "structured the
       // same way as the lobby section" is the request, and the two are written by two
       // different functions, so nothing but a comparison holds them together.
@@ -2171,16 +2187,21 @@ export function pvpViewChecks(): void {
       check(
         'versus page: an open challenge says Waiting, then what it plays, in the lobby row voice',
         () =>
-          duelOpenLine(roll) === 'Waiting. Roll for your XI, one man from each squad' &&
+          duelOpenLine(roll) === 'Waiting. Roll for your XI, 3 re-rolls' &&
           duelOpenLine(buy) === 'Waiting. Buy an XI with $110' &&
-          // STRUCTURED AS THE LOBBY ROW IS, which is the whole of the request: the same
-          // sentence, opening on the same words, shorter by what a duel has not got - no
-          // clock (P51), and no re-roll count, since `myDuels` does not send one.
+          duelOpenLine({ ...roll, showRatings: false }) ===
+            'Waiting. Roll for your XI, 3 re-rolls, ratings hidden' &&
+          // IT IS THE LOBBY ROW'S OWN SENTENCE, minus exactly what a duel has not got
+          // (2026-09-24). Not "the same shape" - the same string, with the pick clock as
+          // the only difference, so the two cannot drift while both look reasonable.
+          lobbyLine(listed) === `${duelRules(roll)}, 20s a pick` &&
+          lobbyLine({ ...listed, method: 'budget' }) === `${duelRules(buy)}, 5 min to draft` &&
           duelOpenLine(roll).endsWith(duelRules(roll)) &&
-          lobbyLine(listed).startsWith('Roll for your XI,') &&
-          duelRules(roll).startsWith('Roll for your XI,') &&
-          lobbyLine({ ...listed, method: 'budget' }).startsWith('Buy an XI with $110') &&
-          duelRules(buy).startsWith('Buy an XI with $110') &&
+          // A row from an older referee names its method and stops, rather than reading a
+          // missing re-roll count as none or a missing flag as ratings on.
+          duelRules(older) === 'Roll for your XI' &&
+          !duelRules(older).includes('re-roll') &&
+          !duelRules(older).includes('ratings') &&
           // THE CHAIRS. Two, always, and `seated` read the way `duelTurn` reads it: a
           // referee that predates the field means both taken, or a challenge somebody is
           // already building would show an empty chair.
@@ -2204,6 +2225,37 @@ export function pvpViewChecks(): void {
           open.includes('<RoomLine') &&
           open.includes('<DuelLine'),
         () => `${duelOpenLine(roll)} / ${duelOpenLine(buy)}`,
+      );
+
+      // A ROW WITH NOBODY IN IT IS CALLED BY ITS CODE (2026-09-24, asked for). A title is
+      // what the room IS called, and until somebody follows the link a challenge has no
+      // other name - so "Nobody yet" was a STATUS standing in the title column, on the one
+      // list where the row beside it is a cup titled with its code. Both rows draw the same
+      // element now, and the dim code suffix goes when the title already is the code, or
+      // the row prints the same six characters twice.
+      //
+      // Source, because nothing behavioural can see it: every version of this renders a
+      // perfectly good row and they differ only in what a reader sees in one column.
+      check(
+        'versus page: an unanswered challenge is titled with its room code, once, as a cup is',
+        () =>
+          // Comment-stripped, or the paragraph explaining the change is what the first
+          // assertion finds - the trap this file keeps meeting.
+          !uiCode.includes('Nobody yet') &&
+          // One element, and both rows reach for it.
+          uiCode.includes('function CodeTitle(') &&
+          (uiCode.match(/<CodeTitle /g) ?? []).length === 2 &&
+          uiCode.includes('title={<CodeTitle code={code} />}') &&
+          uiCode.includes(
+            'title={row.opponentName ? row.opponentName : <CodeTitle code={row.code} />}',
+          ) &&
+          // The suffix is gated on there BEING a name to sit beside, as well as on the
+          // list that wants codes at all.
+          uiCode.includes('code={code && row.opponentName ? row.code : undefined}') &&
+          // Vacuity: the row still prints a code somewhere for a challenge that HAS an
+          // opponent, which is the case the suffix exists for.
+          uiCode.includes('{code && ('),
+        () => 'the challenge row no longer titles itself with the room code',
       );
 
       // AND THE LIVE CUP'S CHAIRS COME OFF THE POINTER, which is the only thing on this
@@ -2300,26 +2352,70 @@ export function pvpViewChecks(): void {
       check(
         'pvpView: a live room on the list reads the same sentence as the room itself',
         () =>
-          lines.lobby === 'waiting, 2 of 4 in, 1 ready' &&
-          lines.drafting === 'drafting, 4 of 11 picked' &&
+          lines.lobby === 'Waiting, 2 of 4 in, 1 ready' &&
+          lines.drafting === 'Drafting, 4 of 11 picked' &&
           // The round is NAMED, which is half of what a room of eight wants from the line.
-          lines.quarter === 'quarter-final on' &&
-          lines.semi === 'semi-final on' &&
-          lines.final === 'final on' &&
+          lines.quarter === 'Quarter-final on' &&
+          lines.semi === 'Semi-final on' &&
+          lines.final === 'Final on' &&
           // The view path, against the identical literal rather than against the row.
-          roomLine(view) === 'drafting, 4 of 11 picked' &&
-          roomLine({ ...view, status: 'lobby' }) === 'waiting, 2 of 4 in, 1 ready' &&
+          roomLine(view) === 'Drafting, 4 of 11 picked' &&
+          roomLine({ ...view, status: 'lobby' }) === 'Waiting, 2 of 4 in, 1 ready' &&
           // AND THE ROUND NUMBER MEANS THE SAME THING ON BOTH, which is the one figure
           // that could drift silently: `viewOf` passes `room.round` straight through and
           // so does the list row, so a row that read some other field would name the wrong
           // round on one screen and the right one on the next.
-          roomLine({ ...view, status: 'round', size: 8, round: 2 }) === 'semi-final on' &&
+          roomLine({ ...view, status: 'round', size: 8, round: 2 }) === 'Semi-final on' &&
           // A LIST ROW IS NEVER A DUEL, so the "nobody has taken it up" branch that a
           // half-empty duel takes must not reach a half-empty room: a cup of four with two
           // people in it is drafting, not waiting for somebody.
           myRoomLine(row({ status: 'drafting', seated: 2, size: 4, yourPicks: 0 })) ===
-            'drafting, 0 of 11 picked',
+            'Drafting, 0 of 11 picked',
         () => JSON.stringify(lines),
+      );
+
+      // AND EVERY ONE OF THEM IS A SENTENCE (2026-09-24, asked for: "respect the grammar
+      // for the cups"). The cup's line was the only lower-case text on a list whose other
+      // rows all open with a capital, because it was written for the middle of the chrome's
+      // strip - "Versus AB12CD - drafting, 4 of 11 picked" - and then reused as a row of
+      // its own. A property rather than five more literals: a state added later has to be
+      // written the same way, and the two strip sentences are held to it too, or the chrome
+      // capitalises one of its alternatives and not the other.
+      const dRow = (over: Partial<DuelRow> = {}): DuelRow => ({
+        code: 'DU0001',
+        opponentName: 'Bravo',
+        yours: true,
+        status: 'drafting',
+        seated: 2,
+        method: 'roll',
+        budget: 0,
+        rerolls: 3,
+        showRatings: true,
+        yourPicks: 0,
+        theirPicks: 0,
+        openedAt: 1_000,
+        touchedAt: 1_000,
+        ...over,
+      });
+      const sentences = [
+        ...Object.values(lines),
+        roomLine({ ...view, status: 'ended', championId: HOME }),
+        roomLine({ ...view, status: 'ended', championId: null, ties: [] }),
+        duelAlertLine(dRow({ yourPicks: 4 }), 'your-move'),
+        duelAlertLine(dRow({ yourPicks: 11 }), 'your-move'),
+        duelAlertLine(dRow({}), 'watch'),
+        duelOpenLine({ method: 'roll', budget: 0, rerolls: 3 }),
+        duelLine(dRow({ status: 'ended', yourGoals: 2, theirGoals: 1, won: true })),
+      ];
+      check(
+        'pvpView: every line a room or a challenge prints starts as a sentence does',
+        () =>
+          sentences.length >= 10 &&
+          sentences.every((t) => t.length > 0 && t[0] === t[0]!.toUpperCase()) &&
+          // Vacuity: lower case is reachable at all, so "every one is capitalised" is not
+          // passing on a set of strings that start with a digit or a bracket.
+          sentences.every((t) => /[a-z]/.test(t)),
+        () => sentences.join(' | '),
       );
     }
 

@@ -167,6 +167,15 @@ export interface DuelRow {
   seated?: number;
   method: 'roll' | 'budget';
   budget: number;
+  /** The two house rules a duel actually has, so its row says what a lobby row says
+   *  (`playsLine`): how many squads you may refuse, and whether the numbers are hidden.
+   *
+   *  Absent from a referee built before 2026-09-24. The row then names its method and
+   *  stops, which is the same silence the whole-draft clock keeps on a lobby row and the
+   *  reason the client half could ship first. Never defaulted here: a missing re-roll
+   *  count is not "none", and a missing flag must not read as the ratings being on. */
+  rerolls?: number;
+  showRatings?: boolean;
   /** How many of the eleven each side has picked. */
   yourPicks: number;
   theirPicks: number;

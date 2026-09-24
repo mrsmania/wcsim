@@ -557,7 +557,8 @@ export function SectionHead({
  * `code` is FALSE on a finished one, which is the owner's third correction to the page
  * rework: a code is how you reach a room, and a room that has been played is not going
  * anywhere. An open one keeps it, and has to - a challenge nobody has taken up has no other
- * identity, since the opponent column reads "Nobody yet" until somebody follows the link.
+ * identity at all, which is also why such a row is TITLED with its code (see below) rather
+ * than with a sentence about there being nobody in it.
  *
  * `go` IS HANDED THE CODE AND NOT A URL, because the two pages send a row to two different
  * addresses: the versus page opens a room at the versus door, and the archive opens one at
@@ -582,8 +583,17 @@ export function DuelLine({
     return (
         <MatchLine
             kind={kind}
-            title={row.opponentName || 'Nobody yet'}
-            code={code ? row.code : undefined}
+            // AN UNANSWERED CHALLENGE IS TITLED WITH ITS CODE (2026-09-24, asked for),
+            // where it used to be titled with a sentence saying there was nobody in it. A
+            // row's title is what the room IS called, and until somebody follows the link a
+            // challenge has no other name - so that was the one row on the list whose title
+            // was a STATUS, sitting beside a cup whose title is its code. It is the cup's
+            // own title element, so the two read as one list.
+            //
+            // AND THE DIM CODE BESIDE IT GOES WITH IT, or the row prints the same six
+            // characters twice: the suffix is there to name a room whose title is a person.
+            title={row.opponentName ? row.opponentName : <CodeTitle code={row.code} />}
+            code={code && row.opponentName ? row.code : undefined}
             /* THREE SENTENCES, AND WHICH ONE IS A FACT ABOUT THE ROW rather than about
                which list it is on - which is what lets this take no prop for it, and what
                makes the partition exactly the one the two pages already make.
@@ -594,8 +604,8 @@ export function DuelLine({
                (`duelOpenLine`): every one of those is waiting on somebody else, so four
                different ways of saying "not your move" were four ways of saying one thing,
                and the seat bubbles carry the one distinction worth keeping. A row with a
-               result is the result, and appending "roll for your XI, one man from each
-               squad" to it wrapped every alert onto a second line to say nothing. */
+               result is the result, and appending what it plays to that wrapped every
+               alert onto a second line to say nothing. */
             line={
                 alert === 'watch' ? (
                     'The match has been played'
@@ -674,7 +684,7 @@ export function RoomLine({
             // THE CODE IS THE TITLE, since a room of eight has no one opponent to name and
             // "Your room" would be a word standing where a fact could. It is what you read
             // out to somebody anyway.
-            title={<span className="font-mono tracking-[0.1em]">{code}</span>}
+            title={<CodeTitle code={code} />}
             line={line}
             // THE SAME BUBBLES THE LOBBY DRAWS, which is most of why a live room belongs on
             // this list rather than in a strip of its own: a cup waiting on two more people
@@ -684,6 +694,13 @@ export function RoomLine({
             onGo={() => go(code)}
         />
     );
+}
+
+/** A room code as a row's TITLE, which is what a room with nobody in it is called. One
+ *  element rather than two copies of a class string, because a cup and an unanswered
+ *  challenge sit in the same list and a drift between them would read as two lists. */
+function CodeTitle({ code }: { code: string }) {
+    return <span className="font-mono tracking-[0.1em]">{code}</span>;
 }
 
 /**

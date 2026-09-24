@@ -231,6 +231,8 @@ class MemStore implements RoomStore {
           seated: r.members.length,
           method: r.room.method,
           budget: r.room.budget,
+          rerolls: r.room.rerolls,
+          showRatings: r.room.show_ratings,
           yourPicks: count(userId),
           theirPicks: count(undefined),
           yourDone: r.members.some((m) => m.user_id === userId && m.done),
@@ -2358,6 +2360,36 @@ export async function refereeChecks(): Promise<void> {
           read.length >= 7 &&
           list.length > 40 &&
           !names('no_such_column') &&
+          missing.length === 0,
+        () => (missing.length ? `not selected: ${missing.join(', ')}` : `read ${read.length}`),
+      );
+    }
+
+    // AND THE SAME SCAN OVER THE DUEL LIST, which grew two columns on 2026-09-24: a
+    // challenge's row now carries the two house rules it has (the re-rolls and the ratings
+    // flag), so its line reads as a lobby row's does. They are the exact shape of the bug
+    // this family of checks exists for - the client treats an absent field as "this server
+    // is too old to say", so a column left out of the select would not throw, would not
+    // look wrong, and would quietly take the detail off every challenge row for ever.
+    {
+      const store = readFileSync('referee/src/pgStore.ts', 'utf8');
+      const at = store.indexOf('async myDuels(');
+      const body = at < 0 ? '' : store.slice(at, store.indexOf('async displayName(', at));
+      const list = body.slice(body.indexOf('`with mine'), body.indexOf('limit $2'));
+      const read = [...new Set([...body.matchAll(/\bx\.([a-z_]+)/g)].map((m) => m[1]!))];
+      const names = (column: string): boolean =>
+        new RegExp(`(^|[\\s,.(])${column}(?![A-Za-z0-9_])`).test(list);
+      const missing = read.filter((c) => !names(c));
+      check(
+        `referee: all ${read.length} columns myDuels reads are named in its select`,
+        () =>
+          read.length >= 12 &&
+          list.length > 40 &&
+          !names('no_such_column') &&
+          // The two that carry the sentence, named rather than left to the count: those
+          // are the ones a later edit would drop without anything going red.
+          names('rerolls') &&
+          names('show_ratings') &&
           missing.length === 0,
         () => (missing.length ? `not selected: ${missing.join(', ')}` : `read ${read.length}`),
       );

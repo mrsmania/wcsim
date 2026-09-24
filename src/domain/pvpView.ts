@@ -355,17 +355,39 @@ export function duelToOpen(
  */
 export const duelAlertLine = (row: DuelRow, alert: Exclude<DuelAlert, null>): string =>
     alert === 'watch'
-        ? `the match against ${row.opponentName || 'your opponent'} has been played`
+        ? `The match against ${row.opponentName || 'your opponent'} has been played`
         : row.yourPicks >= XI_SLOTS
-          ? 'your XI is ready to send'
-          : 'your move, pick your XI';
+          ? 'Your XI is ready to send'
+          : 'Your move, pick your XI';
 
-/** What a duel PLAYS, for the row's second line and for the challenge screen. The same
- *  sentence a lobby row gets, minus the clock: a duel has none. */
-export function duelRules(row: Pick<DuelRow, 'method' | 'budget'>): string {
-    return row.method === 'budget'
-        ? `Buy an XI with $${row.budget}`
-        : 'Roll for your XI, one man from each squad';
+/**
+ * What a duel PLAYS, for the row's second line and for the challenge screen.
+ *
+ * THE LOBBY ROW'S OWN SENTENCE (`playsLine`), minus what a duel has not got: no clock at
+ * either scale (P51) and no practice opponents. It used to be written out here as "Roll for
+ * your XI, one man from each squad", which named the same method in words the lobby does not
+ * use and then said nothing about the two things the host actually chose - so the same room
+ * read one way on the public list and another on your own.
+ *
+ * `rerolls` and `showRatings` arrive only from a referee built after 2026-09-24, and an
+ * older row simply says "Roll for your XI". That is the same silence the whole-draft clock
+ * already keeps and it is the reason this half could ship first.
+ */
+export function duelRules(
+    row: Pick<DuelRow, 'method' | 'budget' | 'rerolls' | 'showRatings'>,
+): string {
+    // THE FOUR FIELDS ARE NAMED, NEVER PASSED THROUGH, and the invitation check caught
+    // exactly that the moment this was written as `playsLine(row)`: `inviteRules` hands a
+    // duel an `InviteRoom`, which carries the `pickSeconds` a duel stores and never reads
+    // (`tickDuel`), so the row satisfied the narrow parameter type and the builder then
+    // found a clock on it. The one rule of this function is what a duel has NOT got, so it
+    // cannot take a wider object's word for it.
+    return playsLine({
+        method: row.method,
+        budget: row.budget,
+        rerolls: row.rerolls,
+        showRatings: row.showRatings,
+    });
 }
 
 /** A duel is two chairs, always: `readCreate` forces the size at the edge whatever a client
@@ -402,13 +424,16 @@ export function duelSeats(row: Pick<DuelRow, 'seated'>): { size: number; seated:
  * of the rework: one list of rooms, each row saying what kind it is, what it plays and
  * how many chairs are taken, whether it is a cup somebody is sitting in or a challenge
  * spread over a week. It is shorter than the lobby's by what a duel does not have - no
- * clock (P51), and the row carries no re-roll count, since `myDuels` does not send one.
+ * clock (P51) and no practice opponents - and by nothing else since 2026-09-24, when the
+ * row grew the two house rules a duel really has.
  *
  * WHAT IT GIVES UP is the difference between a challenge nobody has opened and one they
  * are building, and it gives it up to the seat bubbles rather than losing it: an
  * untaken challenge is one dot short (`duelSeats`).
  */
-export function duelOpenLine(row: Pick<DuelRow, 'method' | 'budget'>): string {
+export function duelOpenLine(
+    row: Pick<DuelRow, 'method' | 'budget' | 'rerolls' | 'showRatings'>,
+): string {
     return `Waiting. ${duelRules(row)}`;
 }
 
@@ -737,20 +762,20 @@ interface RoomFacts {
 function roomLineOf(f: RoomFacts): string {
     switch (f.status) {
         case 'lobby':
-            return `waiting, ${f.seated} of ${f.size} in, ${f.ready} ready`;
+            return `Waiting, ${f.seated} of ${f.size} in, ${f.ready} ready`;
         case 'drafting':
             // A duel that nobody has taken up is DRAFTING with one player in it, which is
             // its ordinary early state rather than a half-started room. Saying "drafting,
             // 11 of 11 picked" there would read as a room about to play a match.
             return f.duel && f.seated < f.size
-                ? 'waiting for somebody to take it up'
-                : `drafting, ${f.yourPicks} of 11 picked`;
+                ? 'Waiting for somebody to take it up'
+                : `Drafting, ${f.yourPicks} of 11 picked`;
         case 'round':
             // Named rather than "match on": in a room of eight the round is half of what
             // a player wants to know from the strip, and the label is derivable.
-            return `${roundLabel(f.size, f.round).toLowerCase()} on`;
+            return `${roundLabel(f.size, f.round)} on`;
         case 'ended':
-            return f.won ? 'you won' : f.closed ? 'closed' : 'finished';
+            return f.won ? 'You won' : f.closed ? 'Closed' : 'Finished';
     }
 }
 
@@ -997,7 +1022,46 @@ export function spectateTie(view: RoomView): TieView | null {
  * is exactly the bug. So a buying room from an older server names its money and its
  * practice opponents and stops, which is true, where the old line was confident and wrong.
  */
+/** The settings a sentence about a room is built from. Everything but the method and the
+ *  money is optional, because each one is missing from a real caller rather than from a
+ *  hypothetical one: see `playsLine`. */
+export interface RoomPlays {
+    method: 'roll' | 'budget';
+    budget: number;
+    rerolls?: number;
+    showRatings?: boolean;
+    /** A ROLL room's per-pick window. A duel has none (P51) and a budget room opens none. */
+    pickSeconds?: number;
+    /** A BUDGET room's whole-draft clock (P52). A duel has none. */
+    draftSeconds?: number;
+    bots?: number;
+}
+
 export function lobbyLine(room: LobbyRoom): string {
+    return playsLine(room);
+}
+
+/**
+ * WHAT A ROOM PLAYS, IN ONE SENTENCE, wherever it is read (2026-09-24, asked for: harmonise
+ * the lobby rows and the open rooms).
+ *
+ * THERE ARE THREE SURFACES AND THEY WERE THREE SENTENCES. A public lobby row said "Roll for
+ * your XI, 3 re-rolls, 20s a pick"; a challenge on your own list said "Roll for your XI, one
+ * man from each squad", which names the same method in different words and then stops
+ * before the two things a player actually chose; and an invitation reused one or the other.
+ * So the same room read three ways depending where you met it.
+ *
+ * EVERY PART IS OPTIONAL BECAUSE EVERY PART IS GENUINELY ABSENT SOMEWHERE, and that is what
+ * makes one builder right rather than a lowest common denominator:
+ * - a DUEL has no clock at all (P51) and no practice opponents, so it prints neither;
+ * - a BUDGET room runs its clock over the whole draft and opens no pick window (P52), which
+ *   is why the pick clock is read in the roll branch only - printing it on a buying row is
+ *   the bug of 2026-09-15, a mechanism that room does not have told to the one reader who
+ *   cannot see inside it;
+ * - a row from an older referee carries no re-roll count or ratings flag, so it says less
+ *   rather than guessing, exactly as the whole-draft clock already does.
+ */
+export function playsLine(room: RoomPlays): string {
     // The practice opponents, when there are any: it changes what turning up means, since
     // the room can start the moment you arrive and one of your ties may be against a seat
     // rather than a person. Taken as zero from a referee that predates them.
@@ -1007,9 +1071,15 @@ export function lobbyLine(room: LobbyRoom): string {
         const whole = draftLengthLine(room.draftSeconds);
         return `Buy an XI with $${room.budget}${whole ? `, ${whole}` : ''}${practice}`;
     }
-    const rr = room.rerolls === 1 ? '1 re-roll' : `${room.rerolls} re-rolls`;
-    const hidden = room.showRatings ? '' : ', ratings hidden';
-    return `Roll for your XI, ${rr}, ${room.pickSeconds}s a pick${hidden}${practice}`;
+    const rr =
+        room.rerolls === undefined
+            ? ''
+            : `, ${room.rerolls === 1 ? '1 re-roll' : `${room.rerolls} re-rolls`}`;
+    const clock = room.pickSeconds ? `, ${room.pickSeconds}s a pick` : '';
+    // `=== false` rather than `!showRatings`, since an absent flag is "not sent" and a room
+    // that hides them is the rarer half: silence must not read as the house rule being on.
+    const hidden = room.showRatings === false ? ', ratings hidden' : '';
+    return `Roll for your XI${rr}${clock}${hidden}${practice}`;
 }
 
 /**

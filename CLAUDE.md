@@ -4509,8 +4509,9 @@ owner's three corrections, in `versus-option-2.html`. What shipped:
   and "The match is being played" were four ways of saying "not your move", the longest of
   them twice over. It is **"Waiting." plus what the room plays** now (`duelOpenLine`), which
   is the lobby row's own sentence (`duelRules`, the same opening words as `lobbyLine`),
-  shorter by what a duel has not got: no clock (P51), and no re-roll count, since
-  `GET /v1/duels` does not send one. Three things about it:
+  shorter by what a duel has not got: no clock (P51), and no practice opponents. (It carried
+  no re-roll count either until 2026-09-24, when the row grew the two house rules a duel
+  really has - see the next entry.) Three things about it:
   - **WHAT IT GIVES UP GOES TO THE SEAT BUBBLES rather than being lost.** The one
     distinction of the four a reader can act on is "nobody has followed the link yet", and
     the chairs say it better than a sentence: a challenge is two seats (`duelSeats`, with
@@ -4526,6 +4527,48 @@ owner's three corrections, in `versus-option-2.html`. What shipped:
     the shared row takes no prop for it and the partition is exactly the one the two pages
     already make: something waiting on you leads with that, an open room says what it plays,
     a finished one is the result.
+- **AND THE THREE SURFACES NOW WRITE ONE SENTENCE BETWEEN THEM** (2026-09-24, asked for:
+  harmonise the lobby rows and the open rooms). Three things were wrong and they are the
+  same thing three times - the same room read differently depending where you met it:
+  - **A CUP'S LINE WAS THE ONLY LOWER-CASE TEXT ON THE LIST.** It was written for the middle
+    of the chrome's strip ("Versus AB12CD - drafting, 4 of 11 picked") and then reused as a
+    row of its own, where every neighbour opens with a capital. Every state is a sentence
+    now ("Waiting, 2 of 4 in, 1 ready", "Drafting, 4 of 11 picked", "Quarter-final on",
+    "You won"), **and the chrome's duel line went with it** or the strip would capitalise one
+    of its two alternatives and not the other. `npm run checks` holds it as a PROPERTY over
+    every line a room or a challenge can print, not as five more literals: a state added
+    later has to be written the same way.
+  - **AN UNANSWERED CHALLENGE IS TITLED WITH ITS ROOM CODE**, in the cup row's own element
+    (`CodeTitle`), where it used to be titled "Nobody yet". A title is what the room IS
+    called, and until somebody follows the link a challenge has no other name - so that was
+    the one row on the list whose title was a STATUS, beside a cup titled with its code. The
+    dim code suffix goes when the title already is the code, or the row prints the same six
+    characters twice; a challenge somebody has taken up keeps both, since its title is then
+    a person.
+  - **WHAT A ROOM PLAYS IS ONE BUILDER** (`playsLine`), which `lobbyLine` and `duelRules`
+    both call. A challenge said "Roll for your XI, one man from each squad" - the same method
+    in words the public list does not use, and then nothing about what the host chose - where
+    the lobby says "Roll for your XI, 3 re-rolls, 20s a pick". It is the same string now,
+    minus only what a duel has not got. **Every part is optional because every part is
+    genuinely absent somewhere**: a duel has no clock at either scale and no practice
+    opponents, a buying room reads no pick window (the 2026-09-15 bug), and a row from an
+    older referee carries no house rules at all and so says less rather than guessing.
+  **IT COST THE REFEREE TWO COLUMNS AND NO MIGRATION**: `pvp_rooms.rerolls` and
+  `show_ratings` have existed since 0016 and the duel list simply never selected them, so
+  `GET /v1/duels` sends them now and a challenge row can say "Roll for your XI, 3 re-rolls,
+  ratings hidden". **The client half ships first and degrades to naming the method**, which
+  is the same silence the whole-draft clock already keeps on a lobby row. Two traps worth
+  keeping:
+  - **A WIDER OBJECT SATISFIES A NARROW `Pick`, and the invitation check caught it the
+    moment `duelRules` was written as `playsLine(row)`.** `inviteRules` hands a duel an
+    `InviteRoom`, which carries the `pickSeconds` a duel stores and never reads, so the
+    builder found a clock on a room that has none. The one rule of that function is what a
+    duel has NOT got, so it names its four fields rather than passing the row through.
+  - **A COLUMN THE MAPPER READS AND THE QUERY DOES NOT ASK FOR** is the 2026-08-27 disaster
+    in its quietest form here: an absent field means "this server is too old to say", so a
+    column dropped from the select would not throw, would not look wrong, and would take the
+    detail off every challenge row for ever. The scan that guards `myLiveRooms` guards
+    `myDuels` now too.
 - **AND A CUP DEFAULTS TO FOUR PEOPLE, OPEN TO ANYBODY** (2026-09-22, asked for). Both are
   about what "Create a cup" is FOR. A room of two nobody can find is the challenge with a
   clock bolted on, and the challenge has its own door directly above it; four is a semi and a
