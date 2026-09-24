@@ -4030,7 +4030,19 @@ instead: a deploy proves a room can be created, read back and changed, and prove
 all about whether the screens say what the rules do. Treat a versus screen as unproven by
 hand, and open a NEW item for whatever turns up, with the reproduction in it.
 
-**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** **The referee was rebuilt on 2026-09-22**
+**NOTHING IS QUEUED, AND THE SCHEMA IS AT 0026.** **The referee was rebuilt on 2026-09-24**
+from `ab20d1c`, so a challenge row on the versus page carries the two house rules a duel has
+(the re-roll count and the ratings switch) and reads as a lobby row does. **No migration and
+no schema change**: `pvp_rooms.rerolls` and `show_ratings` have existed since 0016 and the
+duel list simply never selected them, so the order did not matter in either direction and the
+client half went out first - an older container sends neither field, and the row then names
+its method and stops. All seven `--verify` steps green, and then the thing `--verify` cannot
+see, since it neither opens a duel nor reads that list: a challenge opened at **6 re-rolls
+with the ratings hidden**, read back off `GET /v1/duels`, which answered `"rerolls": 6,
+"showRatings": false`, and then deleted. **Both figures are ones the columns' own defaults
+could not have produced** (3 and true), which is the same rule the `draft_seconds` rebuild
+arrived at: when a rebuild adds a field whose test value could be a default, pick a value
+that cannot be. **The referee was rebuilt on 2026-09-22**
 from `d5c75f3`, so `GET /v1/duels` answers the live rooms you are in beside your duels
 (roadmap item 67, above). **No migration and no schema change**: `myLiveRooms` reads columns
 that have existed since 0016, so the schema stayed at 0026 and the order did not matter in
