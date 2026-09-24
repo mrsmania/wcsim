@@ -4557,6 +4557,22 @@ owner's three corrections, in `versus-option-2.html`. What shipped:
     dim code suffix goes when the title already is the code, or the row prints the same six
     characters twice; a challenge somebody has taken up keeps both, since its title is then
     a person.
+  - **AND A CUP'S ROW SAYS WHAT IT PLAYS TOO, WITHOUT COUNTING THE CHAIRS** (2026-09-24,
+    the same day, asked for once the rest was on screen). A cup row is two sentences in the
+    challenge row's own shape - "Waiting, 1 ready. Roll for your XI, 3 re-rolls, 20s a
+    pick", "Drafting, 4 of 11 picked. Buy an XI with $125, 5 min to draft" - so a cup, a
+    challenge and a public room all describe themselves in the same words. **The seat count
+    went because the row DRAWS the chairs**: "2 of 4 in" beside two filled bubbles and two
+    hollow ones is the same fact twice. What stays is how many have pressed READY, which no
+    bubble shows, and which reads as words rather than a nought when it is none.
+    **THE CHROME'S STRIP KEEPS THE COUNT**, because it draws no bubbles - it is one line
+    under the tabs - so the difference between the two readers is exactly that, carried as
+    a flag on the one builder (`RoomFacts.drawsSeats`) rather than as a second sentence
+    somewhere else. It is a fact about the SURFACE, not about the room. The strip also
+    stays at its state alone: what a room plays is for a list you are choosing from, not
+    for a pointer back into a room you are already in.
+    **The referee sends the six settings as `MyRoom.plays`** and an older container sends
+    none, which leaves the row at its state alone - what that list showed until now.
   - **WHAT A ROOM PLAYS IS ONE BUILDER** (`playsLine`), which `lobbyLine` and `duelRules`
     both call. A challenge said "Roll for your XI, one man from each squad" - the same method
     in words the public list does not use, and then nothing about what the host chose - where
@@ -4565,10 +4581,11 @@ owner's three corrections, in `versus-option-2.html`. What shipped:
     genuinely absent somewhere**: a duel has no clock at either scale and no practice
     opponents, a buying room reads no pick window (the 2026-09-15 bug), and a row from an
     older referee carries no house rules at all and so says less rather than guessing.
-  **IT COST THE REFEREE TWO COLUMNS AND NO MIGRATION**: `pvp_rooms.rerolls` and
-  `show_ratings` have existed since 0016 and the duel list simply never selected them, so
-  `GET /v1/duels` sends them now and a challenge row can say "Roll for your XI, 3 re-rolls,
-  ratings hidden". **The client half ships first and degrades to naming the method**, which
+  **IT COST THE REFEREE EIGHT COLUMNS AND NO MIGRATION**: the duel list gained
+  `pvp_rooms.rerolls` and `show_ratings`, and the live-room list those two plus `method`,
+  `budget`, `pick_seconds` and `draft_seconds`. All of them have existed since 0016 and
+  0021 and both queries simply never selected them, so `GET /v1/duels` sends them now and a
+  challenge row can say "Roll for your XI, 3 re-rolls, ratings hidden". **The client half ships first and degrades to naming the method**, which
   is the same silence the whole-draft clock already keeps on a lobby row. Two traps worth
   keeping:
   - **A WIDER OBJECT SATISFIES A NARROW `Pick`, and the invitation check caught it the

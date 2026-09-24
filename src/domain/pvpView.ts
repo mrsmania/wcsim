@@ -30,6 +30,7 @@ import type {
     LobbyRoom,
     MemberView,
     MyRoom,
+    RoomPlays,
     RoomStatusWire,
     RoomView,
     TieView,
@@ -731,7 +732,7 @@ export function roomLine(view: RoomView): string {
  * because the CHROME's strip is a `RoomView` and P31 can end a room under somebody.
  */
 export function myRoomLine(room: MyRoom): string {
-    return roomLineOf({
+    const state = roomLineOf({
         status: room.status,
         size: room.size,
         seated: room.seated,
@@ -741,7 +742,14 @@ export function myRoomLine(room: MyRoom): string {
         // A live room and never a duel: `myLiveRooms` filters on the pace, and a duel of
         // yours is on the same list already, as a duel, with its own line.
         duel: false,
+        // The row draws the chairs, so the sentence does not count them (2026-09-24).
+        drawsSeats: true,
     });
+    // AND WHAT IT PLAYS, in the same two-sentence shape a challenge row has ("Waiting. Roll
+    // for your XI, 3 re-rolls"): where the room has got to, then what it is. Absent from a
+    // referee too old to say, and then the row is its state alone, which is what this list
+    // showed until now.
+    return room.plays ? `${state}. ${playsLine(room.plays)}` : state;
 }
 
 /** The counts a room's one-line description is written from, which is all either source has
@@ -757,12 +765,29 @@ interface RoomFacts {
     /** Ended rooms only; see `myRoomLine`. */
     won?: boolean;
     closed?: boolean;
+    /**
+     * Does the surface reading this draw the CHAIRS beside it?
+     *
+     * THE ONE THING THE TWO READERS DIFFER ON, and it is a fact about the surface rather
+     * than about the room, which is why it is a flag here and not a second sentence
+     * somewhere else. The versus page's row draws the seat bubbles, so "2 of 4 in" beside
+     * them is the same count twice; the chrome's strip is one line under the tabs with no
+     * bubbles anywhere, so it is the only place that count is said at all.
+     */
+    drawsSeats?: boolean;
 }
 
 function roomLineOf(f: RoomFacts): string {
     switch (f.status) {
-        case 'lobby':
-            return `Waiting, ${f.seated} of ${f.size} in, ${f.ready} ready`;
+        case 'lobby': {
+            // How many have pressed Ready is NOT in the bubbles - a chair says somebody is
+            // there, not that they are waiting on nobody - so it is the half that stays
+            // wherever the seats are drawn. Zero gets words rather than a figure, since
+            // "0 ready" is a way of writing "nobody" that nobody writes.
+            const ready = f.ready === 0 ? 'nobody ready yet' : `${f.ready} ready`;
+            const seats = f.drawsSeats ? '' : `, ${f.seated} of ${f.size} in`;
+            return `Waiting${seats}, ${ready}`;
+        }
         case 'drafting':
             // A duel that nobody has taken up is DRAFTING with one player in it, which is
             // its ordinary early state rather than a half-started room. Saying "drafting,
@@ -1022,21 +1047,6 @@ export function spectateTie(view: RoomView): TieView | null {
  * is exactly the bug. So a buying room from an older server names its money and its
  * practice opponents and stops, which is true, where the old line was confident and wrong.
  */
-/** The settings a sentence about a room is built from. Everything but the method and the
- *  money is optional, because each one is missing from a real caller rather than from a
- *  hypothetical one: see `playsLine`. */
-export interface RoomPlays {
-    method: 'roll' | 'budget';
-    budget: number;
-    rerolls?: number;
-    showRatings?: boolean;
-    /** A ROLL room's per-pick window. A duel has none (P51) and a budget room opens none. */
-    pickSeconds?: number;
-    /** A BUDGET room's whole-draft clock (P52). A duel has none. */
-    draftSeconds?: number;
-    bots?: number;
-}
-
 export function lobbyLine(room: LobbyRoom): string {
     return playsLine(room);
 }

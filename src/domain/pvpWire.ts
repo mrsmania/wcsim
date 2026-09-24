@@ -226,6 +226,27 @@ export interface DuelRow {
  * watched as it happened (P30's reveal window is the server's), so unlike a duel there is no
  * result sitting unseen, and the chrome's pointer drops an ended room for the same reason.
  */
+/**
+ * The settings a sentence about a room is built from (`playsLine`).
+ *
+ * IT LIVES ON THE WIRE because three different payloads carry one: a public lobby row, a
+ * challenge on your own list, and a live room of yours. Everything but the method and the
+ * money is optional, because each one is genuinely missing from one of those - a duel has
+ * no clock at either scale and no practice opponents, a buying room opens no pick window,
+ * and a row from an older referee carries no house rules at all.
+ */
+export interface RoomPlays {
+  method: 'roll' | 'budget';
+  budget: number;
+  rerolls?: number;
+  showRatings?: boolean;
+  /** A ROLL room's per-pick window. A duel has none (P51) and a budget room opens none. */
+  pickSeconds?: number;
+  /** A BUDGET room's whole-draft clock (P52). A duel has none. */
+  draftSeconds?: number;
+  bots?: number;
+}
+
 export interface MyRoom {
   code: string;
   /** Never `ended`; the type is shared so `roomLineOf` can take either source. */
@@ -244,6 +265,10 @@ export interface MyRoom {
   round: number;
   /** When anything last happened, which is what the list sorts on. */
   touchedAt: number;
+  /** WHAT THE ROOM PLAYS, so its row says what a lobby row and a challenge row both say
+   *  (2026-09-24). Absent from a referee built before that, where the row is its state and
+   *  nothing else - which is what every version of this list did until then. */
+  plays?: RoomPlays;
 }
 
 export interface RoomView {

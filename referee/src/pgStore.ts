@@ -490,6 +490,14 @@ export function pgStore(pool: Pool): RoomStore {
         code: string;
         status: 'lobby' | 'drafting' | 'round';
         size: number;
+        method: 'roll' | 'budget';
+        budget: number;
+        rerolls: number;
+        show_ratings: boolean;
+        pick_seconds: number;
+        // Nullable on the row, exactly as `rows.ts` has it: a room stored before 0021 has
+        // none, and a row with no whole-draft length says nothing rather than a number.
+        draft_seconds: number | null;
         seated: string;
         bots: string;
         ready: string;
@@ -498,6 +506,11 @@ export function pgStore(pool: Pool): RoomStore {
         touched_at: Date | string;
       }>(
         `select r.code, r.status, r.size, r.round, r.touched_at,
+                -- WHAT IT PLAYS, so the row says what a lobby row says. Six columns the
+                -- room has carried since 0016 and 0021, and no count over another table:
+                -- they are on the row this query already joins.
+                r.method, r.budget, r.rerolls, r.show_ratings, r.pick_seconds,
+                r.draft_seconds,
                 (select count(*) from pvp_members m2 where m2.room_id = r.id) as seated,
                 (select count(*) from pvp_bots b where b.room_id = r.id) as bots,
                 (select count(*) from pvp_members m3
@@ -520,6 +533,19 @@ export function pgStore(pool: Pool): RoomStore {
         yourPicks: Number(x.your_picks),
         round: x.round,
         touchedAt: msOf(x.touched_at),
+        // A LIVE ROOM'S PICK CLOCK AND ITS DRAFT CLOCK BOTH TRAVEL, and the sentence picks
+        // by the method: a roll room stores a draft length it never reads and a budget room
+        // stores a pick window it never opens, so sending both and choosing there is the
+        // same rule `lobbyLine` already keeps.
+        plays: {
+          method: x.method,
+          budget: x.budget,
+          rerolls: x.rerolls,
+          showRatings: x.show_ratings,
+          pickSeconds: x.pick_seconds,
+          draftSeconds: x.draft_seconds ?? undefined,
+          bots: Number(x.bots),
+        },
       }));
     },
 

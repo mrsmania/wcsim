@@ -54,6 +54,7 @@ import {
   inviteRules,
   inviteState,
   lobbyLine,
+  playsLine,
   seatCounts,
   seatsLine,
   meIn,
@@ -2329,6 +2330,17 @@ export function pvpViewChecks(): void {
         yourPicks: 0,
         round: 0,
         touchedAt: 1_000_000,
+        // What it plays, which a referee built after 2026-09-24 sends. One practice
+        // opponent, so the sentence's own bot clause is exercised here too.
+        plays: {
+          method: 'roll',
+          budget: 0,
+          rerolls: 3,
+          showRatings: true,
+          pickSeconds: 20,
+          draftSeconds: 300,
+          bots: 1,
+        },
         ...over,
       });
       const lines = {
@@ -2350,27 +2362,48 @@ export function pvpViewChecks(): void {
         ],
       });
       check(
-        'pvpView: a live room on the list reads the same sentence as the room itself',
+        'pvpView: a live room on the list reads as a challenge does: where it is, then what it plays',
         () =>
-          lines.lobby === 'Waiting, 2 of 4 in, 1 ready' &&
-          lines.drafting === 'Drafting, 4 of 11 picked' &&
+          // THE ROW IS TWO SENTENCES, the same shape a challenge row has ("Waiting. Roll
+          // for your XI, 3 re-rolls"): where the room has got to, then what it is.
+          lines.lobby ===
+            'Waiting, 1 ready. Roll for your XI, 3 re-rolls, 20s a pick, 1 practice opponent' &&
+          lines.drafting ===
+            'Drafting, 4 of 11 picked. Roll for your XI, 3 re-rolls, 20s a pick, 1 practice opponent' &&
           // The round is NAMED, which is half of what a room of eight wants from the line.
-          lines.quarter === 'Quarter-final on' &&
-          lines.semi === 'Semi-final on' &&
-          lines.final === 'Final on' &&
-          // The view path, against the identical literal rather than against the row.
-          roomLine(view) === 'Drafting, 4 of 11 picked' &&
+          lines.quarter.startsWith('Quarter-final on. ') &&
+          lines.semi.startsWith('Semi-final on. ') &&
+          lines.final.startsWith('Final on. ') &&
+          // AND WHAT IT PLAYS IS THE LOBBY ROW'S OWN SENTENCE, not a third one: a cup, a
+          // challenge and a public room describe themselves in the same words.
+          lines.lobby.endsWith(playsLine(row().plays!)) &&
+          // THE ROW DOES NOT COUNT THE CHAIRS, because it draws them (2026-09-24). The
+          // strip does count them, having no bubbles of its own, and that difference is
+          // the ONLY one: it is a fact about the surface, carried as a flag on one builder
+          // rather than as a second sentence somewhere else.
+          !lines.lobby.includes('2 of 4 in') &&
           roomLine({ ...view, status: 'lobby' }) === 'Waiting, 2 of 4 in, 1 ready' &&
+          // Nobody ready gets words rather than a nought.
+          myRoomLine(row({ ready: 0 })).startsWith('Waiting, nobody ready yet.') &&
+          // The view path, which is the strip's, says the state and nothing about what the
+          // room plays: it is one line under the tabs on every screen in the game.
+          roomLine(view) === 'Drafting, 4 of 11 picked' &&
           // AND THE ROUND NUMBER MEANS THE SAME THING ON BOTH, which is the one figure
           // that could drift silently: `viewOf` passes `room.round` straight through and
           // so does the list row, so a row that read some other field would name the wrong
           // round on one screen and the right one on the next.
           roomLine({ ...view, status: 'round', size: 8, round: 2 }) === 'Semi-final on' &&
+          myRoomLine(row({ status: 'round', size: 8, round: 2 })).startsWith('Semi-final on') &&
           // A LIST ROW IS NEVER A DUEL, so the "nobody has taken it up" branch that a
           // half-empty duel takes must not reach a half-empty room: a cup of four with two
           // people in it is drafting, not waiting for somebody.
-          myRoomLine(row({ status: 'drafting', seated: 2, size: 4, yourPicks: 0 })) ===
+          myRoomLine(row({ status: 'drafting', seated: 2, size: 4, yourPicks: 0 })).startsWith(
             'Drafting, 0 of 11 picked',
+          ) &&
+          // A REFEREE TOO OLD TO SAY leaves the row at its state alone, which is what this
+          // list showed until now - never a half sentence with a full stop at the end.
+          myRoomLine(row({ plays: undefined })) === 'Waiting, 1 ready' &&
+          !myRoomLine(row({ plays: undefined })).includes('.'),
         () => JSON.stringify(lines),
       );
 

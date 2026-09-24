@@ -205,6 +205,15 @@ class MemStore implements RoomStore {
         yourPicks: r.picks.filter((p) => p.user_id === userId).length,
         round: r.room.round,
         touchedAt: msOf(r.room.touched_at),
+        plays: {
+          method: r.room.method,
+          budget: r.room.budget,
+          rerolls: r.room.rerolls,
+          showRatings: r.room.show_ratings,
+          pickSeconds: r.room.pick_seconds,
+          draftSeconds: r.room.draft_seconds ?? undefined,
+          bots: r.bots.length,
+        },
       }));
   }
 
@@ -2219,7 +2228,10 @@ export async function refereeChecks(): Promise<void> {
       };
 
       // A live room of four with two people in it, one of them ready. Nothing is dealt.
-      const cup = await open({ size: 4 });
+      // Its house rules are deliberately NOT the columns' own defaults (3 re-rolls, ratings
+      // on, twenty seconds), so the row below proves they travelled rather than that a
+      // default happened to match.
+      const cup = await open({ size: 4, rerolls: 6, showRatings: false, pickSeconds: 30 });
       await post(deps, `/referee/v1/rooms/${cup}/join`, longSession('u2'));
       await post(deps, `/referee/v1/rooms/${cup}/lineup`, longSession('u1'), {
         formationName: '4-3-3',
@@ -2249,6 +2261,15 @@ export async function refereeChecks(): Promise<void> {
           mine.yourPicks === 0 &&
           mine.round === 0 &&
           mine.touchedAt > 0 &&
+          // AND WHAT IT PLAYS (2026-09-24), so the row can say it in the same words a
+          // lobby row and a challenge row use. Asserted against what this room was OPENED
+          // with rather than against the columns' defaults, which is the only way to tell
+          // "carried" from "defaulted" - the trap the draft-clock rebuild recorded.
+          mine.plays?.method === 'roll' &&
+          mine.plays?.rerolls === 6 &&
+          mine.plays?.showRatings === false &&
+          mine.plays?.pickSeconds === 30 &&
+          mine.plays?.bots === 0 &&
           // The duel is on the answer, on the other key. Both halves in one trip is the
           // whole reason this rides on `/v1/duels` rather than on a route of its own.
           duels.some((d) => d.code === duel) &&
