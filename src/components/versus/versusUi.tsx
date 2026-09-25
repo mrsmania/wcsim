@@ -278,9 +278,7 @@ export function EmptySeat() {
                 />
                 Empty seat
             </span>
-            <span className="font-mono text-[10px] text-dim">
-                Waiting
-            </span>
+            <span className="font-mono text-[10px] text-dim">Waiting</span>
         </li>
     );
 }
@@ -293,7 +291,7 @@ export function ReadyMark({ ready }: { ready: boolean }) {
         </span>
     ) : (
         <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-dim">
-            <Clock size={13} /> Choosing
+            <Clock size={13} /> Waiting
         </span>
     );
 }
@@ -401,7 +399,7 @@ export function InviteRoom({ code, url }: { code: string; url: string }) {
     };
 
     return (
-        <div>
+        <div className="mb-4">
             <div className="flex flex-wrap items-center gap-2">
                 <RoomCode code={code} />
                 <button type="button" className={btn('secondary', 'compact')} onClick={copy}>
@@ -410,7 +408,11 @@ export function InviteRoom({ code, url }: { code: string; url: string }) {
                 </button>
                 {typeof navigator !== 'undefined' && !!navigator.share && (
                     <button type="button" className={btn('secondary', 'compact')} onClick={share}>
-                        <Share2 size={13} strokeWidth={2.5} className="mr-1.5 inline align-[-2px]" />
+                        <Share2
+                            size={13}
+                            strokeWidth={2.5}
+                            className="mr-1.5 inline align-[-2px]"
+                        />
                         Share
                     </button>
                 )}
@@ -492,11 +494,7 @@ export function RefereeProblem({
                     This one is a server setting, not something to retry.
                 </p>
             )}
-            {message.raw && (
-                <p className="mt-1.5 font-mono text-[10px] text-dim">
-                    {message.raw}
-                </p>
-            )}
+            {message.raw && <p className="mt-1.5 font-mono text-[10px] text-dim">{message.raw}</p>}
         </div>
     );
 }
@@ -623,9 +621,7 @@ export function DuelLine({
                reader both seats are taken by definition, and on a finished one they are a
                fact about a room nobody is going back to, so in both places two solid dots
                would be furniture. */
-            seats={
-                !alert && row.status !== 'ended' ? <SeatPips {...duelSeats(row)} /> : undefined
-            }
+            seats={!alert && row.status !== 'ended' ? <SeatPips {...duelSeats(row)} /> : undefined}
             loud={!!alert}
             action={
                 alert === 'watch'

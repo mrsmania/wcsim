@@ -24,7 +24,6 @@ import {
     SeatRow,
 } from './versusUi';
 import ShapePicker from './ShapePicker';
-import { DuelInvite } from './DuelPanels';
 
 /** Where this build is being served from, for the invite link. Read here rather than
  *  inside `inviteUrl`, which is `domain/` and has no window - and defaulted so a checks
@@ -194,70 +193,41 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                     // but a screen that says "I'm ready" over live chips is two answers to
                     // the same question. Not ready is the way back, and it is one tap.
                     locked={me?.ready ?? false}
-                    note={
-                        duel
-                            ? 'Choose it now. Nothing is dealt until you are both ready, and once the draft starts the slots are the shape.'
-                            : 'Chosen here, not on the clock: the clock only ever covers picking players.'
-                    }
+                    note={'Choose your formation and style and hit the ready button below.'}
                 />
 
                 {/* One button, labelled for what it DOES. The seat list beside it is where
                     the state is shown, so the button does not have to be both. */}
-                <button
-                    className={`${me?.ready ? SECONDARY_BTN : PRIMARY_BTN} mt-4`}
-                    onClick={() => post(name, style, !me?.ready)}
-                >
-                    {me?.ready ? 'Not ready' : "I'm ready"}
-                </button>
-                {duel && (
+                <div className="mt-8 flex flex-wrap items-center gap-1.5">
+                    <button
+                        className={`${me?.ready ? SECONDARY_BTN : PRIMARY_BTN}`}
+                        onClick={() => post(name, style, !me?.ready)}
+                    >
+                        {me?.ready ? 'Not ready' : "I'm ready"}
+                    </button>
                     <RoomNote>
-                        <span className="mt-2 block">
-                            {me?.ready
-                                ? full
-                                    ? 'Ready. It starts the moment they are too.'
-                                    : 'Ready. It starts as soon as somebody takes the challenge up.'
-                                : view.rules.method === 'roll'
-                                  ? 'Your first squad is dealt once you are both ready, and not before.'
-                                  : 'The market opens once you are both ready, and not before.'}
-                        </span>
+                        <span>{me?.ready && '... waiting for the others to be ready.'}</span>
                     </RoomNote>
-                )}
+                </div>
             </div>
 
             <div className={`${CARD} p-4`}>
-                {/* A DUEL'S INVITATION IS ITS OWN PANEL, because the sentence beside the
-                    link is a different one: a live room's is "send this to whoever is
-                    playing tonight" and a duel's is "nothing happens at all until somebody
-                    opens this". It used to sit above the board during the draft, which is
-                    where a duel started; there is a lobby to put it in again. */}
-                {duel ? (
-                    <DuelInvite view={view} />
-                ) : (
-                    <>
-                        <div className={MONO_CAP}>Invite somebody</div>
-                        <div className="mt-1.5">
-                            <InviteRoom
-                                code={view.code}
-                                url={inviteUrl(origin(), base(), view.code)}
-                            />
-                        </div>
-                        <RoomNote>
-                            {view.visibility === 'private'
-                                ? 'Private. The link puts them straight in; nobody else can find it.'
-                                : 'Public: it is on the list too, so anybody signed in can join.'}
-                        </RoomNote>
-                    </>
-                )}
+                {/* ONE INVITATION FOR BOTH KINDS OF ROOM. A duel used to have a panel of
+                    its own (`DuelInvite`), and the whole of its claim on one was the
+                    SENTENCE beside the link - a live room's "send this to whoever is
+                    playing tonight" against a duel's "nothing happens at all until somebody
+                    opens this". Neither sentence survives, so the two branches rendered the
+                    same thing and the panel went with them. */}
+                <div className={`mb-1.5 ${MONO_CAP}`}>Room code</div>
+                <InviteRoom code={view.code} url={inviteUrl(origin(), base(), view.code)} />
 
-                <div className={`${MONO_CAP} mt-4`}>
-                    {view.members.length} of {view.size} here
-                </div>
                 {/* EVERY CHAIR, INCLUDING THE EMPTY ONES. A lobby is mostly about who is
                     not here yet, and a list of the people present cannot say that: four
                     rows with two of them empty is the room, where "2 of 4" is a count. It
                     is also what makes the practice opponents below read as what they are -
                     a way to fill exactly those rows. */}
-                <ul className="mt-1">
+                <div className={`${MONO_CAP} mt-4`}>User list</div>
+                <ul>
                     {seatsOf(view).map((m, i) =>
                         m ? (
                             <SeatRow
@@ -310,10 +280,7 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                 {isHost && !duel && freeSeats > 0 && (
                     <>
                         <div className={`${MONO_CAP} mt-4`}>Nobody else coming?</div>
-                        <RoomNote>
-                            Fill the empty chairs and start now. They build their own XI out of the
-                            same pool, spend nearly all the money, and play to win.
-                        </RoomNote>
+                        <RoomNote>Fill the empty chairs now.</RoomNote>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                             {botCounts.map((n) => (
                                 <button
@@ -343,7 +310,7 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                     buying room that opens none. Ratings stay the last bullet and keep
                     their amber, being the one house rule that changes how you pick rather
                     than how long you have. */}
-                <div className={`${MONO_CAP} mt-4`}>The rules</div>
+                <div className={`${MONO_CAP} mt-4`}>Room rules</div>
                 <ul className="mt-1 list-disc space-y-1 pl-[1.1rem] text-[13px] leading-snug text-muted marker:text-dim">
                     {roomRules(view).map((rule) => (
                         <li key={rule}>{rule}</li>
@@ -355,53 +322,47 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                     )}
                 </ul>
 
-                {duel ? (
-                    // Nobody starts a duel by hand: the server does it the moment both
-                    // players are ready, since neither of them need be here for the other's.
-                    <RoomNote>
-                        <span className="mt-4 block">
+                {/* NOBODY STARTS A DUEL BY HAND, so there is nothing here for one at all:
+                    the server starts it the moment both players are ready, since neither of
+                    them need be present for the other's. */}
+                {!duel &&
+                    (isHost ? (
+                        <button
+                            className={`${PRIMARY_BTN} mt-4 w-full`}
+                            // Live again once a countdown has stalled, which is the only way
+                            // back from a Start that did not land.
+                            disabled={!full || busy || (armed && !stalled)}
+                            // It arms the same countdown the room arms itself, rather than
+                            // starting the draft under everybody: three seconds is the
+                            // difference between a draft appearing and a draft beginning.
+                            onClick={rearm}
+                        >
                             {full
-                                ? 'It starts as soon as you are both ready. Neither of you has to be here for the other.'
-                                : 'Send the link. Nothing is dealt until somebody takes it up.'}
-                        </span>
-                    </RoomNote>
-                ) : isHost ? (
-                    <button
-                        className={`${PRIMARY_BTN} mt-4 w-full`}
-                        // Live again once a countdown has stalled, which is the only way
-                        // back from a Start that did not land.
-                        disabled={!full || busy || (armed && !stalled)}
-                        // It arms the same countdown the room arms itself, rather than
-                        // starting the draft under everybody: three seconds is the
-                        // difference between a draft appearing and a draft beginning.
-                        onClick={rearm}
-                    >
-                        {full
-                            ? stalled
-                                ? 'Start it again'
-                                : starting
-                                  ? 'Starting the draft'
-                                  : 'Start the draft'
-                            : `Waiting for ${view.size - view.members.length} more`}
-                    </button>
-                ) : (
-                    full && (
-                        <RoomNote>
-                            <span className="mt-4 block">
-                                {/* A ROOM WITH A PRACTICE OPPONENT IN IT WAITS FOR THE
-                                    HOST, so it must not go on promising a kick-off that
-                                    nothing will arm (`startsItself`). The same two words
-                                    the stall falls back to, since from here they are the
-                                    same thing: somebody has to press it. */}
-                                {stalled || bots.length > 0
-                                    ? 'Waiting for the host to start it.'
+                                ? stalled
+                                    ? 'Start it again'
                                     : starting
-                                      ? 'Starting the draft.'
-                                      : 'It starts as soon as everybody is ready.'}
-                            </span>
-                        </RoomNote>
-                    )
-                )}
+                                      ? 'Starting the draft'
+                                      : 'Start the draft'
+                                : `Waiting for ${view.size - view.members.length} more`}
+                        </button>
+                    ) : (
+                        full && (
+                            <RoomNote>
+                                <span className="mt-4 block">
+                                    {/* A ROOM WITH A PRACTICE OPPONENT IN IT WAITS FOR THE
+                                    HOST, so it must not go on promising a kick-off that
+                                    nothing will arm (`startsItself`). Same two words the
+                                    stall falls back to, since from here they are the same
+                                    thing: somebody has to press it. */}
+                                    {stalled || bots.length > 0
+                                        ? 'Waiting for the host to start it.'
+                                        : starting
+                                          ? 'Starting the draft.'
+                                          : 'It starts as soon as everybody is ready.'}
+                                </span>
+                            </RoomNote>
+                        )
+                    ))}
             </div>
 
             {/* The kick-off. Last in the tree because it covers the screen, and mounted

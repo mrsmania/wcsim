@@ -7,7 +7,7 @@ import {
     type Style,
 } from '../../domain/formations';
 import Pitch from '../Pitch';
-import { CHIP_OFF, CHIP_ON, MONO_CAP } from '../matchUi';
+import { CHIP_OFF, CHIP_ON } from '../matchUi';
 import { RoomNote } from './versusUi';
 
 // Choosing a formation and a style, for every room that lets you.
@@ -84,7 +84,6 @@ export default function ShapePicker({
 
     return (
         <>
-            <div className={MONO_CAP}>Your shape</div>
             <RoomNote>
                 {locked ? 'Settled while you are ready. Press "Not ready" to change it.' : note}
             </RoomNote>

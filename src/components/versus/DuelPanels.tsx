@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { duelDowngraded, inviteUrl, isDuel } from '../../domain/pvpView';
+import { duelDowngraded, isDuel } from '../../domain/pvpView';
 import type { RoomView } from '../../domain/pvpWire';
 import { createRoom, leaveRoom, type CreateRoomInput } from '../../state/pvp/referee';
 import { CARD_FLAT, MONO_CAP, PRIMARY_BTN } from '../matchUi';
 import { refereeMessage, type RefereeMessage } from './refereeMessage';
-import { InviteRoom, RefereeProblem, RoomNote } from './versusUi';
+import { RefereeProblem, RoomNote } from './versusUi';
 
 // The two panels a duel has that a live room does not (P51, roadmap item 46).
 //
@@ -28,43 +28,12 @@ import { InviteRoom, RefereeProblem, RoomNote } from './versusUi';
 // is emailed and nothing is pushed, so a challenge travels by the link its sender pastes
 // into a message. Telling somebody yourself is part of the feature rather than a gap in it.
 
-/** Where this build is served from, for the invitation link. */
-const origin = (): string => (typeof window === 'undefined' ? '' : window.location.origin);
-const base = (): string => import.meta.env.BASE_URL;
-
-/**
- * Nobody has taken your challenge up yet.
- *
- * IT IS THE LINK AND THE REASON THE LINK MATTERS. Nothing whatever happens in a duel until
- * somebody opens it: no squad is dealt, no market opens, and the room sits in its lobby -
- * so a challenge nobody has been told about is a room nobody will ever open, and this panel
- * is the whole of telling them.
- *
- * CALLING IT OFF IS NOT HERE, deliberately. The room's own way out says what leaving costs,
- * and that sentence changes the moment somebody takes the seat (`leaveKind`): a second
- * button here would be a second answer, and would go on reading "the challenge is gone"
- * after it had become a forfeit.
- */
-export function DuelInvite({ view }: { view: RoomView }) {
-    const taken = view.members.length >= view.size;
-    return (
-        <>
-            <div className={MONO_CAP}>{taken ? 'Both here' : 'Nobody opposite yet'}</div>
-            <RoomNote>
-                <span className="mt-1 block">
-                    {taken
-                        ? 'They took it up. Once you have both pressed ready you each build your XI in your own time, and the match plays itself when the second one is sent.'
-                        : 'Whoever opens this link first takes the challenge. You both build in your own time, and the match plays itself when the second team is sent.'}
-                </span>
-            </RoomNote>
-            {!taken && (
-                <div className="mt-3">
-                    <InviteRoom code={view.code} url={inviteUrl(origin(), base(), view.code)} />
-                </div>
-            )}
-        </>
-    );
-}
+// THERE WAS A SECOND AND IT WENT ON 2026-09-25. `DuelInvite` was a duel's own invitation
+// panel, and it earned that only because the SENTENCE beside the link differed: a live
+// room's read "send this to whoever is playing tonight" and a duel's "nothing happens at
+// all until somebody opens this". Both sentences were deleted, which left it a wrapper
+// around the shared `InviteRoom` and the lobby holding two branches that rendered the same
+// thing. A distinction with nothing left to distinguish is deleted, not kept in case.
 
 /**
  * Play them again.

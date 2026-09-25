@@ -133,18 +133,18 @@ export const everybodyReady = (view: RoomView): boolean =>
  * A bot is ready the moment it is created, so filling the last chair used to BE the
  * kick-off: the host tapped "2 opponents" and the three-second count began under them,
  * with no chance to look at what they had just made. That is the one place in the lobby
- * where a single tap both fills the room and starts it, and it reads as the room running
+ * where the same tap both fills the room and starts it, and it reads as the room running
  * away rather than as a countdown.
  *
  * A HUMAN PRESSING READY IS A DECISION TO PLAY; A BOT BEING READY IS ONLY THE ABSENCE OF
- * ANYBODY TO ASK. The derived countdown works because every client sees the same ready
- * marks and reaches the same answer within a poll (P48), and it is worth having precisely
- * when the room is waiting on PEOPLE - which is exactly what a room with a bot in it is
- * not. So the automatic half stands down as soon as a bot is seated, and the host's Start
- * is the only way in, which it already is for a room where somebody has not pressed Ready.
+ * ANYBODY TO ASK. The derived countdown works because every client can see the same ready
+ * marks and agree (P48), and it is worth having precisely when the room is waiting on
+ * PEOPLE - which is exactly what a room of bots is not. So the automatic half stands down
+ * when a bot is seated and the host's Start is the only way in, which it already is for a
+ * room where somebody has not pressed Ready.
  *
- * IT DOES NOT MAKE THE ROOM HARDER TO START: the host's press arms the identical count, so
- * they still get the three seconds rather than the draft appearing under everybody.
+ * It does NOT make the room unstartable: `pressed` in the lobby arms the identical count,
+ * so the host still gets the three seconds rather than the draft appearing under everybody.
  */
 export const startsItself = (view: RoomView): boolean =>
     everybodyReady(view) && botsIn(view).length === 0;
@@ -622,9 +622,8 @@ export const inviteText = (code: string): string => `Play me at Mondialino. Room
 /** The tie the viewer is playing in a given round, or null. */
 export function tieOf(view: RoomView, round: number, userId: string): TieView | null {
     return (
-        view.ties.find(
-            (t) => t.round === round && (t.homeId === userId || t.awayId === userId),
-        ) ?? null
+        view.ties.find((t) => t.round === round && (t.homeId === userId || t.awayId === userId)) ??
+        null
     );
 }
 
@@ -650,9 +649,7 @@ const flipSide = (s: 'home' | 'away'): 'home' | 'away' => (s === 'home' ? 'away'
 
 export function viewerTie(tie: TieView, viewerId: string): ViewerTie {
     const atHome = tie.homeId === viewerId;
-    const events = atHome
-        ? tie.events
-        : tie.events.map((e) => ({ ...e, side: flipSide(e.side) }));
+    const events = atHome ? tie.events : tie.events.map((e) => ({ ...e, side: flipSide(e.side) }));
     const pens: ShootoutResult | null = !tie.pens
         ? null
         : atHome
@@ -827,7 +824,6 @@ function roomLineOf(f: RoomFacts): string {
     }
 }
 
-
 // --- What a room shows of the numbers (P5, P38, P40) -----------------------
 
 /** The presentation decisions a room makes, as data rather than as four booleans read off
@@ -892,15 +888,13 @@ export function ratingBand(value: number): string {
     return BAND_LABEL[BANDS[BANDS.length - 1]!];
 }
 
-
 // --- The bracket, and who watches what (P47, P24) --------------------------
 
 /** How many rounds a room of this size plays: one for two people, three for eight. */
 export const roundsFor = (size: number): number => Math.max(1, Math.round(Math.log2(size)));
 
 /** How many games a given round holds, in a room of this size. */
-export const gamesIn = (size: number, round: number): number =>
-    Math.max(1, size / 2 ** round);
+export const gamesIn = (size: number, round: number): number => Math.max(1, size / 2 ** round);
 
 /**
  * What a round is called, counted BACK from the final.
@@ -1045,7 +1039,6 @@ export function spectateTie(view: RoomView): TieView | null {
     return theirs ?? live[0]!;
 }
 
-
 // --- The public lobby list (P18) -------------------------------------------
 
 /**
@@ -1175,7 +1168,6 @@ export function roomRules(view: RoomView): string[] {
     if (clock) out.push(clock);
     const rounds = roundsFor(view.size);
     out.push(rounds > 1 ? `${rounds} knockout rounds` : 'One match');
-    out.push('No boosts, perks or chemistry');
     return out;
 }
 
