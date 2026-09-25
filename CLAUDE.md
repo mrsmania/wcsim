@@ -5105,6 +5105,29 @@ moved is still a legal room. `npm run checks` holds every rung inside the range,
 rung outside it is refused as `bad-room` and tells the host nothing about which of the six
 settings was wrong.
 
+**TWO THINGS IN THE LOBBY CHANGED ON 2026-09-25, both asked for, and both are about a
+screen saying two things at once.**
+
+- **READY SETTLES YOUR SHAPE.** The formation and style chips go inert once you press
+  Ready, and the line above them says so ("Settled while you are ready. Press Not ready to
+  change it."). **P48's rule is the SERVER's and has not moved** - the referee still takes a
+  lineup from a ready player, and the host may still start over somebody who never pressed
+  it - so this is a client affordance and needed no deploy. `ShapePicker` takes `locked`,
+  defaulted false so a caller with nothing to lock reads exactly as before. **The chosen
+  chip keeps its full strength and only the others dim**, which is the perk-tile lesson
+  reached again: fading the whole row hides the one thing on it still carrying information.
+- **A ROOM WITH A PRACTICE OPPONENT IN IT DOES NOT START ITSELF.** A bot is ready the moment
+  it is made, so "everybody is ready" went true on the same tap that filled the last chair,
+  and the three-second count began under the host with no chance to look at what they had
+  just made. `startsItself` (domain/pvpView) is the countdown's rule now - `everybodyReady`
+  **and no bots seated** - and `everybodyReady` is left alone, since a bot really is ready
+  and that fact has other readers. **It does not make the room harder to start**: the host's
+  Start arms the identical count. The sentence the other players read had to move with it,
+  or the lobby would go on promising a kick-off nothing will arm. `npm run checks` holds
+  both halves and reads the screen for both, since nothing behavioural can see either: a
+  lobby still on `everybodyReady` draws a perfectly correct countdown, a beat after a tap
+  nobody meant as a Start.
+
 **THE LOBBY POSTS YOUR SHAPE THE MOMENT YOU PICK IT, and that is what removed a button.**
 It used to hold the choice locally, so the primary action read "I'm ready" and then turned
 into **"Change my shape"** - a button whose job was to send a choice the chips looked as

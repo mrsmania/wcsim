@@ -117,14 +117,37 @@ export const KICKOFF_HOLD_SECONDS = 5;
  * nothing to deploy. What the HOST'S client does at zero is send the Start the host would
  * otherwise have pressed.
  *
- * A practice opponent is always ready (there is nobody to press it), so a host who filled
- * the empty chairs starts the moment they are ready themselves - which is the whole point
- * of having filled them.
+ * A practice opponent is always ready, because there is nobody to press it. That is a fact
+ * about the SEAT and it is deliberately not the whole answer to "does this room start on
+ * its own" - see `startsItself`, which is what the countdown actually reads.
  */
 export const everybodyReady = (view: RoomView): boolean =>
     view.status === 'lobby' &&
     view.members.length >= view.size &&
     view.members.every((m) => m.ready);
+
+/**
+ * Does this room arm its own kick-off, or does the host have to press Start?
+ *
+ * A ROOM WITH A PRACTICE OPPONENT IN IT DOES NOT START ITSELF (2026-09-25, asked for).
+ * A bot is ready the moment it is created, so filling the last chair used to BE the
+ * kick-off: the host tapped "2 opponents" and the three-second count began under them,
+ * with no chance to look at what they had just made. That is the one place in the lobby
+ * where a single tap both fills the room and starts it, and it reads as the room running
+ * away rather than as a countdown.
+ *
+ * A HUMAN PRESSING READY IS A DECISION TO PLAY; A BOT BEING READY IS ONLY THE ABSENCE OF
+ * ANYBODY TO ASK. The derived countdown works because every client sees the same ready
+ * marks and reaches the same answer within a poll (P48), and it is worth having precisely
+ * when the room is waiting on PEOPLE - which is exactly what a room with a bot in it is
+ * not. So the automatic half stands down as soon as a bot is seated, and the host's Start
+ * is the only way in, which it already is for a room where somebody has not pressed Ready.
+ *
+ * IT DOES NOT MAKE THE ROOM HARDER TO START: the host's press arms the identical count, so
+ * they still get the three seconds rather than the draft appearing under everybody.
+ */
+export const startsItself = (view: RoomView): boolean =>
+    everybodyReady(view) && botsIn(view).length === 0;
 
 /**
  * Is this answer newer than the newest one already on screen?

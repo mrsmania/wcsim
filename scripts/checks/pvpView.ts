@@ -42,6 +42,7 @@ import {
   duelToOpen,
   duelTurn,
   everybodyReady,
+  startsItself,
   gamesIn,
   inviteText,
   inviteUrl,
@@ -1010,8 +1011,11 @@ export function pvpViewChecks(): void {
           /roomRules\(view\)\.map/.test(lobby) &&
           lobby.includes('list-disc') &&
           // Vacuity: it is the rules block being read, and the ratings house rule is still
-          // the emphasised last bullet rather than having gone with the paragraph.
-          lobby.includes('The rules') &&
+          // the emphasised last bullet rather than having gone with the paragraph. The
+          // heading is matched on the WORD, not on a literal: "The rules" and "Room rules"
+          // are the same block, and pinning the exact wording makes a copy edit fail a
+          // check that has nothing to say about copy.
+          /rules<\/div>/i.test(lobby) &&
           /!view\.showRatings/.test(lobby) &&
           lobby.includes('text-amber-ink') &&
           // And none of the facts is written out here any more - the paragraph named the
@@ -1248,8 +1252,9 @@ export function pvpViewChecks(): void {
         everybodyReady(
           room([seat('a', 0, true), seat('b', 1, true), seat('c', 2, true), seat('d', 3, true)]),
         ) &&
-        // A PRACTICE OPPONENT IS ALWAYS READY, so a host who filled the chairs starts the
-        // moment they are ready themselves - which is the whole point of having filled them.
+        // A PRACTICE OPPONENT IS ALWAYS READY, because there is nobody to press it. That
+        // stays true and is deliberately NOT the same question as whether the room starts
+        // on its own - see the check below.
         everybodyReady(
           room([seat('a', 0, true), seat('b', 1, true, true), seat('c', 2, true, true), seat('d', 3, true, true)]),
         ) &&
@@ -1265,6 +1270,93 @@ export function pvpViewChecks(): void {
         KICKOFF_SECONDS <= 5 &&
         KICKOFF_HOLD_SECONDS > KICKOFF_SECONDS - 2,
       () => `${KICKOFF_SECONDS}s then ${KICKOFF_HOLD_SECONDS}s`,
+    );
+    // --- A ROOM WITH A PRACTICE OPPONENT IN IT WAITS FOR THE HOST ------------
+    //
+    // 2026-09-25, asked for. A bot is ready from the moment it is made, so "everybody is
+    // ready" went true the instant the host filled the last chair - and the three-second
+    // count began under the same tap that filled it. One gesture that both makes the room
+    // and starts it, with no chance to look at what was made.
+    //
+    // NOTHING BEHAVIOURAL CAN SEE THE DIFFERENCE from inside the lobby: both versions draw
+    // a correct countdown, one of them a beat after a tap nobody meant as a Start. So the
+    // rule is a derivation, and the second half of this check reads the screen for it.
+    check(
+      'pvpView: a room with a practice opponent in it does not start itself',
+      () => {
+        const people = room([seat('a', 0, true), seat('b', 1, true), seat('c', 2, true), seat('d', 3, true)]);
+        const withBot = room([seat('a', 0, true), seat('b', 1, true), seat('c', 2, true), seat('d', 3, true, true)]);
+        const allBots = room([seat('a', 0, true), seat('b', 1, true, true), seat('c', 2, true, true), seat('d', 3, true, true)]);
+        return (
+          // Four people, all ready: the derived kick-off is exactly what this is for.
+          startsItself(people) &&
+          // One bot is enough to stand it down, and so is a room that is mostly bots.
+          !startsItself(withBot) &&
+          !startsItself(allBots) &&
+          // AND IT IS NOT A SECOND READINESS RULE. Both of those rooms are still "everybody
+          // ready" - the host's Start is enabled by fullness, so a version that made the bot
+          // un-ready would have disabled the only way in. That is the failure this guards.
+          everybodyReady(withBot) &&
+          everybodyReady(allBots) &&
+          // It still needs everything `everybodyReady` needs: a seat empty or somebody
+          // still choosing is not a kick-off either.
+          !startsItself(two) &&
+          !startsItself(
+            room([seat('a', 0, true), seat('b', 1, true), seat('c', 2, true), seat('d', 3, false)]),
+          )
+        );
+      },
+      () => `people ${startsItself(room([seat('a', 0, true), seat('b', 1, true), seat('c', 2, true), seat('d', 3, true)]))}`,
+    );
+    // And the lobby reads THAT rather than `everybodyReady`, which is the whole of the fix:
+    // the two agree on every room without a bot in it, so a screen still on the old one
+    // looks right until somebody fills a chair.
+    {
+      const lobby = codeOnly(readFileSync('src/components/versus/RoomLobby.tsx', 'utf8'));
+      check(
+        'pvpView: the lobby arms its countdown off `startsItself`, and says who a bot room waits for',
+        () =>
+          /armed = !duel && full && \(startsItself\(view\) \|\| pressed\)/.test(lobby) &&
+          !/everybodyReady/.test(lobby) &&
+          // The host's own press still arms it, or a room with a bot could never start.
+          /onClick=\{rearm\}/.test(lobby) &&
+          // And the sentence the OTHER players read stops promising a kick-off nothing
+          // will arm. Without this the room is correct and the screen is not.
+          /stalled \|\| bots\.length > 0/.test(lobby),
+        () => `${/startsItself\(view\)/.test(lobby)} / ${/stalled \|\| bots\.length > 0/.test(lobby)}`,
+      );
+    }
+  }
+
+  // --- READY SETTLES YOUR SHAPE --------------------------------------------
+  //
+  // 2026-09-25, asked for. P48's rule is the SERVER's and has not moved - the referee still
+  // takes a lineup from a ready player, and the host may still start over somebody who never
+  // pressed Ready - but a screen that says "I'm ready" above live formation chips is two
+  // answers to the same question. Not ready is the way back and it is one tap.
+  //
+  // NOTHING BEHAVIOURAL CAN SEE IT: a picker whose chips stay live renders perfectly, and
+  // the referee accepts every change it posts.
+  {
+    const picker = codeOnly(readFileSync('src/components/versus/ShapePicker.tsx', 'utf8'));
+    const lobby = codeOnly(readFileSync('src/components/versus/RoomLobby.tsx', 'utf8'));
+    check(
+      'pvpView: pressing Ready settles the shape, and the chosen chip stays legible',
+      () =>
+        // The control takes the state and BOTH rows honour it - the formations and the
+        // styles, the second of which already had a disabled case of its own to compose with.
+        /locked\?: boolean/.test(picker) &&
+        /disabled=\{locked\}/.test(picker) &&
+        /disabled=\{locked \|\| !enabled\}/.test(picker) &&
+        // It says WHY rather than going quietly inert, which is the difference between a
+        // settled control and a broken one.
+        /Not ready/.test(picker) &&
+        // THE CHOSEN CHIP IS NOT DIMMED. Fading the whole row hides the one thing on it
+        // still carrying information: which shape you settled on.
+        /locked && !on/.test(picker) &&
+        // And the lobby drives it off the player's own ready mark.
+        /locked=\{me\?\.ready \?\? false\}/.test(lobby),
+      () => `picker ${/locked\?: boolean/.test(picker)}, lobby ${/locked=\{me\?\.ready/.test(lobby)}`,
     );
   }
 

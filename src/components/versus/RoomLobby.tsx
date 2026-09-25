@@ -4,7 +4,7 @@ import {
     KICKOFF_HOLD_SECONDS,
     KICKOFF_SECONDS,
     botsIn,
-    everybodyReady,
+    startsItself,
     inviteUrl,
     isDuel,
     peopleIn,
@@ -109,7 +109,11 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
      * The two things that arm it are the same countdown: everybody pressing Ready, which
      * every client works out for itself from the room it already holds, and the host
      * pressing Start on a room where somebody has not (P48 keeps that button, since Ready
-     * is a signal rather than a lock). The first is DERIVED, which is the only reason it
+     * is a signal rather than a lock). The first stands down entirely once a PRACTICE
+     * OPPONENT is seated (`startsItself`), because a bot is ready from the moment it is
+     * made, so filling the last chair would otherwise BE the kick-off - one tap that both
+     * fills the room and starts it, with no chance to look at what you just made. The
+     * first is DERIVED, which is the only reason it
      * needs no new server route and nothing deployed: the same fact reaches every screen
      * within a poll, so everybody counts down together, and at zero the HOST's client
      * sends the instruction it would otherwise have waited for a tap to send.
@@ -132,7 +136,7 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
     const [since, setSince] = useState<number | null>(null);
     const [now, setNow] = useState(0);
     const fired = useRef(false);
-    const armed = !duel && full && (everybodyReady(view) || pressed);
+    const armed = !duel && full && (startsItself(view) || pressed);
     useEffect(() => {
         if (!armed) {
             setSince(null);
@@ -185,6 +189,11 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                     name={name}
                     style={style}
                     onPick={(n, st) => post(n, st, me?.ready ?? false)}
+                    // READY SETTLES THE SHAPE (2026-09-25, asked for). The referee would
+                    // still take a change - P48's rule is the server's and has not moved -
+                    // but a screen that says "I'm ready" over live chips is two answers to
+                    // the same question. Not ready is the way back, and it is one tap.
+                    locked={me?.ready ?? false}
                     note={
                         duel
                             ? 'Choose it now. Nothing is dealt until you are both ready, and once the draft starts the slots are the shape.'
@@ -379,7 +388,12 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                     full && (
                         <RoomNote>
                             <span className="mt-4 block">
-                                {stalled
+                                {/* A ROOM WITH A PRACTICE OPPONENT IN IT WAITS FOR THE
+                                    HOST, so it must not go on promising a kick-off that
+                                    nothing will arm (`startsItself`). The same two words
+                                    the stall falls back to, since from here they are the
+                                    same thing: somebody has to press it. */}
+                                {stalled || bots.length > 0
                                     ? 'Waiting for the host to start it.'
                                     : starting
                                       ? 'Starting the draft.'
