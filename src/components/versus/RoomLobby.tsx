@@ -226,7 +226,7 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                     rows with two of them empty is the room, where "2 of 4" is a count. It
                     is also what makes the practice opponents below read as what they are -
                     a way to fill exactly those rows. */}
-                <div className={`${MONO_CAP} mt-4`}>User list</div>
+                <div className={`${MONO_CAP} mt-4`}>Player list</div>
                 <ul>
                     {seatsOf(view).map((m, i) =>
                         m ? (
