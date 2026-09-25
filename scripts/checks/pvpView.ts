@@ -972,11 +972,15 @@ export function pvpViewChecks(): void {
           [buy, rollRoom, duel, older]
             .flatMap(roomRules)
             .every((r) => r.length <= 34 && !r.includes('. ')) &&
-          roomRules(buy).join(' | ') ===
-            'Buy an XI with $110 | 5 min to draft | 2 knockout rounds | No boosts, perks or chemistry' &&
+          // THE FACTS AND THEIR ORDER, up to and including the bracket. Sliced rather
+          // than joined whole on purpose: what the lobby chooses to say AFTER them is a
+          // copy decision somebody may take either way, and pinning it here would make
+          // this check fail for a reason that has nothing to do with what it guards.
+          roomRules(buy).slice(0, 3).join(' | ') ===
+            'Buy an XI with $110 | 5 min to draft | 2 knockout rounds' &&
           // A roll room names its re-rolls and its pick window, and one is not "1 re-rolls".
-          roomRules(rollRoom).join(' | ') ===
-            'Roll squads, one man from each | 3 re-rolls each | 20s a pick | 3 knockout rounds | No boosts, perks or chemistry' &&
+          roomRules(rollRoom).slice(0, 4).join(' | ') ===
+            'Roll squads, one man from each | 3 re-rolls each | 20s a pick | 3 knockout rounds' &&
           roomRules(duel).includes('1 re-roll each') &&
           roomRules({ ...rollRoom, rerolls: 0 }).includes('No re-rolls') &&
           // THE CLOCK, three ways. A buying room never names a pick window...

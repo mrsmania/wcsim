@@ -4311,8 +4311,8 @@ worse than none, and `npm run checks` now asserts every stage detects docker bef
 the same day** - roadmap item 55, closed). A code gets passed around and a public lobby is open to
 anybody signed in, so the person who opened the room needs a way to say "not you" - and
 every other answer they had was worse than the question: close the room and open another,
-losing everybody already in it, or play it smaller, which throws away the seat rather than
-the person in it. The rule itself is four lines of `removeMember` (domain/pvpRoom). What
+losing everybody already in it, or (until it was deleted on 2026-09-25) play it smaller,
+which throws away the seat rather than the person in it. The rule itself is four lines of `removeMember` (domain/pvpRoom). What
 needed a column is that **arriving at a room IS taking the seat**, so a removed player's own
 screen re-joins on its next read - the host would watch them walk back in about two seconds
 later, for as long as the tab is open. Hence `PvpRoom.removed`, `joinRoom` refusing on it,
@@ -4715,9 +4715,9 @@ always tempting, so reaching for it is exactly the bug coming back. Two things t
 versus room the rules were way too long). The lobby stated them as a paragraph of three
 sentences, on the panel a player reads just before they are dealt a squad, so finding the
 one thing you came for meant reading to the end. `roomRules` (domain/pvpView) is that
-paragraph as a list of short facts - what you do, the re-rolls, the clock, how many
-knockout rounds, and no boosts/perks/chemistry - drawn as a `list-disc` list in the same
-idiom the sign-in sheet's four benefits use. Three things about it:
+paragraph as a list of short facts - what you do, the re-rolls, the clock and how many
+knockout rounds - drawn as a `list-disc` list in the same idiom the sign-in sheet's four
+benefits use. Three things about it:
 
 - **IT IS THE SAME FACTS AS `playsLine` AND DELIBERATELY NOT THAT FUNCTION.** That one
   writes a ROW in a list of rooms somebody is choosing between, where a sentence is what
@@ -5121,9 +5121,11 @@ near the end of this file, which is where the whole rule lives now.
 
 **PRACTICE OPPONENTS: the host can fill the empty chairs** (P49, `domain/pvpBot.ts`,
 2026-08-29). The one thing a room of eight cannot do for itself is find eight people, and
-P7's play-it-smaller answers only half of that - dropping to two is a different evening from
-the tournament the host opened. Four rules make a bot a SEAT rather than a player, and each
-one is a lifecycle rule re-read as being about people rather than about chairs:
+P7's play-it-smaller answered only half of that - dropping to two is a different evening
+from the tournament the host opened - and **it was deleted outright on 2026-09-25**, so this
+is now the whole answer rather than the better of two. Four rules make a bot a SEAT rather
+than a player, and each one is a lifecycle rule re-read as being about people rather than
+about chairs:
 
 - **A BOT NEVER KEEPS A HUMAN OUT.** Somebody arriving at a full room takes the newest bot's
   chair (`joinRoom`), so filling up is a decision the host can make early and unmake by doing
@@ -5484,7 +5486,34 @@ survivors, `playRound` plays every tie of the round, `tickRoom` advances until o
 and `npm run checks` has asserted the lot over sixty rooms of eight since then. Wave 7 is
 entirely the client's READING of it (`roundsFor`, `roundLabel`, `gamesIn`, `roomBracket`,
 `spectateTie` in `domain/pvpView.ts`, drawn by `components/versus/RoomBracket.tsx`) plus one
-command the client had never called: `size`, which is P7's play-it-smaller.
+command the client had never called: `size`, which was P7's play-it-smaller and is gone
+(see the next entry).
+
+**AND PLAY-IT-SMALLER IS DELETED, WITH ITS WHOLE STACK** (2026-09-25, asked for: the "Not
+going to fill?" chips were overkill). The lobby offered the host "Play 4" / "Play 2"
+directly above the practice opponents, which is **two answers to one question on one
+panel**, and the weaker of the two: shrinking eight to two throws away the tournament that
+was opened, where filling the chairs keeps it. So it went the way the three dominated boosts
+went - by deletion rather than by being hidden - and the deletion is the full depth, since a
+route nothing calls is a route that rots: the lobby's chips, `resizeRoom`, `useVersusRoom`'s
+`resize`, `reduceSize` in `domain/pvpRoom.ts` and the referee's `POST /v1/rooms/:code/size`.
+**The size a room opens at is the size it plays.** Three things to know:
+
+- **THE ORDER DID NOT MATTER IN EITHER DIRECTION, and this is the rare case where that is
+  genuinely true.** The client half is what stops the route being called, and an old client
+  meeting a rebuilt referee gets a 404 on a button that no longer exists to press. So the
+  repository is clean now and **the route disappears at the next referee rebuild**; nothing
+  waits on that rebuild, which is why no roadmap item was opened for it.
+- **The referee's own `--verify` never touched it**, so a rebuilt container is not
+  distinguishable from an old one by the suite - the same blind spot the `SWEEP_LAG_MS`
+  rebuild recorded. If it ever matters, read the bundle
+  (`docker exec wcsim-referee grep -c "case 'size'" /app/referee.mjs`).
+- **One check had to be repointed rather than deleted**, and it is worth knowing why: the
+  `myLiveRooms` check opened a cup of four with two people in it (to prove the row reports
+  `size` and `seated` as different numbers) and then shrank it to two so a draft could open
+  on a full room. It fills the other two chairs with real players now, which is what a host
+  would do. **A check that uses a feature as scaffolding has to be re-scaffolded, not
+  dropped** - the thing it was asserting had nothing to do with the room's size.
 
 **THERE IS NO "THE OTHER PLAYER".** Every versus screen was first written with `others[0]`
 as the opponent, which is right in a room of two and wrong three ways in a room of eight -

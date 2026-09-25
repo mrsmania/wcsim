@@ -39,7 +39,6 @@ import {
   XI_SLOTS,
   joinRoom,
   leaveRoom,
-  reduceSize,
   remainingBudget,
   removeMember,
   rerollDeal,
@@ -55,7 +54,6 @@ import {
   type DraftSeconds,
   type PickSeconds,
   type PvpRoom,
-  type RoomSize,
 } from '../../src/domain/pvpRoom';
 import type { InviteLimiter } from './invites';
 import { bearerOf, verifyToken } from './jwt';
@@ -319,15 +317,13 @@ export async function handle(req: ApiRequest, deps: ApiDeps): Promise<ApiRespons
       return join(deps, userId, code, now);
     case 'lineup':
       return lineup(req, deps, userId, code, now);
-    case 'size':
-      return size(req, deps, userId, code, now);
     case 'bots':
       return bots(req, deps, userId, code, now);
     case 'start':
       return command(deps, userId, code, now, (room) => startRoom(room, userId, now));
-    // The host throwing somebody out (`removeMember`). A lobby's, like `size` and `bots`,
-    // and refused everywhere else by the state machine rather than here - the answer is
-    // the room, so a screen that offered the button too late shows why it did nothing.
+    // The host throwing somebody out (`removeMember`). A lobby's, like `bots`, and
+    // refused everywhere else by the state machine rather than here - the answer is the
+    // room, so a screen that offered the button too late shows why it did nothing.
     case 'remove':
       return remove(req, deps, userId, code, now);
     case 'leave':
@@ -471,18 +467,6 @@ async function lineup(
   if (!getFormation(formationName, style)) return fail(422, 'bad-formation');
   const ready = req.body.ready !== false;
   return command(deps, userId, code, now, (room) => setLineup(room, userId, formationName, style, ready));
-}
-
-async function size(
-  req: ApiRequest,
-  deps: ApiDeps,
-  userId: string,
-  code: string,
-  now: number,
-): Promise<ApiResponse> {
-  const want = Number(req.body.size);
-  if (!(ROOM_SIZES as readonly number[]).includes(want)) return fail(422, 'bad-size');
-  return command(deps, userId, code, now, (room) => reduceSize(room, userId, want as RoomSize));
 }
 
 /**

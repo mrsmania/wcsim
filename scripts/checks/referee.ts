@@ -2207,7 +2207,7 @@ export async function refereeChecks(): Promise<void> {
     {
       const clock = { now: T0 };
       const store = new MemStore();
-      store.names = { u1: 'Ada', u2: 'Bruno', u3: 'Cleo' };
+      store.names = { u1: 'Ada', u2: 'Bruno', u3: 'Cleo', u4: 'Dee' };
       const deps = depsFor(store, clock);
 
       const open = async (over: Record<string, unknown>): Promise<string> => {
@@ -2280,10 +2280,12 @@ export async function refereeChecks(): Promise<void> {
       );
 
       // The draft starts and a pick lands. `yourPicks` is the one figure on the row that is
-      // about the caller, and it is what "drafting, 1 of 11 picked" reads. The room plays
-      // it smaller first (P7), since a draft opens only on a FULL room and two of the four
-      // chairs are empty.
-      await post(deps, `/referee/v1/rooms/${cup}/size`, longSession('u1'), { size: 2 });
+      // about the caller, and it is what "drafting, 1 of 11 picked" reads. The other two
+      // chairs are FILLED first, since a draft opens only on a full room - it used to shrink
+      // the room to two instead, through the play-it-smaller route that was deleted on
+      // 2026-09-25. Only u1 and u2 pick below, which is what the assertion needs.
+      await post(deps, `/referee/v1/rooms/${cup}/join`, longSession('u3'));
+      await post(deps, `/referee/v1/rooms/${cup}/join`, longSession('u4'));
       await post(deps, `/referee/v1/rooms/${cup}/lineup`, longSession('u2'), {
         formationName: '4-3-3',
         style: 'bal',

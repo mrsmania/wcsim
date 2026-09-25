@@ -13,7 +13,6 @@ import {
     removeMember,
     postMove,
     rerollDeal,
-    resizeRoom,
     seen,
     setRoomBots,
     setLineup as postLineup,
@@ -88,8 +87,6 @@ export interface VersusRoom {
     refresh: () => void;
     ready: (formationName: string, style: string, ready: boolean) => Promise<void>;
     start: () => Promise<void>;
-    /** The host playing with fewer than the room was opened for (P7). */
-    resize: (size: number) => Promise<void>;
     /** The host filling the empty chairs with practice opponents, as a TARGET count. */
     setBots: (count: number) => Promise<void>;
     /** The host throwing somebody out of the lobby. The removal sticks, so this is not the
@@ -373,10 +370,6 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         [code, command],
     );
     const start = useCallback(() => command(() => startRoom(code)), [code, command]);
-    const resize = useCallback(
-        (size: number) => command(() => resizeRoom(code, size)),
-        [code, command],
-    );
     const setBots = useCallback(
         (count: number) => command(() => setRoomBots(code, count)),
         [code, command],
@@ -463,7 +456,6 @@ export function useVersusRoom(code: string, enabled: boolean): VersusRoom {
         refresh,
         ready,
         start,
-        resize,
         setBots,
         remove,
         leave,

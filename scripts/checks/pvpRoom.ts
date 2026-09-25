@@ -60,7 +60,6 @@ import {
   formationOf,
   joinRoom,
   recoverFromOutage,
-  reduceSize,
   remainingBudget,
   removeMember,
   rerollDeal,
@@ -205,20 +204,6 @@ export function pvpRoomChecks(): void {
     check(
       'room: a non-host cannot start the room',
       () => startRoom(room, 'u1', T0).status === 'lobby',
-    );
-  }
-
-  {
-    // A host may shrink a room that will not fill, never grow it (P7).
-    let room = roomOf(8, BUDGET);
-    room.members = room.members.slice(0, 3);
-    const down = reduceSize(room, 'u0', 4);
-    const up = reduceSize(down, 'u0', 8);
-    const tooFar = reduceSize(down, 'u0', 2);
-    check(
-      'room: the host can shrink 8 to 4, cannot grow back, and cannot shrink below the people seated',
-      () => down.size === 4 && up.size === 4 && tooFar.size === 4,
-      () => `${down.size} / ${up.size} / ${tooFar.size}`,
     );
   }
 

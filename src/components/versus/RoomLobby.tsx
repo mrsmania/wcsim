@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { type FormationName, type Style } from '../../domain/formations';
-import { ROOM_SIZES } from '../../domain/pvpRoom';
 import {
     KICKOFF_HOLD_SECONDS,
     KICKOFF_SECONDS,
@@ -57,11 +56,12 @@ const base = (): string => import.meta.env.BASE_URL;
 // the SERVER starts it on the same two conditions - full, and everybody ready. The count is
 // therefore not armed here at all: the draft simply arrives on the next poll.
 //
-// A ROOM THAT WILL NOT FILL CAN BE PLAYED SMALLER (P7). The host may drop eight to four or
-// two, never upwards and never below the people already sitting here, and NO BYES ARE EVER
-// CREATED - the room plays a full bracket at its new size. It is offered rather than
-// automatic, because "three of you turned up, shall we just play?" is the host's call and
-// not the server's.
+// A ROOM THAT WILL NOT FILL IS FILLED, NOT SHRUNK (2026-09-25, asked for: the play-it-
+// smaller chips were overkill). The host used to be offered "Play 4" / "Play 2" beside the
+// practice opponents, which is two answers to one question - and the weaker of the two,
+// since dropping eight to two is a different evening from the tournament that was opened
+// where filling the chairs is the one that was. P7's amendment is deleted rather than
+// hidden, `reduceSize` and the referee's `size` route with it.
 
 export default function RoomLobby({ view, room }: { view: RoomView; room: VersusRoom }) {
     const me = view.members.find((m) => m.userId === view.you?.userId) ?? null;
@@ -73,14 +73,9 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
     const isHost = view.hostId === view.you?.userId;
     const full = view.members.length >= view.size;
     const duel = isDuel(view);
-    // Downwards only, and never below the people already sitting here: that is the
-    // referee's rule (`reduceSize`), and offering a button it would refuse is worse than
-    // not offering one.
-    const smaller =
-        isHost && !duel ? ROOM_SIZES.filter((n) => n < view.size && n >= view.members.length) : [];
     // The practice opponents, and the counts the host may choose between: every chair no
     // PERSON is sitting in, which is the same bound `setBots` enforces. Offering a number
-    // the referee would refuse is the same mistake as offering a size it would refuse.
+    // the referee would refuse is worse than not offering one.
     const bots = botsIn(view);
     const freeSeats = view.size - peopleIn(view).length;
     const botCounts = Array.from({ length: freeSeats + 1 }, (_, i) => i);
@@ -324,28 +319,6 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                                     }}
                                 >
                                     {n === 0 ? 'None' : `${n} opponent${n === 1 ? '' : 's'}`}
-                                </button>
-                            ))}
-                        </div>
-                    </>
-                )}
-
-                {smaller.length > 0 && (
-                    <>
-                        <div className={`${MONO_CAP} mt-4`}>Not going to fill?</div>
-                        <RoomNote>Play it smaller. Everyone here keeps their seat.</RoomNote>
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                            {smaller.map((n) => (
-                                <button
-                                    key={n}
-                                    disabled={busy}
-                                    className={`rounded-[5px] border px-2.5 py-1.5 font-mono text-[12px] font-bold transition ${CHIP_OFF}`}
-                                    onClick={() => {
-                                        setBusy(true);
-                                        void room.resize(n).finally(() => setBusy(false));
-                                    }}
-                                >
-                                    Play {n}
                                 </button>
                             ))}
                         </div>

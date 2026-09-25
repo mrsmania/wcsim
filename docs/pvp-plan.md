@@ -91,7 +91,7 @@ in rather than a missing feature.
 | P3 | The owned-sticker discount | **Never applies in PvP.** The raw `priceOf` curve is the price |
 | P4 | Which World Cups | **A room-level pool set by the host.** Everyone in a room draws from the same cups |
 | P5 | Ratings visible | **A host switch, in ROLL rooms only.** A budget room always shows ratings, because a price is calculated straight from a rating. See P40 for what the switch can and cannot enforce |
-| P7 | Room sizes and format | **2, 4 or 8, and exactly full to start.** *Amended 2026-08-26: the host may **reduce** the size before the start (8 to 4, 4 to 2) so a room that will not fill can still be played. No byes are ever created* |
+| P7 | Room sizes and format | **2, 4 or 8, and exactly full to start.** *Amended 2026-08-26: the host may reduce the size before the start (8 to 4, 4 to 2) so a room that will not fill can still be played. No byes are ever created.* **THAT AMENDMENT IS DELETED, 2026-09-25** (asked for: the play-it-smaller chips were overkill). A room that will not fill is FILLED, not shrunk: P49's practice opponents are the answer, and of the two they are the one that keeps the tournament the host opened, where dropping eight to two is a different evening. Two answers to one question on one panel, of which one was strictly the weaker. `reduceSize`, the referee's `size` route, `resizeRoom` and the lobby's chips are all gone, so the size a room opens at is the size it plays |
 | P8 | Career effect on fairness | **None at all.** *Absolute since 2026-08-27: P2 held the only door open, and that door is now closed. A room is the same room whoever walks into it* |
 | P9 | Stakes | **A win/loss record only.** A ladder is planned and this is built to accept one (see P36) |
 | P15 | You draft once per room | **Your XI plays the whole tournament.** Confirmed against a between-rounds swap window and a full redraft; both add a phase and make somebody wait |
@@ -175,7 +175,7 @@ in rather than a missing feature.
 | Option | Values | Default |
 |---|---|---|
 | Visibility | Public (listed) or private (code only) | Public |
-| Size | 2, 4 or 8. Reducible before the start (P7) | 2 |
+| Size | 2, 4 or 8, fixed once opened (P7; the reduction was deleted 2026-09-25) | 4 |
 | Draft method | Roll a squad, or buy with a budget | **Roll a squad** (2026-08-30) |
 | Budget | Five rungs, $100 to $200 (`ROOM_BUDGETS`); the referee accepts $70 to $200 (P2) | $125 |
 | Cups | Any subset of the World Cups, never empty | All of them |
@@ -217,8 +217,8 @@ three re-roll kinds is dead. Say so in the lobby rather than shipping a button t
 1. **Lobby.** The host creates the room and gets a six-character code. A public room appears in
    the lobby list; a private one is joined only by code. Each player picks their formation and
    style and then presses **Ready** (P48); the lobby shows who has, and a shape can still be
-   changed until the start. The host may reduce the size (P7) and starts when the room is full,
-   ready or not. **A DUEL HAS THIS PHASE TOO AND IT IS WHERE ITS WHOLE ANTI-EXPLOIT RULE
+   changed until the start. The host fills any empty chairs with practice opponents (P49) and
+   starts when the room is full, ready or not. **A DUEL HAS THIS PHASE TOO AND IT IS WHERE ITS WHOLE ANTI-EXPLOIT RULE
    LIVES** (P54): nothing is dealt or bought until both players are in and ready, and nobody
    starts it by hand - the server does, on those two conditions - so a challenger cannot see a
    squad, dislike it and open another challenge instead. Once somebody has taken it up,
@@ -1152,7 +1152,8 @@ is unnecessary or very obvious, and what is the button *Change my shape* for?"
   plays every tie of the round, and `tickRoom` advances until one player is left, all of it
   already asserted over sixty rooms of eight. What wave 7 had to build was the client's
   READING of that - the tree, the wait, the spectator - plus one command the client had
-  never called (`size`, P7's play-it-smaller). A wave that touches only one side is the
+  never called (`size`, P7's play-it-smaller, itself deleted on 2026-09-25). A wave that
+  touches only one side is the
   reward for having put the rules in `domain/` first.
 - **THERE IS NO "THE OTHER PLAYER".** Every versus screen was written with `others[0]` as
   the opponent, which is exactly right in a room of two and wrong in three different ways in
@@ -1383,7 +1384,9 @@ A policy nobody has exercised is a policy nobody has checked.
 - **Does the public lobby fill?** (P18, P23, P28.) It is the half of the feature that depends on
   other people. Note the self-fulfilling risk: joining an eight-player room as the second person
   means waiting for six strangers with nothing to do, and the rational move is to leave, which
-  is why P7 now lets a host shrink a room and why the listing shows liveness.
+  is why P49 lets a host fill a room with practice opponents and why the listing shows
+  liveness. (P7's shrink answered the same worry and was deleted on 2026-09-25: two answers
+  to one question, of which this is the one that keeps the tournament that was opened.)
 
 ### Deferred rather than decided
 

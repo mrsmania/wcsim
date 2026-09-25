@@ -812,15 +812,6 @@ export function setLineup(
   return next;
 }
 
-/** Shrink a room that will not fill (P7). Never grows, and never below what is seated. */
-export function reduceSize(room: PvpRoom, hostId: string, size: RoomSize): PvpRoom {
-  if (room.status !== 'lobby' || hostId !== room.hostId) return room;
-  if (size >= room.size || size < room.members.length) return room;
-  const next = clone(room);
-  next.size = size;
-  return next;
-}
-
 /**
  * Start the draft. Requires a full room, and the host may start whether or not everyone
  * pressed Ready (P48) - a signal, not a lock, so nobody can hold a room by wandering off.
