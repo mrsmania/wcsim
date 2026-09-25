@@ -9,7 +9,7 @@ import {
     inviteUrl,
     isDuel,
     peopleIn,
-    roundsFor,
+    roomRules,
     seatsOf,
 } from '../../domain/pvpView';
 import type { RoomView } from '../../domain/pvpWire';
@@ -77,9 +77,7 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
     // referee's rule (`reduceSize`), and offering a button it would refuse is worse than
     // not offering one.
     const smaller =
-        isHost && !duel
-            ? ROOM_SIZES.filter((n) => n < view.size && n >= view.members.length)
-            : [];
+        isHost && !duel ? ROOM_SIZES.filter((n) => n < view.size && n >= view.members.length) : [];
     // The practice opponents, and the counts the host may choose between: every chair no
     // PERSON is sitting in, which is the same bound `setBots` enforces. Offering a number
     // the referee would refuse is the same mistake as offering a size it would refuse.
@@ -309,8 +307,8 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                     <>
                         <div className={`${MONO_CAP} mt-4`}>Nobody else coming?</div>
                         <RoomNote>
-                            Fill the empty chairs and start now. They build their own XI out
-                            of the same pool, spend nearly all the money, and play to win.
+                            Fill the empty chairs and start now. They build their own XI out of the
+                            same pool, spend nearly all the money, and play to win.
                         </RoomNote>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                             {botCounts.map((n) => (
@@ -354,26 +352,26 @@ export default function RoomLobby({ view, room }: { view: RoomView; room: Versus
                     </>
                 )}
 
+                {/* ONE FACT A LINE (2026-09-25, asked for). It was a paragraph of three
+                    sentences that had to be read to the end to find the one thing you
+                    wanted, on the panel a player checks just before they are dealt a
+                    squad. The facts are `roomRules`, so what a room plays is a derivation
+                    that can be checked rather than copy assembled in a component - which
+                    is also how the paragraph came to advertise a per-pick clock to a
+                    buying room that opens none. Ratings stay the last bullet and keep
+                    their amber, being the one house rule that changes how you pick rather
+                    than how long you have. */}
                 <div className={`${MONO_CAP} mt-4`}>The rules</div>
-                <RoomNote>
-                    {view.rules.method === 'budget'
-                        ? `Buy an XI with $${view.rules.budget}, out of every World Cup, ${view.pickSeconds} seconds a pick.`
-                        : `Roll random squads and pick one man from each, ${view.rerolls} re-roll${
-                              view.rerolls === 1 ? '' : 's'
-                          } each, ${view.pickSeconds} seconds a pick.`}{' '}
-                    {roundsFor(view.size) > 1
-                        ? `Then ${roundsFor(view.size)} knockout rounds.`
-                        : 'Then one match.'}{' '}
-                    No boosts, no perks and no chemistry: eleven players against eleven.
-                </RoomNote>
-                {!view.showRatings && (
-                    <RoomNote>
-                        <span className="mt-1.5 block font-semibold text-amber-ink">
-                            Ratings are hidden. Pick on the name and the year; the numbers come
-                            back at the whistle.
-                        </span>
-                    </RoomNote>
-                )}
+                <ul className="mt-1 list-disc space-y-1 pl-[1.1rem] text-[13px] leading-snug text-muted marker:text-dim">
+                    {roomRules(view).map((rule) => (
+                        <li key={rule}>{rule}</li>
+                    ))}
+                    {!view.showRatings && (
+                        <li className="font-semibold text-amber-ink marker:text-amber-ink">
+                            Ratings hidden until the whistle
+                        </li>
+                    )}
+                </ul>
 
                 {duel ? (
                     // Nobody starts a duel by hand: the server does it the moment both

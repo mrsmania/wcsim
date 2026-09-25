@@ -62,6 +62,7 @@ import {
   roomBracket,
   myRoomLine,
   roomLine,
+  roomRules,
   roundLabel,
   roundsFor,
   shouldReveal,
@@ -934,6 +935,88 @@ export function pvpViewChecks(): void {
       () =>
         `${lobbyLine(budget)} | older: ${lobbyLine({ ...budget, draftSeconds: undefined })}`,
     );
+    // --- THE SAME RULE ONE SCREEN IN: the lobby's own bullets -----------------
+    //
+    // The panel a player reads just before they are dealt a squad had the identical bug, in
+    // a paragraph rather than on a row: it printed `pickSeconds` whatever the room played,
+    // so a BUYING room promised a per-pick window it never opens (P52) and a DUEL promised a
+    // clock it has none of at all (P51). Nothing behavioural can see it - every one of those
+    // was a perfectly good screen saying something untrue - so the facts are a derivation and
+    // this is what holds them.
+    //
+    // THE FALLBACK IS SILENCE AGAIN, for the same reason: `view.pickSeconds` is always there
+    // and always tempting, and reaching for it on a budget room is exactly the bug coming
+    // back.
+    check(
+      'pvpView: a room states its rules one fact a line, and never a clock it does not run',
+      () => {
+        const buy = fixtureRoom({ status: 'lobby', size: 4, draft: { totalMs: 300_000, remainingMs: null } });
+        const rollRoom = fixtureRoom({
+          status: 'lobby',
+          size: 8,
+          rules: { method: 'roll', budget: 0, years: [] },
+          rerolls: 3,
+          draft: null,
+        });
+        const duel = fixtureRoom({
+          status: 'lobby',
+          pace: 'async',
+          size: 2,
+          rules: { method: 'roll', budget: 0, years: [] },
+          rerolls: 1,
+        });
+        const older = fixtureRoom({ status: 'lobby', size: 4, draft: null });
+        return (
+          // Every bullet is short enough to be one, which is the whole request: nothing
+          // here is a sentence to be read to the end.
+          [buy, rollRoom, duel, older]
+            .flatMap(roomRules)
+            .every((r) => r.length <= 34 && !r.includes('. ')) &&
+          roomRules(buy).join(' | ') ===
+            'Buy an XI with $110 | 5 min to draft | 2 knockout rounds | No boosts, perks or chemistry' &&
+          // A roll room names its re-rolls and its pick window, and one is not "1 re-rolls".
+          roomRules(rollRoom).join(' | ') ===
+            'Roll squads, one man from each | 3 re-rolls each | 20s a pick | 3 knockout rounds | No boosts, perks or chemistry' &&
+          roomRules(duel).includes('1 re-roll each') &&
+          roomRules({ ...rollRoom, rerolls: 0 }).includes('No re-rolls') &&
+          // THE CLOCK, three ways. A buying room never names a pick window...
+          !roomRules(buy).some((r) => r.includes('a pick')) &&
+          // ...a duel names no clock at all, at either scale...
+          !roomRules(duel).some((r) => r.includes('a pick') || r.includes('to draft')) &&
+          roomRules(duel).includes('Build in your own time') &&
+          // ...and a buying room from a referee too old to send the block says nothing
+          // rather than falling back to the figure that is always there.
+          !roomRules(older).some((r) => r.includes('a pick') || r.includes('to draft')) &&
+          // The room's own size decides the bracket, and two people play one match.
+          roomRules(duel).includes('One match') &&
+          // Discrimination: a ROLLING live room does still print the clock it runs, or
+          // deleting every clock would satisfy the three claims above.
+          roomRules(rollRoom).includes('20s a pick')
+        );
+      },
+      () => roomRules(fixtureRoom({ status: 'lobby' })).join(' | '),
+    );
+    // The lobby renders them AS BULLETS and keeps no copy of the facts, which is the half
+    // of the request no assertion about strings can see.
+    {
+      const lobby = codeOnly(readFileSync('src/components/versus/RoomLobby.tsx', 'utf8'));
+      check(
+        'pvpView: the lobby draws the rules as a bullet list off `roomRules`, with no prose copy of them',
+        () =>
+          /roomRules\(view\)\.map/.test(lobby) &&
+          lobby.includes('list-disc') &&
+          // Vacuity: it is the rules block being read, and the ratings house rule is still
+          // the emphasised last bullet rather than having gone with the paragraph.
+          lobby.includes('The rules') &&
+          /!view\.showRatings/.test(lobby) &&
+          lobby.includes('text-amber-ink') &&
+          // And none of the facts is written out here any more - the paragraph named the
+          // clock and the rounds itself, which is how it came to name the wrong clock.
+          !lobby.includes('seconds a pick') &&
+          !/roundsFor\(/.test(lobby),
+        () => `${/roomRules\(view\)\.map/.test(lobby)} / ${lobby.includes('list-disc')}`,
+      );
+    }
     check(
       'pvpView: a row says how many chairs the host filled with practice opponents, and none is silent',
       () =>

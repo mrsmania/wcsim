@@ -4711,6 +4711,33 @@ always tempting, so reaching for it is exactly the bug coming back. Two things t
   It reads a ROLLING room for the pick clock now. **A check written against buggy behaviour
   locks the bug in**, which is the same lesson as the vacuous `prime-years` check.
 
+**AND THE ROOM'S OWN RULES ARE BULLETS, ONE FACT A LINE** (2026-09-25, asked for: in a
+versus room the rules were way too long). The lobby stated them as a paragraph of three
+sentences, on the panel a player reads just before they are dealt a squad, so finding the
+one thing you came for meant reading to the end. `roomRules` (domain/pvpView) is that
+paragraph as a list of short facts - what you do, the re-rolls, the clock, how many
+knockout rounds, and no boosts/perks/chemistry - drawn as a `list-disc` list in the same
+idiom the sign-in sheet's four benefits use. Three things about it:
+
+- **IT IS THE SAME FACTS AS `playsLine` AND DELIBERATELY NOT THAT FUNCTION.** That one
+  writes a ROW in a list of rooms somebody is choosing between, where a sentence is what
+  fits; this is read from inside the room, so each fact gets its own line - and a
+  `RoomView` also knows two things a lobby row does not, the size the bracket will be and
+  whether the whole-draft clock is really there.
+- **THE SAME CLOCK BUG WAS IN IT, one screen further in.** The paragraph printed
+  `pickSeconds` whatever the room played, so a BUYING room promised a per-pick window it
+  never opens (P52) and a DUEL promised a clock it has none of at all (P51). The clock is
+  decided by what the room CARRIES now: a duel says "Build in your own time", a budget
+  room reads its own `draft` block, a roll room reads the pick window - and **a budget room
+  from a referee too old to send that block says nothing**, since the always-present
+  `pickSeconds` is exactly the wrong fallback. Same rule, same fallback, same reason.
+- **The ratings switch stays the emphasised last bullet**, in amber, because it is the one
+  house rule that changes how you PICK rather than how long you have.
+
+`npm run checks` holds the facts and reads the screen for the bullets, both
+mutation-tested red: nothing behavioural can see either half, since a paragraph naming the
+wrong clock renders perfectly.
+
 - **Routes are `/versus` and `/versus/:code`**, reached from the Versus tab, not a segment
   under Play. It became **the sixth tab on 2026-08-31**, when duels made it a
   place you check rather than a place you visit - see "Navigation" above for why that is a

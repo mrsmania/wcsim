@@ -1109,6 +1109,54 @@ export function draftLengthLine(draftSeconds: number | undefined): string | null
 }
 
 /**
+ * THE HOUSE RULES, ONE FACT A LINE (2026-09-25, asked for: in a versus room the rules were
+ * way too long, and should read as bullets).
+ *
+ * IT IS THE SAME FACTS AS `playsLine` AND IT IS DELIBERATELY NOT THAT FUNCTION, because the
+ * reader is a different one. That sentence is a ROW in a list of rooms somebody is choosing
+ * between, where one line is all there is; this is read by a player already sitting in the
+ * room, about to be dealt a squad, who is scanning for the one fact they came for - so each
+ * gets a line of its own and nothing has to be read to the end. A `RoomView` also carries
+ * two things a lobby row does not: the size the bracket will be, and whether the
+ * whole-draft clock is really there.
+ *
+ * THE CLOCK IS THE PART THAT GOES WRONG QUIETLY, AND IT HAD. The paragraph this replaces
+ * printed `pickSeconds` whatever the room played, so a BUYING room advertised a per-pick
+ * window it never opens (P52) and a DUEL advertised a clock it has none of at all (P51) -
+ * the same bug the public lobby row was fixed for on 2026-09-15, one screen in. So the
+ * clock is decided by what the room actually CARRIES rather than by its method: a duel says
+ * there is no clock, a budget room reads its own whole-draft block, a roll room reads the
+ * pick window. A budget room from a referee too old to send that block says NOTHING, since
+ * the always-present `pickSeconds` is exactly the wrong fallback.
+ *
+ * The ratings switch is not here: it is the one house rule that changes how the draft is
+ * PLAYED rather than how long it takes, so the lobby gives it its own emphasis.
+ */
+export function roomRules(view: RoomView): string[] {
+    const roll = view.rules.method === 'roll';
+    const out: string[] = [
+        roll ? 'Roll squads, one man from each' : `Buy an XI with $${view.rules.budget}`,
+    ];
+    if (roll) {
+        out.push(
+            view.rerolls === 0
+                ? 'No re-rolls'
+                : `${view.rerolls === 1 ? '1 re-roll' : `${view.rerolls} re-rolls`} each`,
+        );
+    }
+    const clock = isDuel(view)
+        ? 'Build in your own time'
+        : roll
+          ? `${view.pickSeconds}s a pick`
+          : draftLengthLine(view.draft ? view.draft.totalMs / 1000 : undefined);
+    if (clock) out.push(clock);
+    const rounds = roundsFor(view.size);
+    out.push(rounds > 1 ? `${rounds} knockout rounds` : 'One match');
+    out.push('No boosts, perks or chemistry');
+    return out;
+}
+
+/**
  * A room's chairs, split by what is in them.
  *
  * DRAWN RATHER THAN COUNTED IN WORDS since 2026-09-15: the lobby row shows one dot a chair,
